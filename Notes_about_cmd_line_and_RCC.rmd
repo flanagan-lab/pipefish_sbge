@@ -1,0 +1,116 @@
+---
+title: "Notes about Command Line and using the RCC"
+output: github_document
+---
+
+## Issues with getting into the RCC
+Initially when trying to log in to the RCC using `ssh rccuser@132.181.102.28` there was an issue where it was asking me to enter a password in order to access the RCC. However, this RCC was set-up specifically so no password would be required. We were able to fix this with the following steps:\
+
+1. Find your real WSL home directory with `echo "$HOME"`\
+
+2. Copy the folder that contains your .ssh key to the WSL home directory `cp -r /mnt/c/Users/nicol/.ssh /home/ntosto`
+
+3. Change file permissions so that you can access the .ssh key using **chmod**\
+`chmod 0744 /home/ntosto/.ssh`\
+`chmod 0600 /home/ntosto/.ssh/id_ed25519` (the id_ed25519 will not be the exact same for everyone)\
+
+4. After running those two commands you should now be able to access the RCC with the normal `ssh rccuser@...` 
+
+## Creating a Shell script
+Creating a [shell script](https://www.youtube.com/watch?v=zo7xL6s79K4&list=PLLV_tmUM69VA4B0DKfNEBsaL9ARlpp__W&index=15) is useful when you are wanting to utilize a certain pipeline, or command, many different times without having to re-type or memorize what was done before. It can be done using the command `nano`.
+
+ 1. Using **nano** tell the command line what type of file you are wanting to create.\
+ `nano filename.sh`\
+     - This opens a file editor where we can now add our code/pipeline
+2. Add `#!/bin/bash` at the beginning of the script. This tells the computer what to use to execute the script.
+3. Each line in the script is a different command, they will be run one after the other.
+     - If you want to have something go onto a second line but still be one command add "\" at the end of each line.
+4. Before you can run the script, you must make sure you have executable permissions (see section about how to do that).
+
+
+## Transfering files from laptop to the RCC and vice versa
+This can be done using the command **sftp** which is a secure transfer protocol (based on ssh). To **begin an sftp session** and start transferring files you type `sftp username@filegateway.canterbury.ac.nz`, substituting in your UC username (eg. nto42). It should then ask for your password and let you in to the server.
+
+Once on this server you can maneuver into /Research/FlanaganLab. Now we can start moving files between the RCC and the FlanaganLab server.
+
+ 1. Downloading files from FlanaganLab to RCC: use `get remote-file <local-dir>`
+      - The remote-file is whatever file you are wanting to move
+      - local-dir is the target directory you want to download to. If you leave it blank it will automatically download to current local directory (the RCC)
+ 2. Uploading files from the RCC to FlanaganLab: use `put local-file <remote-path>`
+      - The local-file is whatever file you want to move from the RCC to FlanaganLab
+      - Remote-path is the location of FlanaganLab (/Research/FlanaganLab)
+      - If you get the error **local "XXX" is not a regular file** but `-r` after `put`
+
+## Creating a config file for logging into the RCC
+ 1. Navigate into the .ssh directory
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/cd_to_ssh.jpg" style="width:650px;"/>
+</p>
+ 2. Once in the .ssh directory create a config file with `nano config` \
+```{bash, eval=FALSE}
+##Example of how to format a config file
+Host ctosto
+        HostName 132.181.102.28
+        User rccuser
+        IdentityFile ~/.ssh/id_ed25519
+```
+
+ 3. You can now log into the RCC with whatever name you gave it in the config file (Ex. `ssh ctosto`)
+
+
+## Renaming the .fastq.gz files to get rid of unecessary info
+**STARTING FORMAT** = FLG3F2_E1_S52_L004_R1_001.fastq.gz 
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/names_1.jpg" style="width:450px;"/>
+</p>
+
+```{bash, eval=FALSE}
+##Remove the "_001" from all of the files and replace it with nothing
+rename 's/_001//g' *.gz
+
+```
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/names_2.jpg" style="width:450px;"/>
+</p>
+
+```{bash, eval=FALSE}
+##Removing the _R1(2).fastq.gz from file names and putting those names into a file (samples.txt)
+for fq in ./*_R1.fastq.gz
+> do
+> base=$(basename $fq _R1.fastq.gz)
+> echo $base >> samples.txt
+> done 
+
+```
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/names_3.jpg" style="width:350px;"/>
+</p>
+
+```{bash, eval=FALSE}
+##Copy the column and put that into a new file (rename.txt)
+cat samples.txt | awk '{print $1"\t"$1}' >> rename.txt
+
+##Using nano, remove the unwanted bits from the name in the SECOND column
+nano rename.txt
+```
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/names_4.jpg" style="width:350px;"/>
+</p>
+
+```{bash, eval=FALSE}
+##Create a while loop to create the variables "old" and "new" for all samples
+while read -r line
+> do
+> old=$(echo $line | awk '{print $1}')
+> new=$(echo $line | awk '{print $2}')
+> echo $new $old
+> done < rename.txt
+
+##Apply the old and new variables to the names of the .gz files using the command 'rename'
+while read -r line; do old=$(echo $line | awk '{print $1}'); new=$(echo $line | awk '{print $2}'); echo $new $old
+> rename "s/$old/$new/g" *.gz
+> done < rename.txt 
+```
+<p float="left"> 
+<img src="C:/Users/nicol/Pictures/names_5.jpg" style="width:450px;"/>
+</p>
