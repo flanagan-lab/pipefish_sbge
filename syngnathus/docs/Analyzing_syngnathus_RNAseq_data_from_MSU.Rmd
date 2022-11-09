@@ -706,4 +706,25 @@ sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType
     --CPU 12 \
     --output `pwd`/trinity_out_dir_fuscs
 ```
+
 ## Troubleshooting Trinity
+The overarching issues I ran into with Trinity surrounded not having enough memory/RAM and space on the RCC. A total of **4.1 TB** of space was added to the disk paired with **192 GB** of RAM in order to get Trinity to work. \
+
+Below is an example of what an error related to RAM might look like:\
+<p float="left">
+
+<img src="C:/Users/nicol/Pictures/trinity_RAM.png" style="width:650px;"/>
+
+
+</p>
+
+An identifying feature when trying to determine whether or not an error with Trinity is related to memory/RAM is the line `bash: line 1:    219 Killed` along with errors starting with `Thread X terminated abnormally`. \
+
+### Using screen as a substitute for nohup
+Because Trinity must be run in the docker, we are unable to use the `nohup` command in order to send the process into the background. Because of this and the nature of the RCC, you may end up with errors such as `error client_loop: send disconnect: Broken pipe.` meaning our RCC session has automatically timed out. To overcome this issue we can use [screen](https://www.gnu.org/software/screen/manual/html_node/index.html), which acts as a sort of RDC for the terminal. Some of the basics for using screen are outlined below:
+
+1. Log in to the RCC and begin a screen session by entering `screen` and then start your process/commands.
+
+2. If you become disconnected at any point from the RCC, the screen session will still go on. **To reconnect to the session** use the command `screen -r`.
+
+3. To disconnect from your screen session (WITHOUT STOPPING IT) use **Crtl+a d**. All commands to screen are started with "Ctrl+a" followed by a letter.
