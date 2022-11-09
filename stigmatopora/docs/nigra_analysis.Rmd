@@ -34,7 +34,14 @@ I started this script running on 8 Nov 2022 ~8:48am, PID 14781.
 
 ### Checking quality of trimmed reads
 
-I will use `multiqc` (at Coley's recommendation) to quality check the trimmed reads. To do this, (once the program is installed using `pip`) all I need to do is go to `OG7926/` and run `multiqc trimmed/`
+I will use `multiqc` (at Coley's recommendation) to quality check the trimmed reads. First, I need to run FastQC on all of my files. This is done using the script `run_fastqc_trimmed.sh` with the command `nohup run_fastqc_trimmed.sh > fasqc_trimmed.log 2>&1 &`.
+
+```{bash, file='scripts/run_trimmomatic.sh', eval=FALSE}
+
+```
+
+
+Then (once the program is installed using `pip`) all I need to do is go to `OG7926/` and run `multiqc trimmed_qc/`.
 
 
 #### Comparisson of UNTRIMMED vs TRIMMED read {-}
