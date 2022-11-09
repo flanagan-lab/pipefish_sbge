@@ -1,0 +1,59 @@
+---
+title: "Stigmatopora nigra analysis"
+output: html_notebook
+---
+
+```{r knitsetup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
+```
+
+
+```{r chunksetup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,out.extra='',fig.pos="H",
+                      fig.path = "../figs/",
+                      dpi = 300,fig.keep='none',dev='png')
+```
+
+
+## Retrieving Data
+
+Otago University Sequencing centre makes it very easy to download data using Globus ...
+
+Quality scores were also provided by Otago University, so I do not need to run FastQC on all of them.
+
+
+## Trimming reads
+
+I will run Trimmomatic on my local machine (C001KR). I am running Trimmomatic v. 0.39 and am using the script `run_trimmomatic.sh`, whose contents are below, with the command `nohup run_trimmomatic.sh > trimmomatic.log 2>&1 &`.
+
+```{bash, file='scripts/run_trimmomatic.sh', eval=FALSE}
+
+```
+
+I started this script running on 8 Nov 2022 ~8:48am, PID 14781.
+
+### Checking quality of trimmed reads
+
+I will use `multiqc` (at Coley's recommendation) to quality check the trimmed reads. To do this, (once the program is installed using `pip`) all I need to do is go to `OG7926/` and run `multiqc trimmed/`
+
+
+#### Comparisson of UNTRIMMED vs TRIMMED read {-}
+
+## De novo transcriptome assembly using Trinity
+
+```{r createSampleFile, eval=FALSE}
+samples<-read.csv("OG7629_sample_info.csv")
+snigra_samples<-samples[which(samples$Organism=="Stigmatopora nigra"),]
+
+snigra_samples$file<-unlist(lapply(snigra_samples$OGF_ID,
+                                   grep,
+                                   x=list.files(path="../../OG7629/trimmed",
+                                                pattern="R1",
+                                                full.names = TRUE),
+                                   value=TRUE))
+# reorder it so it is
+## SN_TT (species, tissue type) \t SN_TT_ID \t R1 \t R2
+```
+
+
+
