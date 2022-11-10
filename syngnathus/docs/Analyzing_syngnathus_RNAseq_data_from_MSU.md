@@ -20,8 +20,8 @@ The program **wget** is capable of doing this on command line. However, only ver
 
 1.  Check the version of wget that is running use: `wget -V`
 
-2.  After confirming the version of wget will work execute the command:\
-    `wget -r -np -nH --ask-password ftps://<username>@<hostname>/<directory_name>`\
+2.  After confirming the version of wget will work execute the command:
+    `wget -r -np -nH --ask-password ftps://<username>@<hostname>/<directory_name>`
     \
     `wget -r -np -nH --ask-password ftps://flanagans@titan.bch.msu.edu/20220902_mRNASeq_PE150`
 
@@ -47,7 +47,7 @@ This is a summary of the quality of the samples, for more information about inte
 
 ## What a 'Normal' or 'Good' fastQC file looks like
 
-While there may be an [X ]{style="color:indianred"}, [! ]{style="color:gold"}, or [Check ]{style="color:limegreen"} to indicate the quality of the data, they should not be taken too seriously, particularly in the case of RNA sequencing data. Here are some examples of what deviations can occur without meaning the sample is 'bad'.\
+While there may be an [X ]{style="color:indianred"}, [! ]{style="color:gold"}, or [Check ]{style="color:limegreen"} to indicate the quality of the data, they should not be taken too seriously, particularly in the case of RNA sequencing data. Here are some examples of what deviations can occur without meaning the sample is 'bad'.
 
 | NORMAL READS |           |           |            |            |            |
 |:-------------|:----------|:----------|:-----------|:-----------|:-----------|
@@ -123,7 +123,7 @@ A read was considered 'normal' if it possessed **no overrepresented sequences**.
 
 ### Adapter content
 
-A cumulative plot of the fraction of reads where the sequence library adapter sequence is identified at the indicated base position. When using long read lengths it is possible that some of the library inserts are shorter than the read length resulting in read-through to the adapter at the 3' end of the read.\
+A cumulative plot of the fraction of reads where the sequence library adapter sequence is identified at the indicated base position. When using long read lengths it is possible that some of the library inserts are shorter than the read length resulting in read-through to the adapter at the 3' end of the read.
 
 This is more likely to occur for RNA-seq libraries due to the variability of the library insert sizes. This was not taken into account when denoting a 'normal' read.
 
@@ -405,7 +405,7 @@ Aside from the over representation of the Illumina Nextera Transposase seqeunce,
 
 There were a group of sequences that originally blasted as "No significant similarity found". For all of those sequences, the 'optimize for' setting was changed from **highly similar sequences (megablast)** to **somewhat similar sequences (blastn)** and then those results were recorded. The sequences are *italicized* in the table above and the percent identity for them ranged from 95.83% to 98%.
 
-\
+
 Overall there were 16 genes that resulted from blasting all of the sequences, 9 of which correspond to previously reported highly abundant genes in *Syngnathus scovelli* livers and 2 that were specific to the gills (NA in table).
 
 | GENE NAME                                                                 | ABUNDANT IN FEMALES? | ABUNDANT IN MALES? |
@@ -427,6 +427,7 @@ Overall there were 16 genes that resulted from blasting all of the sequences, 9 
 | *S.scovelli* uncharacterized LOC125975224                                 |          N           |         N          |
 | *S. acus/scovelli* vitellogenin                                           |        Y(2-3)        |         N          |
 
+    
 # Trimming the reads using TRIMMOMATIC
 
 [Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. Currently for version **0.40** of trimmomatic these are the different steps:
@@ -439,27 +440,27 @@ Overall there were 16 genes that resulted from blasting all of the sequences, 9 
     -   palindromeClipThreshold = how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment
     -   simpleClipThreshold = how accurate the match between any adapterect. sequence must be against a read.
 2.  **SLIDINGWINDOW**: Perform a sliding window trimming, cutting once the average quality within the window falls below a designated threshold.
-    `:<windowSize>:<requiredQuality>`\
+    `:<windowSize>:<requiredQuality>`
     -   windowSize = the number of bases to average across
     -   requiredQuality = the average quality required
-3.  **LEADING**: Cut bases off the start of a read, if below a designated threshold quality.\
-    `:<quality>`\
+3.  **LEADING**: Cut bases off the start of a read, if below a designated threshold quality.
+    `:<quality>`
     -   quality = the minimum quality required to keep a base
-4.  **TRAILING**: Cut bases off the end of a read, if below a designated threshold quality.\
-    `:<quality>`\
+4.  **TRAILING**: Cut bases off the end of a read, if below a designated threshold quality.
+    `:<quality>`
     -   quality = the minimum quality required to keep a base
-5.  **CROP**: Cut the read to a specified length.\
+5.  **CROP**: Cut the read to a specified length.
     `:<length>` 
     -   length = the number of bases to keep, from the start of the read
-6.  **HEADCROP**: Cut the specified number of bases from the start of a read.\
-    `:<length>`\
+6.  **HEADCROP**: Cut the specified number of bases from the start of a read.
+    `:<length>`
     -   length = the number of bases to remove from the start of the read
-7.  **MINLEN**: Drop the read if it is below a specified length.\
+7.  **MINLEN**: Drop the read if it is below a specified length.
     `:<length>`
     -   length = the minimum length of reads to be kept
 
-For **paired-end** data, two input files are specified and 4 output files. Two for the **paired** output where both of the reads survived the processing, and two for the corresponding **unpaired** output where one read survived but it's partner did not.\
-\
+For **paired-end** data, two input files are specified and 4 output files. Two for the **paired** output where both of the reads survived the processing, and two for the corresponding **unpaired** output where one read survived but it's partner did not.
+
 **Trimming occurs in the order which the steps are specified on the command line**. Recommended that if the adapter clipping is required it is done as early as possible.
 
 ## Examples of using Trimmomatic
@@ -477,40 +478,40 @@ For **paired-end** data, two input files are specified and 4 output files. Two f
         ILLUMINACLIP:/opt/Timmomatic-0.32/adapters/NexteraPE-PE.fa:2:30:10\
         SLIDINGWINDOW:4:15 MINLEN:36 &
 
-\
+
 This script sets it up so that when used you must input two arguments with the first argument being the forward set of reads and the second the reverse. To run trimmomatic you would then type: `script_location/script_name.sh XXX_paired-1.fastq.gz XXX_paired-2.fastq.gz`
 
 ## Installing Trimmomatic
 
 Trimmomatic was installed on the RCC through conda in a conda environment called **Trim**.
 
-1.  Create the **Trim** environment. Navigate into the location you want to store this environment [anaconda3/envs] and use the code:\
-    `conda create -n Trim`\
-2.  After creating the environment you have to activate it:\
-    `conda activate Trim/`\
-3.  Now that the **Trim** environment is activated we can install Trimmomatic-0.39.\
-    `conda install -c bioconda trimmomatic`\
+1.  Create the **Trim** environment. Navigate into the location you want to store this environment [anaconda3/envs] and use the code:
+    `conda create -n Trim`
+2.  After creating the environment you have to activate it:
+    `conda activate Trim/`
+3.  Now that the **Trim** environment is activated we can install Trimmomatic-0.39.
+    `conda install -c bioconda trimmomatic`
 4.  To use trimmomatic, you must make sure the **Trim** environment is first activated.
-    -   To activate any environment you create, you must be in the location where you first created it [anaconda3/envs].\
+    -   To activate any environment you create, you must be in the location where you first created it [anaconda3/envs].
 
 ### Installing conda
 
 1.  Navigate to the [Anaconda](https://www.anaconda.com/products/distribution) website and scroll down to the Anaconda Installers. Copy the link address for the **64-bit (x86) Installer** under the Linux tab.
-2.  Paste that installer link into the terminal with **wget**:\
-    `wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh`\
-3.  Run the anaconda shell script:\
-    `bash Anaconda3-2022.05-Linux-x86_64.sh`\
+2.  Paste that installer link into the terminal with **wget**:
+    `wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh`
+3.  Run the anaconda shell script:
+    `bash Anaconda3-2022.05-Linux-x86_64.sh`
 4.  Conda is now installed. Navigate into the anaconda folder that is generated and run `conda activate`. You can now start creating environments and installing packages.
-5.  Set up the conda channels as per the [bioconda documentation](https://bioconda.github.io/) so that you will not have to use `-c bioconda` when trying to install packages. You will only need to do this **once**.\
+5.  Set up the conda channels as per the [bioconda documentation](https://bioconda.github.io/) so that you will not have to use `-c bioconda` when trying to install packages. You will only need to do this **once**.
 ```
     conda config --add channels defaults
     conda config --add channels bioconda
     conda config --add channels conda-forge
 ```
 
-## Running Trimmomatic {.tabset}
+## Running Trimmomatic
 
-### One Pair of Reads {.unnumbered}
+### One Pair of Reads
 
 The following script was used to trim **one pair of reads** at a time.
 
@@ -528,10 +529,10 @@ trimmomatic PE $FORWARD $REVERSE\
         SLIDINGWINDOW:4:15 MINLEN:50
 ```
 
-How the script was used:\
-`nohup ./trim_script.sh FLG3F2_E1_S52_L004_R1_001.fastq.gz FLG3F2_E1_S52_L004_R2_001.fastq.gz &`\
+How the script was used:
+`nohup ./trim_script.sh FLG3F2_E1_S52_L004_R1_001.fastq.gz FLG3F2_E1_S52_L004_R2_001.fastq.gz &`
 
-### Multiple Pairs of Reads {.unnumbered}
+### Multiple Pairs of Reads
 
 In order to process **multiple** paired reads in a given directory, a **for loop** was created:
 
@@ -553,13 +554,13 @@ done
 
 -   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
 
--   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh >> trim.out &` entering `disown` when prompted.\
+-   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh >> trim.out &` entering `disown` when prompted.
 
 ## Quality checking trimmed reads with FastQC and MultiQC
 
 ### Installing and Using the command fastqc
--   fastqc was installed using conda in the **Trim environment** with `conda install -c bioconda fastqc`.\
-\
+-   fastqc was installed using conda in the **Trim environment** with `conda install -c bioconda fastqc`.
+
 -   There are many different arguments that can be attached to fastqc outlined in the [Ubuntu fastqc manual](https://manpages.ubuntu.com/manpages/trusty/man1/fastqc.1.html)
 
 ```{bash, eval=FALSE}
@@ -575,39 +576,39 @@ for fq in ${data}trimmed_paired/*.gz #The location of the PAIRED trimmed reads
 done
 ```
 
- - This script was run with `nohup bash fastqc_script.sh >> fastqc.out &`, entering `disown` when prompted.\
+ - This script was run with `nohup bash fastqc_script.sh >> fastqc.out &`, entering `disown` when prompted.
      - The output from this should consist of one .html and one .zip file for each read.
  
 ### Installing and Using multiqc
- - [Multiqc](https://multiqc.info/) is a program that allows you to combine results from different bioinformatic analyses across many samples into one single report. It was installed using conda in the **QC environment** with `conda install multiqc`.\
-     - Originally tried installing multiqc on just the base environment, ran into errors such as _"Solving environment: failed with initial frozen solve. Retrying with flexible solve"_. Left it installing overnight with nohup and still had not properly finished by the time I came back in the morning. After creating the QC environment and trying to install it there it took just a couple minutes to install properly.\
-     - Make sure the bioconda channel is set up in conda prior to installing this package (See **3.2.1**).\
-\   
- - Once installed run `multiqc`, followed by a list of directories you want it to search. Multiqc will scan all of the specified directories and produce a report based on details found in any log file that it recognizes. \
- `multiqc FastQC_trimmed/` \
-     - IF you are trying to run multiqc on fastqc files you must make sure you have the .zip files and not just the .html files from fastqc.\
-\
+ - [Multiqc](https://multiqc.info/) is a program that allows you to combine results from different bioinformatic analyses across many samples into one single report. It was installed using conda in the **QC environment** with `conda install multiqc`.
+     - Originally tried installing multiqc on just the base environment, ran into errors such as _"Solving environment: failed with initial frozen solve. Retrying with flexible solve"_. Left it installing overnight with nohup and still had not properly finished by the time I came back in the morning. After creating the QC environment and trying to install it there it took just a couple minutes to install properly.
+     - Make sure the bioconda channel is set up in conda prior to installing this package (See **3.2.1**).
+   
+ - Once installed run `multiqc`, followed by a list of directories you want it to search. Multiqc will scan all of the specified directories and produce a report based on details found in any log file that it recognizes. 
+ `multiqc FastQC_trimmed/` 
+     - IF you are trying to run multiqc on fastqc files you must make sure you have the .zip files and not just the .html files from fastqc.
+
  - Once MultiQC has finished, you should have a HTML report file called `multiqc_report.html` that contains all of the results!\
  
 ### Results of the FastQC/MultiQC Analysis of the TRIMMED Reads
 
-The raw reads were trimmed to fix two major issues: 1) Cleaning up the **per base sequence content** to get rid of the first 10-12 bases that result from hexamer priming that occurs during RNA-seq library preparation in EVERY sequence; 2) Remove all leftover **Illumina Nextera Transposase** adapter sequences. \
+The raw reads were trimmed to fix two major issues: 1) Cleaning up the **per base sequence content** to get rid of the first 10-12 bases that result from hexamer priming that occurs during RNA-seq library preparation in EVERY sequence; 2) Remove all leftover **Illumina Nextera Transposase** adapter sequences. 
 
- - All samples now PASS the per base sequence content module now due to the trimmomatic `HEADCROP:12`\
- - Trimming did NOT affect the GC content module so there are still 45 samples with a WARNING flag for it. \
- - Due to the trimming, all samples have a WARNING flag on the sequence length distribution module. This is expected. \
- - Trimming did not affect the sequence duplication level, all samples still FAIL this module. \
- - All samples that just had the Illumina Nextera Transposase sequence in the overrepresented sequences now PASS that module. The samples that also had sequences with 'no hit' still have a WARNING flag for this module (47 samples including ALL livers). \
- - All samples not PASS the adapter content module due to the trimmomatic `ILLUMINACLIP:NexteraPE-PE.fa:2:30:10` \
+ - All samples now PASS the per base sequence content module now due to the trimmomatic `HEADCROP:12`
+ - Trimming did NOT affect the GC content module so there are still 45 samples with a WARNING flag for it. 
+ - Due to the trimming, all samples have a WARNING flag on the sequence length distribution module. This is expected. 
+ - Trimming did not affect the sequence duplication level, all samples still FAIL this module. 
+ - All samples that just had the Illumina Nextera Transposase sequence in the overrepresented sequences now PASS that module. The samples that also had sequences with 'no hit' still have a WARNING flag for this module (47 samples including ALL livers). 
+ - All samples not PASS the adapter content module due to the trimmomatic `ILLUMINACLIP:NexteraPE-PE.fa:2:30:10` 
 
 <center>
 
 <img src="../imgs/fastqc-status-check-heatmap.png" style="width:650px;"/>
 
-<center> \
+<center> 
 
 
-#### Comparisson of UNTRIMMED vs TRIMMED read {-}
+#### Comparisson of UNTRIMMED vs TRIMMED read 
 On the left hand side are images of what modules from untrimmed reads look like vs trimmed in cases where the modules differed.
 
 <p float="left">
@@ -650,37 +651,37 @@ On the left hand side are images of what modules from untrimmed reads look like 
 Trinity is a commonly used method for de novo reconstruction of transcriptomes from RNA-seq data when there is no genome to map back to. Within Trinity there are three independent software modules that are applied and used sequentially: **Inchworm**, **Chrysalis**, and **Butterfly**.
 
 ## Installing Trinity
-Trinity requires the installation of several programs, to get around this Trinity was installed via a Docker in the RCC and must be used within one. **The first time that you use Trinity you must pull the latest Docker image for Trinity** like so:\
+Trinity requires the installation of several programs, to get around this Trinity was installed via a Docker in the RCC and must be used within one. **The first time that you use Trinity you must pull the latest Docker image for Trinity** like so:
 ```{bash, eval=FALSE}
 docker pull trinityrnaseq/trinityrnaseq
 
 ```
 
-## Running Trinity {.tabset}
+## Running Trinity 
 Once started, a successful Trinity run will take days to complete. There are a lot of extra components you can add onto a Trinity run (View the [Trinity User Manual](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity) for more information) but here are the main components you should specify:
 
-1.  **SeqType**: Signifies the type of reads (fa or fq).\
-    `--seqType <string>`\
+1.  **SeqType**: Signifies the type of reads (fa or fq).
+    `--seqType <string>`
 
-2.  **Max Memory**: Suggested max memory to use by Trinity where limiting can be enabled.\
-    `--max_memory <string>`\
-    -   This should be based on the available memory for your computer. For example `--max_memory 20G`\
+2.  **Max Memory**: Suggested max memory to use by Trinity where limiting can be enabled.
+    `--max_memory <string>`
+    -   This should be based on the available memory for your computer. For example `--max_memory 20G`
     
-3.  **Read Locations**: Provide exact file locations for the left and right reads. One or more file names separated by commas, NOT spaces.\
-    `--left <string>`\
-    `--right <string>` \
-    -   The left and right reads must be paired up sequentially, if XXX32_R1 is mentioned first for the left, XXX32_R2 must also be first for the right.\
-    -   If running across multiple samples `--samples_file <string>` can be used rather than typing out the location for each individual. See tab about running multiple reads for more details.\
+3.  **Read Locations**: Provide exact file locations for the left and right reads. One or more file names separated by commas, NOT spaces.
+    `--left <string>`
+    `--right <string>` 
+    -   The left and right reads must be paired up sequentially, if XXX32_R1 is mentioned first for the left, XXX32_R2 must also be first for the right.
+    -   If running across multiple samples `--samples_file <string>` can be used rather than typing out the location for each individual. See tab about running multiple reads for more details.
 
-4.  **CPU**: Tell Trinity the number of CPUs to use, default is 2.\
-    `--CPU <int>`\
-    -   This should be based on the number of cores the computer has and it must be an even number.\
+4.  **CPU**: Tell Trinity the number of CPUs to use, default is 2.
+    `--CPU <int>`
+    -   This should be based on the number of cores the computer has and it must be an even number.
     
-5.  **Output Directory**: Name of the directory for output.This will be created if it doesn't already exist.\
-    `--output <string>`\
-    -   Good to include trinity in the name as a safety precaution! Don't forget to include the full file path.\
+5.  **Output Directory**: Name of the directory for output.This will be created if it doesn't already exist.
+    `--output <string>`
+    -   Good to include trinity in the name as a safety precaution! Don't forget to include the full file path.
 
-### One Pair of Reads {.unnumbered}
+### One Pair of Reads
 ```{bash, eval=FALSE}
 #!/bin/bash
 
@@ -694,7 +695,7 @@ sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
     
 ```
 
-### Multiple Pairs of Reads {.unnumbered}
+### Multiple Pairs of Reads
 ```{bash, eval=FALSE}
 #!/bin/bash
 
@@ -707,9 +708,9 @@ sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType
 ```
 
 ## Troubleshooting Trinity
-The overarching issues I ran into with Trinity surrounded not having enough memory/RAM and space on the RCC. A total of **4.1 TB** of space was added to the disk paired with **192 GB** of RAM in order to get Trinity to work. \
+The overarching issues I ran into with Trinity surrounded not having enough memory/RAM and space on the RCC. A total of **4.1 TB** of space was added to the disk paired with **192 GB** of RAM in order to get Trinity to work. 
 
-Below is an example of what an error related to RAM might look like:\
+Below is an example of what an error related to RAM might look like:
 <p float="left">
 
 <img src="../imgs/trinity_RAM.png" style="width:650px;"/>
@@ -717,7 +718,7 @@ Below is an example of what an error related to RAM might look like:\
 
 </p>
 
-An identifying feature when trying to determine whether or not an error with Trinity is related to memory/RAM is the line `bash: line 1:    219 Killed` along with errors starting with `Thread X terminated abnormally`. \
+An identifying feature when trying to determine whether or not an error with Trinity is related to memory/RAM is the line `bash: line 1:    219 Killed` along with errors starting with `Thread X terminated abnormally`. 
 
 ### Using screen as a substitute for nohup
 Because Trinity must be run in the docker, we are unable to use the `nohup` command in order to send the process into the background. Because of this and the nature of the RCC, you may end up with errors such as `error client_loop: send disconnect: Broken pipe.` meaning our RCC session has automatically timed out. To overcome this issue we can use [screen](https://www.gnu.org/software/screen/manual/html_node/index.html), which acts as a sort of RDC for the terminal. Some of the basics for using screen are outlined below:
