@@ -75,13 +75,13 @@ For both reads of ALL 59 samples, there were no issues with either of these modu
 
 ### Per base sequence content
 
-This plot gives you the percent of bases called for each of the four nucleotides at each position across the read. The proportion of the bases should remain relatively constant across the read.\
-\
+This plot gives you the percent of bases called for each of the four nucleotides at each position across the read. The proportion of the bases should remain relatively constant across the read.
+
 This plot will **ALWAYS** give a fail for RNA-seq data. This is mainly due to the fact that the first 10-12 bases results from the 'random' hexamer priming that occurs during RNA-seq library preparation. The priming, however, is not as random as one would hope give an enrichment to particular bases for those first few nucleotides (see below for example). This was not taken into account when determining the 'good' samples.
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/per_base_seq_content.jpg" style="width:650px;"/>
+<img src="../imgs/per_base_seq_content.JPG" style="width:650px;"/>
 
 <center>
 
@@ -91,7 +91,7 @@ This module plots the number of reads vs. GC% per read. The theoretical distribu
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/gc_content.jpg" style="width:650px;"/>
+<img src="../imgs/gc_content.JPG" style="width:650px;"/>
 
 <center>
 
@@ -101,7 +101,7 @@ This module shows the percent of bases at each position with no base call (i.e. 
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/n_content.jpg" style="width:650px;"/>
+<img src="../imgs/n_content.JPG" style="width:650px;"/>
 
 <center>
 
@@ -111,7 +111,7 @@ This module explores the number of duplicated sequences in the library. When seq
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/seq_dup_level.jpg" style="width:650px;"/>
+<img src="../imgs/seq_dup_level.JPG" style="width:650px;"/>
 
 <center>
 
@@ -129,7 +129,7 @@ This is more likely to occur for RNA-seq libraries due to the variability of the
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/adapter_content.jpg" style="width:650px;"/>
+<img src="../imgs/adapter_content.JPG" style="width:650px;"/>
 
 <center>
 
@@ -236,19 +236,19 @@ None of the reads received a [**fail** ]{style="color:indianred"} for this secti
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/Ex1_gc.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/Ex2_gc.jpg" style="width:350px;"/>
+<img src="../imgs/Ex1_gc.JPG" style="width:350px;"/> <img src="../imgs/Ex2_gc.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/Ex3_gc.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/Ex4_gc.jpg" style="width:350px;"/>
+<img src="../imgs/Ex3_gc.JPG" style="width:350px;"/> <img src="../imgs/Ex4_gc.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/Ex5_gc.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/Ex6_gc.jpg" style="width:350px;"/>
+<img src="../imgs/Ex5_gc.JPG" style="width:350px;"/> <img src="../imgs/Ex6_gc.JPG" style="width:350px;"/>
 
 </p>
 
@@ -258,7 +258,7 @@ While all of the reads technically failed this module on the fastQC, there was a
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/seq_dup_level.jpg" title="Example of a Normal Read" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/seq_Ex.jpg" title="Example of a Liver Read" style="width:350px;"/>
+<img src="../imgs/seq_dup_level.JPG" title="Example of a Normal Read" style="width:350px;"/> <img src="../imgs/seq_Ex.JPG" title="Example of a Liver Read" style="width:350px;"/>
 
 </p>
 
@@ -351,7 +351,6 @@ Certain reads possessed sequences that were marked as overrepresented. None of t
 | FUT15M5_R1 |                                    | **X**                              |        |
 | FUT15M5_R2 | **X**                              |                                    |        |
 
-\
 
 Aside from the over representation of the Illumina Nextera Transposase seqeunce, many of the reads showed overrepresented sequences that had no hit. All of these sequences were [blasted](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&LINK_LOC=blasthome) through NCBI with a non-redundant database to try and pinpoint what they are from. Many of the "No hit" overrepresented sequences are from reads generated with liver tissue. Because of this, blast results from those sequences were compared to a table of highly expressed genes found in *Syngnathus scovelli* livers ([from Rose et al. 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139401)). Those results are outlined in the table below. Blast results (for sequences from the liver reads) that did not match the table from Rose et al. 2015 are signified in **bold**.
 
@@ -430,16 +429,16 @@ Overall there were 16 genes that resulted from blasting all of the sequences, 9 
 
 # Trimming the reads using TRIMMOMATIC
 
-[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. Currently for version **0.40** of trimmomatic these are the different steps:\
-\
+[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. Currently for version **0.40** of trimmomatic these are the different steps:
 
-1.  **ILLUMINACLIP**: Cut adapter and other illumina-specific seuqences from the read.\
-    `:<fastaWithAdaptersEtc>:<seed mismatches>:<palindrome clip threshold>:<simple clip threshold>`\
+
+1.  **ILLUMINACLIP**: Cut adapter and other illumina-specific seuqences from the read.
+    `:<fastaWithAdaptersEtc>:<seed mismatches>:<palindrome clip threshold>:<simple clip threshold>`
     -   fastaWithAdaptersEtc = specifies the path to a fasta file containing all the adapters, PCR sequences etc.
     -   seedMismatches = the max. mismatch count which will still allow a full match to be performed.
     -   palindromeClipThreshold = how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment
     -   simpleClipThreshold = how accurate the match between any adapterect. sequence must be against a read.
-2.  **SLIDINGWINDOW**: Perform a sliding window trimming, cutting once the average quality within the window falls below a designated threshold.\
+2.  **SLIDINGWINDOW**: Perform a sliding window trimming, cutting once the average quality within the window falls below a designated threshold.
     `:<windowSize>:<requiredQuality>`\
     -   windowSize = the number of bases to average across
     -   requiredQuality = the average quality required
@@ -603,7 +602,7 @@ The raw reads were trimmed to fix two major issues: 1) Cleaning up the **per bas
 
 <center>
 
-<img src="C:/Users/nicol/Pictures/fastqc-status-check-heatmap.png" style="width:650px;"/>
+<img src="../imgs/fastqc-status-check-heatmap.png" style="width:650px;"/>
 
 <center> \
 
@@ -613,37 +612,37 @@ On the left hand side are images of what modules from untrimmed reads look like 
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/untrimmed_base_statistics.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_base_statistics.jpg" style="width:350px;"/>
+<img src="../imgs/untrimmed_base_statistics.JPG" style="width:350px;"/> <img src="../imgs/trimmed_base_statistics.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/per_base_seq_qual.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_per_base_seq_qual.jpg" style="width:350px;"/>
+<img src="../imgs/per_base_seq_qual.JPG" style="width:350px;"/> <img src="../imgs/trimmed_per_base_seq_qual.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/per_seq_qual_score.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_per_seq_qual_score.jpg" style="width:350px;"/>
+<img src="../imgs/per_seq_qual_score.JPG" style="width:350px;"/> <img src="../imgs/trimmed_per_seq_qual_score.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/per_base_seq_content.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_per_base_seq_content.jpg" style="width:350px;"/>
+<img src="../imgs/per_base_seq_content.JPG" style="width:350px;"/> <img src="../imgs/trimmed_per_base_seq_content.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/untrimmed_seq_len_dis.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_seq_len_dis.jpg" style="width:350px;"/>
+<img src="../imgs/untrimmed_seq_len_dis.JPG" style="width:350px;"/> <img src="../imgs/trimmed_seq_len_dis.JPG" style="width:350px;"/>
 
 </p>
 
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/adapter_content.jpg" style="width:350px;"/> <img src="C:/Users/nicol/Pictures/trimmed_adapter_content.jpg" style="width:350px;"/>
+<img src="../imgs/adapter_content.JPG" style="width:350px;"/> <img src="../imgs/trimmed_adapter_content.JPG" style="width:350px;"/>
 
 </p>
 
@@ -713,7 +712,7 @@ The overarching issues I ran into with Trinity surrounded not having enough memo
 Below is an example of what an error related to RAM might look like:\
 <p float="left">
 
-<img src="C:/Users/nicol/Pictures/trinity_RAM.png" style="width:650px;"/>
+<img src="../imgs/trinity_RAM.png" style="width:650px;"/>
 
 
 </p>
