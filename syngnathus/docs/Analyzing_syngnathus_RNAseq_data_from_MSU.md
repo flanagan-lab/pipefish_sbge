@@ -69,7 +69,7 @@ For both reads of ALL 59 samples, there were no issues with either of these modu
 
 <p float="left">
 
-<img src="../imgs/per_base_seq_qual.jpg" style="width:350px;"/> <img src="../imgs/per_seq_qual_score.jpg" style="width:350px;"/>
+<img src="../imgs/per_base_seq_qual.JPG" style="width:350px;"/> <img src="../imgs/per_seq_qual_score.JPG" style="width:350px;"/>
 
 </p>
 
