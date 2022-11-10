@@ -14,7 +14,7 @@ output:
 
 ## Using the command line program wget
 
-In order to access the <span style="color:red">RTSF Genomics Core</span> FTP (File Transfer Protocol) server outside of MSU it requires secure (FTPS) connections. The data will remain available on this serve for 60 days. More details on the RTSF genomics core FTP are available on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/)
+In order to access the **RTSF Genomics Core** FTP (File Transfer Protocol) server outside of MSU it requires secure (FTPS) connections. The data will remain available on this serve for 60 days. More details on the RTSF genomics core FTP are available on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/)
 
 The program **wget** is capable of doing this on command line. However, only versions of wget 1.17 or later are capable of supporting FTPS. If you attempt to run wget and you end up with an error message which stating: 'Unsupported scheme "ftps"' it means that the version of wget you are using does not support FTPS.
 
@@ -47,7 +47,7 @@ This is a summary of the quality of the samples, for more information about inte
 
 ## What a 'Normal' or 'Good' fastQC file looks like
 
-While there may be an [X ]{style="color:indianred"}, [! ]{style="color:gold"}, or [Check ]{style="color:limegreen"} to indicate the quality of the data, they should not be taken too seriously, particularly in the case of RNA sequencing data. Here are some examples of what deviations can occur without meaning the sample is 'bad'.
+While there may be an X, !, or Check to indicate the quality of the data, they should not be taken too seriously, particularly in the case of RNA sequencing data. Here are some examples of what deviations can occur without meaning the sample is 'bad'.
 
 | NORMAL READS |           |           |            |            |            |
 |:-------------|:----------|:----------|:-----------|:-----------|:-----------|
@@ -87,7 +87,7 @@ This plot will **ALWAYS** give a fail for RNA-seq data. This is mainly due to th
 
 ### Per sequence GC content
 
-This module plots the number of reads vs. GC% per read. The theoretical distribution is shown by the blue line. If the observed distribution deviates too far from the theoretical it will be called a fail. In RNA-seq there may be greater or lesser distribution of GC content among transcripts causing the plots to be wider or narrower than the normal distribution. XX reads showed a [WARNING ]{style="color:gold"} flag on this module.
+This module plots the number of reads vs. GC% per read. The theoretical distribution is shown by the blue line. If the observed distribution deviates too far from the theoretical it will be called a fail. In RNA-seq there may be greater or lesser distribution of GC content among transcripts causing the plots to be wider or narrower than the normal distribution. XX reads showed a WARNING flag on this module.
 
 <center>
 
@@ -224,15 +224,15 @@ None of the reads received a [**fail** ]{style="color:indianred"} for this secti
 
 | GC VIOLATIONS                              |           |                                             |                                             |            |                                             |
 |:-----------|:-----------|:-----------|:-----------|:-----------|:-----------|
-| [**FLG3F2_R1** ]{style="color:mediumblue"} | FLL3M5_R2 | [**FLT3M5_R1** ]{style="color:mediumblue"}  | FUG12M1_R2                                  | FUL10M2_R1 | FUL15M5_R2                                  |
-| FLG4M4_R2                                  | FLL3M7_R1 | [**FUG2F2_R1** ]{style="color:mediumblue"}  | FUG13F1_R2                                  | FUL10M2_R2 | [**FUT10M2_R1** ]{style="color:mediumblue"} |
-| FLL2F7_R1                                  | FLL3M7_R2 | FUG2F2_R2                                   | FUG13F4_R2                                  | FUL11M2_R1 | FUT11M2_R1                                  |
-| FLL2F7_R2                                  | FLL3M8_R1 | [**FUG3F2_R2** ]{style="color:mediumblue"}  | [**FUG15M5_R1** ]{style="color:mediumblue"} | FUL11M2_R2 | FUT12M1_R1                                  |
-| FLL3F1_R1                                  | FLL3M8_R2 | FUG10M2_R2                                  | [**FUG15M5_R2** ]{style="color:mediumblue"} | FUL11M4_R1 | FUT15M5_R1                                  |
-| FLL3F2_R1                                  | FLL4M4_R1 | FUG11F1_R2                                  | FUL2F2_R1                                   | FUL11M4_R2 |                                             |
-| FLL3F2_R2                                  | FLL4M4_R2 | [**FUG11M2_R1** ]{style="color:mediumblue"} | FUL2F2_R2                                   | FUL12M1_R1 |                                             |
-| FLL3F4_R1                                  | FLL8F3_R1 | FUG11M2_R2                                  | FUL3F2_R1                                   | FUL10M2_R1 |                                             |
-| FLL3M5_R1                                  | FLL8F3_R2 | FUG12M1_R1                                  | FUL3F2_R2                                   | FUL15M5_R1 |                                             |
+| **FLG3F2_R1** | FLL3M5_R2 | **FLT3M5_R1**  | FUG12M1_R2 | FUL10M2_R1 | FUL15M5_R2 |
+| FLG4M4_R2 | FLL3M7_R1 | **FUG2F2_R1**  | FUG13F1_R2 | FUL10M2_R2 | **FUT10M2_R1** |
+| FLL2F7_R1 | FLL3M7_R2 | FUG2F2_R2 | FUG13F4_R2 | FUL11M2_R1 | FUT11M2_R1 |
+| FLL2F7_R2 | FLL3M8_R1 | **FUG3F2_R2** | **FUG15M5_R1** | FUL11M2_R2 | FUT12M1_R1 |
+| FLL3F1_R1 | FLL3M8_R2 | FUG10M2_R2 | **FUG15M5_R2** | FUL11M4_R1 | FUT15M5_R1 |
+| FLL3F2_R1 | FLL4M4_R1 | FUG11F1_R2 | FUL2F2_R1 | FUL11M4_R2 |                     |
+| FLL3F2_R2 | FLL4M4_R2 | **FUG11M2_R1** | FUL2F2_R2 | FUL12M1_R1 |                 |
+| FLL3F4_R1 | FLL8F3_R1 | FUG11M2_R2 | FUL3F2_R1 | FUL10M2_R1 |                     |
+| FLL3M5_R1 | FLL8F3_R2 | FUG12M1_R1 | FUL3F2_R2 | FUL15M5_R1 |                     |
 
 <p float="left">
 
@@ -277,7 +277,7 @@ You can see that for all of the other reads there is the largest peak at the \>1
 
 ### Violations in the overrepresented sequences
 
-Certain reads possessed sequences that were marked as overrepresented. None of the reads failed this section, there were only warnings. For a lot of the reads, there was contamination from the Illumina Nextera Transposase sequence that was registered as overrepresented. This will need to get removed. The table below outlines all of the reads that received a [**warning** ]{style="color:gold"} for this module and what sequences were marked as overrepresented.
+Certain reads possessed sequences that were marked as overrepresented. None of the reads failed this section, there were only warnings. For a lot of the reads, there was contamination from the Illumina Nextera Transposase sequence that was registered as overrepresented. This will need to get removed. The table below outlines all of the reads that received a **warning** for this module and what sequences were marked as overrepresented.
 
 | READ       | Illumina Nextera Transposase Read1 | Illumina Nextera Transposase Read2 | No Hit |
 |:------------------|:-----------------|:-----------------|:-----------------|
