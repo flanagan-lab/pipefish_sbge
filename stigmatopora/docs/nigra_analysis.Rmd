@@ -70,6 +70,13 @@ snigra_samples$category<-gsub("SNT\\d+(\\w)(\\w).*$",
 
 # reorder it so it is
 ## SN_TT (species, tissue type) \t SN_TT_ID \t R1 \t R2
+write.table(snigra_samples[,c("category","sample_name","R1","R2")],
+            "nigra_samples_trinity.txt",
+            sep='\t',
+            col.names = FALSE,
+            row.names = FALSE,
+            quote=FALSE)
+
 ```
 
 
