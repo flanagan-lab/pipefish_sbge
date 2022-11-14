@@ -60,6 +60,14 @@ snigra_samples$R1<-unlist(lapply(snigra_samples$OGF_ID,
                                                 pattern="_paired_R1",
                                                 full.names = TRUE),
                                    value=TRUE))
+snigra_samples$R2<-gsub("R1","R2",snigra_samples$R1)
+
+# get the 'treatment' level
+snigra_samples$category<-gsub("SNT\\d+(\\w)(\\w).*$",
+                              "SN_\\1_\\2",
+                              snigra_samples$sample_name)
+
+
 # reorder it so it is
 ## SN_TT (species, tissue type) \t SN_TT_ID \t R1 \t R2
 ```
