@@ -54,10 +54,10 @@ Taking a look at these -- both the paired and unpaired reads -- it looks ok. The
 samples<-read.csv("OG7629_sample_info.csv")
 snigra_samples<-samples[which(samples$Organism=="Stigmatopora nigra"),]
 
-snigra_samples$file<-unlist(lapply(snigra_samples$OGF_ID,
+snigra_samples$R1<-unlist(lapply(snigra_samples$OGF_ID,
                                    grep,
-                                   x=list.files(path="../../OG7629/trimmed",
-                                                pattern="R1",
+                                   x=list.files(path="../OG7629/trimmed",
+                                                pattern="_paired_R1",
                                                 full.names = TRUE),
                                    value=TRUE))
 # reorder it so it is
