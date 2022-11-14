@@ -43,10 +43,10 @@ I will use `multiqc` (at Coley's recommendation) to quality check the trimmed re
 ```
 
 
-Then (once the program is installed using `pip`) all I need to do is go to `OG7926/` and run `multiqc trimmed_qc/`.
+Then (once the program is installed using `pip`) all I need to do is go to `OG7926/` and run `multiqc trimmed_qc/ --outdir ../stigmatopora/results/`.
 
+Taking a look at these -- both the paired and unpaired reads -- it looks ok. There are some pretty high percentages of duplicated reads, but this is expected I believe because of the fact that there should be some high expression genes.
 
-#### Comparisson of UNTRIMMED vs TRIMMED read {-}
 
 ## De novo transcriptome assembly using Trinity
 
