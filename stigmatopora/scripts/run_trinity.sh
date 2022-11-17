@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # USAGE: Provide two arguments (in this order), 
-# with paths relative to location of this script: 
-## 1. the name of the samples file (e.g., ../nigra_gonads_trinity.txt)
-## 2. the output directory (e.g., ../results/trinity_nigra_gonads/)
+# with paths relative to the project directory (above where the script is located): 
+## 1. the name of the samples file (e.g., /nigra_gonads_trinity.txt)
+## 2. the output directory (e.g., results/trinity_nigra_gonads/)
 
 # Get the sample file
 samples=$1
@@ -19,9 +19,10 @@ projdir=`pwd`
 
 
 # run Trinity from within the docker
-sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
+sudo docker run --rm -v/home/rccuser/:/home/rccuser/ trinityrnaseq/trinityrnaseq Trinity \
     --seqType fq \
     --max_memory 30G \
     --samples_file ${projdir}/${samples} \
     --CPU 12 \
     --output ${projdir}/${output}
+
