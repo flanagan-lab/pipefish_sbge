@@ -106,8 +106,10 @@ Next, I need to transfer the trimmed reads plus the trinity sample file I want t
 That means that I need to save just a list of the files. 
 
 ```{r createTransferList, eval=FALSE}
-write.table(unlist(snigra_samples[snigra_samples$Source %in% c("ovary","testes"),
-               c("R1","R2")]),
+files<-unlist(snigra_samples[snigra_samples$Source %in% c("ovary","testes"),c("R1","R2")])
+# remove paths
+files<-gsub("../OG7629/trimmed/(.*)","\\1",files)
+write.table(files,
             "nigra_gonads_files.txt",
             sep='\t',
             col.names = FALSE,
