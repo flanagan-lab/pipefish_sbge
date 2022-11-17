@@ -50,6 +50,12 @@ Taking a look at these -- both the paired and unpaired reads -- it looks ok. The
 
 ## De novo transcriptome assembly using Trinity
 
+### Setup
+
+The first step is to create the sample information files. These should use the paths and filenames for only the trimmed files with pairs (i.e., in `trimmed/` and with the component `_paired` in the filename). I only need information on the 'category', the sample name, and then read one and read 2. 
+
+I'm doing the analysis initially only on the gonads, so I will write those to file separately. 
+
 ```{r createSampleFile, eval=FALSE}
 samples<-read.csv("OG7629_sample_info.csv")
 snigra_samples<-samples[which(samples$Organism=="Stigmatopora nigra"),]
