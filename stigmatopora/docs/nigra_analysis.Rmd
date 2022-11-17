@@ -83,6 +83,36 @@ write.table(snigra_samples[,c("category","sample_name","R1","R2")],
             row.names = FALSE,
             quote=FALSE)
 
+# output only the gonads
+
+write.table(snigra_samples[snigra_samples$Source %in% c("ovary","testes"),
+                           c("category","sample_name","R1","R2")],
+            "nigra_gonads_trinity.txt",
+            sep='\t',
+            col.names = FALSE,
+            row.names = FALSE,
+            quote=FALSE)
+```
+
+
+### Transferring files
+
+I will be using the RCC `132.181.102.45` for trinity and RSEM, so I need to get my trimmed files there and set up the directories nicely on that machine. There is already an `OG7629/` directory in `/home` on that machine, so I will use that and create a `stigmatopora` directory there. To make life easier, I created a new ssh token to correspond to my github account (spflanagan@github.com) so that I can easily push and pull scripts, same as I would on my local machine. After adding my key to my github account (following the steps from [this webpage](https://www.theserverside.com/blog/Coffee-Talk-Java-News-Stories-and-Opinions/github-clone-with-ssh-keys)), I then cloned my repository using ssh. Then I moved `OG7629/` into `pipefish_sbge/` to match the directory structure on my local machine.
+
+Next, I need to transfer the trimmed reads plus the trinity sample file I want to use. I only need to transfer the trimmed reads corresponding to the gonads. Usually I use `scp` but some googling suggests that `rsync` might be a better option, because it will transfer files specified in a text file, like so:
+
+`rsync -av --progress --files-from=file_list.txt source/ me@example.com:/dest`
+
+That means that I need to save just a list of the files. 
+
+```{r createTransferList, eval=FALSE}
+write.table(unlist(snigra_samples[snigra_samples$Source %in% c("ovary","testes"),
+               c("R1","R2")]),
+            "nigra_gonads_files.txt",
+            sep='\t',
+            col.names = FALSE,
+            row.names = FALSE,
+            quote=FALSE)
 ```
 
 
