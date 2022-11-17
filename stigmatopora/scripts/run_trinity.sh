@@ -19,6 +19,6 @@ cd $DIR
 echo "sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
     --seqType fq \
     --max_memory 30G \
-    --samples_file $samples \
+    --samples_file ${samples} \
     --CPU 12 \
-    --output $output"
+    --output ${output}"
