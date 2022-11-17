@@ -131,8 +131,10 @@ It turns out that the sample names can't be relative paths because the docker is
 
 I am using the script `run_trinity.sh` to run Trinity in the docker. It requires two arguments: one of which is the sample file and the other is the output directory. I'm running it like so (from the `pipefish_sbge/stigmatopora/` folder): `nohup ./scripts/run_trinity.sh nigra_gonads_trinity_rcc.txt results/trinity_nigra_gonads/ > trinity_gonads.log 2>&1 &`.
 
-For some reason it is giving me 'Error, cannot locate file: /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-51-49-1_S51_paired_R1.fastq.gz as specified in samples file: /home/rccuser/pipefish_sbge/stigmatopora/nigra_gonads_trinity_rcc.txt at /usr/local/bin/Trinity line 3977, <$fh> line 1.'
+```{bash, file='scripts/run_trinity.sh', eval=FALSE}
 
-I checked and the file does exist, so I'm not sure what's going on. 
+```
 
+
+It's important to make sure the docker instance is referred to correctly -- in the example scripts, it's at `pwd`:`pwd`, but for me that needed to be adjusted to `/home/rccuser/:/home/rccuser` because I'm not running it from the home directory but rather from the project directory. 
 
