@@ -22,6 +22,6 @@ projdir=`pwd`
 sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
     --seqType fq \
     --max_memory 30G \
-    --samples_file ${samples} \
+    --samples_file ${projdir}/${samples} \
     --CPU 12 \
-    --output ${output}
+    --output ${projdir}/${output}
