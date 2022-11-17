@@ -119,5 +119,5 @@ write.table(files,
 
 Then, the rsync command should be: `rsync -av --progress --files-from=nigra_gonads_files.txt /mnt/BigData/OG7629/trimmed/ trinity-em:~/pipefish_sbge/OG7629/trimmed/`, from the `pipefish_sbge/stigmatopora/` directory -- note that it needs to use the actual location, not the symbolic link to OG7629.
 
-
+Then I need to send the samples file to the RCC (from `pipefish_sbge/stigmatopora`: `rsync -av --progress nigra_gonads_trinity.txt . trinity-em:~/pipefish_sbge/stigmatopora/` 
 
