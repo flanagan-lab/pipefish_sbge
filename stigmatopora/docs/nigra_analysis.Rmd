@@ -117,7 +117,7 @@ write.table(files,
             quote=FALSE)
 ```
 
-Then, the rsync command should be: `rsync -av --progress --files-from=nigra_gonads_files.txt /mnt/BigData/OG7629/trimmed/ trinity-em:~/pipefish_sbge/OB6729/trimmed/`, from the `pipefish_sbge/stigmatopora/` directory -- note that it needs to use the actual location, not the symbolic link to OG7629.
+Then, the rsync command should be: `rsync -av --progress --files-from=nigra_gonads_files.txt /mnt/BigData/OG7629/trimmed/ trinity-em:~/pipefish_sbge/OG6729/trimmed/`, from the `pipefish_sbge/stigmatopora/` directory -- note that it needs to use the actual location, not the symbolic link to OG7629.
 
 
 
