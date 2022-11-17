@@ -14,6 +14,9 @@ output=$2
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
+cd ../
+projdir=`pwd`
+
 
 # run Trinity from within the docker
 sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
