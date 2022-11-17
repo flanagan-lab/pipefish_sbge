@@ -19,9 +19,10 @@ projdir=`pwd`
 
 
 # run Trinity from within the docker
-sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity \
+sudo docker run --rm -v/home/rccuser/:/home/rccuser/ trinityrnaseq/trinityrnaseq Trinity \
     --seqType fq \
     --max_memory 30G \
     --samples_file ${projdir}/${samples} \
     --CPU 12 \
     --output ${projdir}/${output}
+
