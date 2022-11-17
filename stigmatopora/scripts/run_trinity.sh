@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # USAGE: Provide two arguments (in this order), 
-# with paths relative to location of this script: 
-## 1. the name of the samples file (e.g., ../nigra_gonads_trinity.txt)
-## 2. the output directory (e.g., ../results/trinity_nigra_gonads/)
+# with paths relative to the project directory (above where the script is located): 
+## 1. the name of the samples file (e.g., /nigra_gonads_trinity.txt)
+## 2. the output directory (e.g., results/trinity_nigra_gonads/)
 
 # Get the sample file
 samples=$1
