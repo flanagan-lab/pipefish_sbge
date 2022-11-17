@@ -115,5 +115,7 @@ write.table(unlist(snigra_samples[snigra_samples$Source %in% c("ovary","testes")
             quote=FALSE)
 ```
 
+Then, the rsync command should be: `rsync -av --progress --files-from=nigra_gonads_files.txt ../OG7629/trimmed/ trinity-em:~/pipefish_sbge/OB6729/trimmed/`, from the `pipefish_sbge/stigmatopora/` directory.
+
 
 
