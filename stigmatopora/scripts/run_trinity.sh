@@ -3,7 +3,7 @@
 # USAGE: Provide two arguments (in this order), 
 # with paths relative to location of this script: 
 ## 1. the name of the samples file (e.g., ../nigra_gonads_trinity.txt)
-## 2. the output directory (e.g., ../results/trinity__nigra_gonads/)
+## 2. the output directory (e.g., ../results/trinity_nigra_gonads/)
 
 # Get the sample file
 samples=$1
