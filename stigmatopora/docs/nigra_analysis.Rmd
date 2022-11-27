@@ -138,3 +138,43 @@ I am using the script `run_trinity.sh` to run Trinity in the docker. It requires
 
 It's important to make sure the docker instance is referred to correctly -- in the example scripts, it's at `pwd`:`pwd`, but for me that needed to be adjusted to `/home/rccuser/:/home/rccuser` because I'm not running it from the home directory but rather from the project directory. 
 
+I ran into one issue that was the same as the one Coley ran into, indicating that RAM was an issue: 
+
+```
+bash: line 1:   341 Killed                  /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads left.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25 --num_threads 6 --DS > left.fa.K25.stats
+Thread 3 terminated abnormally: Error, cmd: /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads left.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25  --num_threads 6  --DS  > left.fa.K25.stats died with ret 35072 at /usr/local/bin/util/insilico_read_normalization.pl line 795.
+Error, thread exited with error Error, cmd: /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads left.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25  --num_threads 6  --DS  > left.fa.K25.stats died with ret 35072 at /usr/local/bin/util/insilico_read_normalization.pl line 795.
+
+bash: line 1:   344 Killed                  /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads right.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25 --num_threads 6 --DS > right.fa.K25.stats
+Thread 4 terminated abnormally: Error, cmd: /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads right.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25  --num_threads 6  --DS  > right.fa.K25.stats died with ret 35072 at /usr/local/bin/util/insilico_read_normalization.pl line 795.
+Error, thread exited with error Error, cmd: /usr/local/bin/util/..//Inchworm/bin/fastaToKmerCoverageStats --reads right.fa --kmers jellyfish.K25.min2.kmers.fa --kmer_size 25  --num_threads 6  --DS  > right.fa.K25.stats died with ret 35072 at /usr/local/bin/util/insilico_read_normalization.pl line 795.
+
+Error, 2 threads errored out at /usr/local/bin/util/insilico_read_normalization.pl line 999.
+Error, cmd: /usr/local/bin/util/insilico_read_normalization.pl --seqType fq --JM 30G  --max_cov 200 --min_cov 1 --CPU 12 --output /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads/insilico_read_normalization --max_CV 10000  --left /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-51-49-1_S51_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-52-49-1_S52_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-53-49-1_S53_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-54-49-1_S54_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-55-49-1_S55_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-56-49-1_S56_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-57-49-1_S57_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-58-49-1_S58_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-59-49-1_S59_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-60-49-1_S60_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-61-49-1_S61_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-62-49-1_S62_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-63-49-1_S63_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-64-49-1_S64_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-65-49-1_S65_paired_R1.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-66-49-1_S66_paired_R1.fastq.gz --right /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-51-49-1_S51_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-52-49-1_S52_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-53-49-1_S53_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-54-49-1_S54_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-55-49-1_S55_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-56-49-1_S56_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-57-49-1_S57_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-58-49-1_S58_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-59-49-1_S59_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-60-49-1_S60_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-61-49-1_S61_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-62-49-1_S62_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-63-49-1_S63_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-64-49-1_S64_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-65-49-1_S65_paired_R2.fastq.gz,/home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-66-49-1_S66_paired_R2.fastq.gz --pairs_together  --PARALLEL_STATS   died with ret 7424 at /usr/local/bin/Trinity line 2879.
+  main::process_cmd("/usr/local/bin/util/insilico_read_normalization.pl --seqType "...) called at /usr/local/bin/Trinity line 3432
+  main::normalize("/home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigr"..., 200, ARRAY(0x55f1fd311330), ARRAY(0x55f1fd471ad0)) called at /usr/local/bin/Trinity line 3372
+  main::run_normalization(200, ARRAY(0x55f1fd311330), ARRAY(0x55f1fd471ad0)) called at /usr/local/bin/Trinity line 1410
+
+```
+
+So Francois upped the memory to 64GB. After that, Trinity made it through at normalizing the first 6 samples but died on the 7th one with this error:
+
+
+```
+Error, cmd: jellyfish count -t 12 -m 25 -s 8683660219  --canonical  both.fa died with ret 9 at /usr/local/bin/util/insilico_read_normalization.pl line 795.
+Error, cmd: /usr/local/bin/util/insilico_read_normalization.pl --seqType fq --JM 62G  --max_cov 200 --min_cov 1 --CPU 12 --output /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads/norm_for_read_set_7 --max_CV 10000  --left /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-65-49-1_S65_paired_R1.fastq.gz --right /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-65-49-1_S65_paired_R2.fastq.gz --pairs_together  --PARALLEL_STATS   died with ret 512 at /usr/local/bin/Trinity line 2879.
+        main::process_cmd("/usr/local/bin/util/insilico_read_normalization.pl --seqType "...) called at /usr/local/bin/Trinity line 3432
+        main::normalize("/home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigr"..., 200, ARRAY(0x55720b1ae838), ARRAY(0x55720b1ab460)) called at /usr/local/bin/Trinity line 3349
+        main::run_normalization(200, ARRAY(0x55720ad82070), ARRAY(0x55720af5add8)) called at /usr/local/bin/Trinity line 1410
+```
+
+This might be a RAM issue but according to [this issue on GitHub](https://github.com/trinityrnaseq/trinityrnaseq/issues/662) it might be worth re-running with a clean directory. So I've deleted the previous one and am re-running it now, and have upped the memory to 63GB RAM and 14 CPUs (from 62 and 12). 
+
+It was indeed a RAM issue, and Trinity has now successfully run with 128GB of RAM on machine 132.181.102.45. I created a single assembly for the *S. nigra* gonads (note: if the testes and ovary transcriptomes are sufficiently diverged, I might decide to create separate assemblies for males and females and do some mapping across them to enable comparisons).
+
+
+### Counting reads using RSEM
+
+The next step is to map the reads back to the transcriptome to establish expression values. We'll do this with RSEM -- and afterwards, these expression levels will be used to help clean and filter the transcriptome.
+
+
