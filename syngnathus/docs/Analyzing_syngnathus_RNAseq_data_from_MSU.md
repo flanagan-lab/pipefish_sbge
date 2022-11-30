@@ -728,3 +728,109 @@ Because Trinity must be run in the docker, we are unable to use the `nohup` comm
 2. If you become disconnected at any point from the RCC, the screen session will still go on. **To reconnect to the session** use the command `screen -r`.
 
 3. To disconnect from your screen session (WITHOUT STOPPING IT) use **Crtl+a d**. All commands to screen are started with "Ctrl+a" followed by a letter.
+
+# Differential Expression Analysis using RSEM and EdgeR
+## Installing RSEM and Bowtie2
+### RSEM
+1.  From the [RSEM website](https://deweylab.github.io/RSEM/) download the lastest version of the RSEM source code and move the folder into the RCC (I used `sftp` to do this through my laptop)
+    Once in the RCC, unzip the file using the command `gunzip` 
+    ```
+    gunzip -h
+    gunzip -d <filename>
+    tar -xf <filename>
+    ```
+
+2.  Next you will need to compile RSEM, move into the **unzipped** file and in the command line type `sudo make` to create the executable file. Then to install RSEM run `sudo make install`
+    This did not work immediately for me because I didn't have the necessary compiler [GCC](https://linuxconfig.org/how-to-install-g-the-c-compiler-on-ubuntu-20-04-lts-focal-fossa-linux), had to install that first.
+    ```
+    sudo apt install build-essential
+    sudo spt install zlib1g-dev #another error while installing GCC complier, could not find zlib1g-dev
+    ```
+
+3.  Add RSEM to your path so that you can run any RSEM programs from any directory. If you have moved, change back into the home directory, run `ls -a` to check that you have a .bashrc script.
+    `nano .bashrc`
+
+4.  **Without modifying pre-existing parts of the file**, add the following to the very end:
+    ```
+    #RSEM
+    export PATH=$PATH:location_of_RSEM/RSEM-version.number/
+    ```
+    
+### Bowtie2
+Bowtie2 was installed using **conda**. An environment was created with `conda create trinity` and then bowtie2 was installed using `conda install bowtie2`. **To run any further analyses that include bowtie2, the trinity environment MUST be activated** with `conda activate trinity`.
+
+## Running RSEM
+RSEM was used for differential expression analysis following the pipeline _rsem-prepare-reference_, _rsem-calculate-expression_, and _rsem-generate-data-matrix_. The data was not pre-processed or filtered after trinity prior to going through RSEM. The data will be filtered  during the statistical analysis portion. To run RSEM about 5-15 GB memory is needed. The _.fasta_ file should be a resulting assembled transcriptome from Trinity, and the read files you use should be **trimmed, paired** reads from Trimmomatic. Each pair of read files will be mapped one at a time against the reference transcriptome. It is easiest if the scripts outlined below are run in a folder that contains your trimmed reads and Trinity output.
+
+### Preparing the Reference 
+In the first stage of RSEM you will prepare the reference sequence to run RSEM and build indices for bowtie2 using [rsem-prepare-reference](https://deweylab.biostat.wisc.edu/rsem/rsem-prepare-reference.html). The input for this command is the reference transcriptome from Trinity ( _.fasta_ ) and the output is the RSEM references. You will do this **once per species**.
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+trinity_output_file=$1 ##the .Trinity.fasta file
+RSEM_output=$2 ##Ex. TrinityRefFuscus
+
+rsem-prepare-reference --bowtie2 $trinity_output_file $RSEM_output
+
+```
+This script was then run using **nohup** as: `nohup bash rsem_ref.sh trinity_out_dir_fuscus.Trinity.fasta TrinityRefFuscus > rsem1_FU.log 2>&1 &`, changing the arguements when necessary.
+    By adding the `2>&1` to the command we save BOTH the standard output and the errors into a .log file
+
+### Calculating the expression levels
+The expression levels are calculated for **each set of paired reads separately** using [rsem-calculate-expression](https://deweylab.github.io/RSEM/rsem-calculate-expression.html). The input is your RNA-seq reads ( _.fastq_ ) and the output is a genes.results.file, an isoforms.results.file, and .transcript.bam,file and a .log that contains information about the mapping success for every sample.
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/ ##The location on the trimmed paired reads
+FU-or_FL=$1 #Which species' reads are you wanting?
+rsem_reference_output_file=$2 ##Ex TrinityRefFuscus
+
+for fq in ${data}$1*_R1.fastq.gz
+	do
+	base=$(basename $fq _R1.fastq.gz)
+	echo "Running RSEM for ${base}..."
+	time rsem-calculate-expression -p 16 --paired-end --bowtie2 \
+		$fq ${data}${base}_R2.fastq.gz \
+		$2 ${base}
+done
+```
+This command took several days to run and therefore **nohup** was used: `nohup bash rsem_expression.sh FU TrinityRefFuscus > rsem2_FU.log 2>&1 &`, changing the arguments when necessary.
+    There will be multiple outputs from the RSEM reference command with the same prefix (whatever you named it in rsem-prepare-reference) but with multiple extensions (Ex. .idx.fa, .seq, .ti, etc.), when you run rsem-calculate-expression you will just give it the prefix name as it will use all of the file types.
+
+### Generating the matrix 
+For this command, rsem-generate-data-matrix, samples sould be listed by group, so if you are interested in differential expression between males and females tissue types then all of the males should be listed first, followed by all of the females. The input files are all of the genes.results.file and the output is a counts.matrix.file. This is the file that will be used in downstream analysis. This will be done **once per species**. 
+
+#### Fuscus 
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/
+
+rsem-generate-data-matrix ${data}FUG10M2_paired.genes.results ${data}FUG11M2_paired.genes.results ${data}FUG11M4_paired.genes.results ${data}FUG12M1_paired.genes.results ${data}FUG15M5_paired.genes.results \
+	${data}FUL10M2_paired.genes.results ${data}FUL11M2_paired.genes.results ${data}FUL11M4_paired.genes.results ${data}FUL12M1_paired.genes.results ${data}FUL15M5_paired.genes.results \
+	${data}FUT10M2_paired.genes.results ${data}FUT11M2_paired.genes.results ${data}FUT11M4_paired.genes.results ${data}FUT12M1_paired.genes.results ${data}FUT15M5_paired.genes.results \
+	${data}FUG11F1_paired.genes.results ${data}FUG13F1_paired.genes.results ${data}FUG13F4_paired.genes.results ${data}FUG2F2_paired.genes.results ${data}FUG3F2_paired.genes.results \
+	${data}FUL11F1_paired.genes.results ${data}FUL13F1_paired.genes.results ${data}FUL13F4_paired.genes.results ${data}FUL2F2_paired.genes.results ${data}FUL3F2_paired.genes.results \
+	${data}FUO11F1_paired.genes.results ${data}FUO13F1_paired.genes.results ${data}FUO13F4_paired.genes.results ${data}FUO2F2_paired.genes.results ${data}FUO3F2_paired.genes.results \
+	> RSEM_fuscus_digi.counts.matrix
+
+```
+
+#### Floridae 
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/
+
+rsem-generate-data-matrix ${data}FLG3M5_paired.genes.results ${data}FLG3M7_paired.genes.results ${data}FLG3M8_paired.genes.results ${data}FLG4M3_paired.genes.results ${data}FLG4M4_paired.genes.results \
+        ${data}FLL3M5_paired.genes.results ${data}FLL3M7_paired.genes.results ${data}FLL3M8_paired.genes.results ${data}FLL4M3_paired.genes.results ${data}FLL4M4_paired.genes.results \
+        ${data}FLT2M3_paired.genes.results ${data}FLT3M5_paired.genes.results ${data}FLT4M4_paired.genes.results ${data}FLT5M3_paired.genes.results ${data}FLT8M7_paired.genes.results \
+        ${data}FLG2F7_paired.genes.results ${data}FLG3F1_paired.genes.results ${data}FLG3F2_paired.genes.results ${data}FLG8F3_paired.genes.results \
+        ${data}FLL2F7_paired.genes.results ${data}FLL3F1_paired.genes.results ${data}FLL3F2_paired.genes.results ${data}FLL3F4_paired.genes.results ${data}FLL8F3_paired.genes.results \
+        ${data}FLO2F7_paired.genes.results ${data}FLO3F1_paired.genes.results ${data}FLO3F2_paired.genes.results ${data}FLO3F4_paired.genes.results ${data}FLO8F3_paired.genes.results \
+        > RSEM_floridae_digi.counts.matrix
+
+```
+
