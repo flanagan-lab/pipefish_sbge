@@ -837,9 +837,9 @@ rsem-generate-data-matrix ${data}FLG3M5_paired.genes.results ${data}FLG3M7_paire
 # Accessing Tools installed within Trinity - Checking the quality of the alignment
 ## Trinity Transcriptome Contig Nx Statistics
 The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
-    * Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
-    * This can be done using the built in TrinityStats.pl script within trinity.
-    * The input for this function is the resulting *.Trinity.fasta* file from the Trinity run.
+ - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+ - This can be done using the built in TrinityStats.pl script within trinity.
+ - The input for this function is the resulting *.Trinity.fasta* file from the Trinity run.
 
 ```{bash, eval=FALSE}
 #!/bin/bash
@@ -857,16 +857,16 @@ This script was run as `bash trinity_stats.sh trinity_out_dir_floridae.Trinity.f
 
 The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
 ### *Syngnathus fuscus* N50 results
-################################
-##Counts of transcripts, etc.
-################################
-Total trinity 'genes':	399585
-Total trinity transcripts:	645009
-Percent GC: 46.42
+################################  
+##Counts of transcripts, etc.  
+################################  
+Total trinity 'genes':	399585  
+Total trinity transcripts: 645009  
+Percent GC: 46.42  
 
-########################################
-Stats based on ALL transcript contigs:
-########################################
+########################################  
+Stats based on ALL transcript contigs:  
+########################################  
 
 	Contig N10: 6786
 	Contig N20: 4722
@@ -879,9 +879,9 @@ Stats based on ALL transcript contigs:
 	Total assembled bases: 603957249
 
 
-#####################################################
-##Stats based on ONLY LONGEST ISOFORM per 'GENE':
-#####################################################
+#####################################################  
+##Stats based on ONLY LONGEST ISOFORM per 'GENE':  
+#####################################################  
 
 	Contig N10: 5180
 	Contig N20: 3180
@@ -896,16 +896,16 @@ Stats based on ALL transcript contigs:
 For *S. fuscus* we can see that 50% of the assembles bases are found in transcript contigs that are at least 857 bases in length (going off of the stats based on the longest isoform).
 
 ### *Syngnathus floridae* N50 results
-################################
-##Counts of transcripts, etc.
-################################
-Total trinity 'genes':	347758
-Total trinity transcripts:	606899
-Percent GC: 46.42
+################################  
+##Counts of transcripts, etc.  
+################################  
+Total trinity 'genes':	347758  
+Total trinity transcripts: 606899  
+Percent GC: 46.42  
 
-########################################
-Stats based on ALL transcript contigs:
-########################################
+########################################  
+Stats based on ALL transcript contigs:  
+########################################  
 
 	Contig N10: 6684
 	Contig N20: 4682
@@ -918,9 +918,9 @@ Stats based on ALL transcript contigs:
 	Total assembled bases: 583784427
 
 
-#####################################################
-##Stats based on ONLY LONGEST ISOFORM per 'GENE':
-#####################################################
+#####################################################  
+##Stats based on ONLY LONGEST ISOFORM per 'GENE':  
+#####################################################  
 
 	Contig N10: 5450
 	Contig N20: 3559
