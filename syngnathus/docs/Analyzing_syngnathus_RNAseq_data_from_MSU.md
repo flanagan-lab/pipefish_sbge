@@ -834,3 +834,104 @@ rsem-generate-data-matrix ${data}FLG3M5_paired.genes.results ${data}FLG3M7_paire
 
 ```
 
+# Accessing Tools installed within Trinity - Checking the quality of the alignment
+## Trinity Transcriptome Contig Nx Statistics
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+    - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+    - This can be done using the built in TrinityStats.pl script within trinity.
+    - The input for this function is the resulting *.Trinity.fasta* file from the Trinity run.
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/
+trinity_fasta_file=$1
+trinity_stats_output=$2
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        ${data}$trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+This script was run as `bash trinity_stats.sh trinity_out_dir_floridae.Trinity.fasta floridae_trinity_stats.txt`
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+### *Syngnathus fuscus* N50 results
+################################
+##Counts of transcripts, etc.
+################################
+Total trinity 'genes':	399585
+Total trinity transcripts:	645009
+Percent GC: 46.42
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+	Contig N10: 6786
+	Contig N20: 4722
+	Contig N30: 3520
+	Contig N40: 2628
+	Contig N50: 1915
+
+	Median contig length: 425
+	Average contig: 936.35
+	Total assembled bases: 603957249
+
+
+#####################################################
+##Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+	Contig N10: 5180
+	Contig N20: 3180
+	Contig N30: 1976
+	Contig N40: 1276
+	Contig N50: 857
+
+	Median contig length: 338
+	Average contig: 614.57
+	Total assembled bases: 245572519
+
+For *S. fuscus* we can see that 50% of the assembles bases are found in transcript contigs that are at least 857 bases in length (going off of the stats based on the longest isoform).
+
+### *Syngnathus floridae* N50 results
+################################
+##Counts of transcripts, etc.
+################################
+Total trinity 'genes':	347758
+Total trinity transcripts:	606899
+Percent GC: 46.42
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+	Contig N10: 6684
+	Contig N20: 4682
+	Contig N30: 3513
+	Contig N40: 2663
+	Contig N50: 1977
+
+	Median contig length: 436
+	Average contig: 961.91
+	Total assembled bases: 583784427
+
+
+#####################################################
+##Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+	Contig N10: 5450
+	Contig N20: 3559
+	Contig N30: 2412
+	Contig N40: 1592
+	Contig N50: 1028
+
+	Median contig length: 339
+	Average contig: 655.95
+	Total assembled bases: 228111197
+
+For *S. floridae* we can see that 50% of the assembles bases are found in transcript contigs that are at least 1028 bases in length (going off of the stats based on the longest isoform).
+
+
