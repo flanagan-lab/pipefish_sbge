@@ -835,6 +835,8 @@ rsem-generate-data-matrix ${data}FLG3M5_paired.genes.results ${data}FLG3M7_paire
 ```
 
 # Accessing Tools installed within Trinity - Checking the quality of the alignment
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. There is some info on the [Dockerized Trinity](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Trinity-in-Docker) webpage about how to do this. However, it should be noted the **path to the tools** in Trinity for this RCC differs from what is on the website. Instead of `/usr/local/bin/trinityrnaseq/util/...` it is `/usr/local/bin/util/...`.
+
 ## Trinity Transcriptome Contig Nx Statistics
 The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
@@ -934,4 +936,58 @@ Stats based on ALL transcript contigs:
 
 For *S. floridae* we can see that 50% of the assembles bases are found in transcript contigs that are at least 1028 bases in length (going off of the stats based on the longest isoform).
 
+## Contig Ex90N50 Statistic and Ex90 Gene Count
+This statistic is an alternative to the contig Nx statistic that can be considered more appropriate for transcriptome assembly data. With the test, the N50 statistic is computed as it is above BUT limited to the top most highly expressed genes that represent x% of the total normalized expression data. The gene expression is taken as the sum of the transcript isoform expression and the gene length is computed as the expression-weighted mean of the isoform lengths. Prior to calculating this you must have first performed the transcript abundance estimation.
 
+### Building Transcript and Gene Expression Matrices within Trinity
+To be able to calculate the Ex90N50 statistic we need to make sure out gene espression matrix is in the right format. To ensure this we can use the *abundance_estimates_to_matrix.pl* script from [Trinity](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Trinity-Transcript-Quantification). This script takes the *.gene.results.file from RSEM* (or any other transcript abundance estimation software) and *.fasta.gene_trans_map* from your original Trinity run as input and gives you a RSEM.isoform and RSEM.gene matrices as outputs.
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/ ##the location of the .genes.results.file
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/ && /usr/local/bin/util/abundance_estimates_to_matrix.pl \
+	--est_method RSEM \
+	--gene_trans_map ${data}trinity_out_dir_fuscus.Trinity.fasta.gene_trans_map \
+	${data}FUG10M2_paired.genes.results ${data}FUG11M2_paired.genes.results ${data}FUG11M4_paired.genes.results ${data}FUG12M1_paired.genes.results ${data}FUG15M5_paired.genes.results \
+	${data}FUL10M2_paired.genes.results ${data}FUL11M2_paired.genes.results ${data}FUL11M4_paired.genes.results ${data}FUL12M1_paired.genes.results ${data}FUL15M5_paired.genes.results \
+	${data}FUT10M2_paired.genes.results ${data}FUT11M2_paired.genes.results ${data}FUT11M4_paired.genes.results ${data}FUT12M1_paired.genes.results ${data}FUT15M5_paired.genes.results \
+	${data}FUG11F1_paired.genes.results ${data}FUG13F1_paired.genes.results ${data}FUG13F4_paired.genes.results ${data}FUG2F2_paired.genes.results ${data}FUG3F2_paired.genes.results \
+	${data}FUL11F1_paired.genes.results ${data}FUL13F1_paired.genes.results ${data}FUL13F4_paired.genes.results ${data}FUL2F2_paired.genes.results ${data}FUL3F2_paired.genes.results \
+	${data}FUO11F1_paired.genes.results ${data}FUO13F1_paired.genes.results ${data}FUO13F4_paired.genes.results ${data}FUO2F2_paired.genes.results ${data}FUO3F2_paired.genes.results"
+
+```
+When the script was originally run no output files could be found. To fix this a shell wrapper (`/bin/sh -c`) was added as the main container process to the command. This issue was likely that the docker was running under its root directory and not the current working directory.
+
+### Calculating the ExN50 Statistic
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/
+isoform_expression_matrix=$1
+trinity_fasta_output=$2
+ExN50_output=$3
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/misc/contig_ExN50_statistic.pl \
+        ${data}$isoform_expression_matrix \
+        ${data}$trinity_fasta_output | tee $ExN50_output
+
+```
+This script was run as the following: `bash exn50.sh RSEM.isoform.TMM.EXPR.matrix trinity_out_dir_fuscus.Trinity.fasta ExN50.stats`. This results in a table that looks like this:
+
+| Ex      | ExN50   | num_genes |
+|:--------|:--------|:----------|
+|    1    |   304   |     1     |
+|    3    |   304   |     2     |
+|    4    |   304   |     3     |
+|    5    |   304   |     4     |
+|   ...   |   ...   |    ...    |
+|   99    |   801   |  306213   |
+|   100   |   677   |  399585   |
+
+We can then plot the Ex value (first column) against the ExN50 values:
+
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/20220902_mRNASeq_PE150/trimmed_paired/ExN50.stats" `  
+`xpdf ExN50.stats.plot.pdf`
