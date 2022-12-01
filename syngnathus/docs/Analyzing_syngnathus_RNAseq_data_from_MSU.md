@@ -837,9 +837,9 @@ rsem-generate-data-matrix ${data}FLG3M5_paired.genes.results ${data}FLG3M7_paire
 # Accessing Tools installed within Trinity - Checking the quality of the alignment
 ## Trinity Transcriptome Contig Nx Statistics
 The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
-    - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
-    - This can be done using the built in TrinityStats.pl script within trinity.
-    - The input for this function is the resulting *.Trinity.fasta* file from the Trinity run.
+    * Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+    * This can be done using the built in TrinityStats.pl script within trinity.
+    * The input for this function is the resulting *.Trinity.fasta* file from the Trinity run.
 
 ```{bash, eval=FALSE}
 #!/bin/bash
