@@ -216,3 +216,13 @@ sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/
 
 ```
 
+
+#### Transcriptome statistics based on expression categories
+
+Trinity also provides scripts to calculate ExN50 statistics, which calculates N50s for genes in different categories of top percentages of normalized expression. 
+
+```{bash}
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/misc/contig_ExN50_statistic.pl \
+        ${data}$isoform_expression_matrix \
+        ${data}$trinity_fasta_output | tee $ExN50_output
+```
