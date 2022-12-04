@@ -196,3 +196,10 @@ The next step is to map the reads back to the transcriptome to establish express
 
 The first step is to prepare the reference for alignment and abundance estimation. 
 
+```{bash, eval=FALSE}
+sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /usr/local/bin/util/align_and_estimate_abundance.pl --transcripts /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.fasta --est_method RSEM --aln_method bowtie2 --trinity_mode --prep_reference
+```
+
+
+This results in the Trinity RSEM files.
+
