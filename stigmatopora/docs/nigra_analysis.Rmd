@@ -172,6 +172,23 @@ This might be a RAM issue but according to [this issue on GitHub](https://github
 
 It was indeed a RAM issue, and Trinity has now successfully run with 128GB of RAM on machine 132.181.102.45. I created a single assembly for the *S. nigra* gonads (note: if the testes and ovary transcriptomes are sufficiently diverged, I might decide to create separate assemblies for males and females and do some mapping across them to enable comparisons).
 
+#### Assessing the assembly
+
+I used the built-in assembly check tool from Trinity, using this command:
+
+```{bash}
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.fasta \
+        >> /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.stats
+```
+
+It took about 30-60s to run but successfully reported the following statistics:
+
+```{bash, file='results/trinity_nigra_gonads.Trinity.stats', eval=FALSE}
+
+```
+
+It's produced an ~307Mb transcriptome, which isn't too crazy. 
 
 ### Counting reads using RSEM
 
