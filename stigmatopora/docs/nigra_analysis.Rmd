@@ -205,10 +205,6 @@ This results in the Trinity RSEM files.
 
 Next up, run the alignment and abundance estimation. Running this in `screen -S rsem`. Without the command-line wrapper in it (the use of `/bin/sh -c` followed by the actual command), none of the outputs get saved. 
 
-```{bash rsemTest}
-sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/pipefish_sbge/stigmatopora/results/ && /usr/local/bin/util/align_and_estimate_abundance.pl --thread_count 12 --transcripts /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.fasta --est_method RSEM --aln_method bowtie2 --trinity_mode --seqType fq --left /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-51-49-1_S51_paired_R1.fastq.gz --right /home/rccuser/pipefish_sbge/OG7629/trimmed/AAAVL52HV-7629-51-49-1_S51_paired_R2.fastq.gz --output_dir /home/rccuser/pipefish_sbge/stigmatopora/results/rsem_gonads"
-```
-
 
 ```{bash, eval=FALSE}
 ## Run the alignment and abundance estimation (assumes reference has already been prepped, errors-out if prepped reference not located.)
