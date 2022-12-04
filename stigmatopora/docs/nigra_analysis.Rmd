@@ -194,4 +194,5 @@ It's produced an ~307Mb transcriptome, which isn't too crazy.
 
 The next step is to map the reads back to the transcriptome to establish expression values. We'll do this with RSEM -- and afterwards, these expression levels will be used to help clean and filter the transcriptome. I'm going to try running this using Trinity's built-in perl scripts, as described [on their Github page](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Trinity-in-Docker). Because these need sudo permissions, full paths, and other tricky things, I'm not going to run them in a script but rather run them using `screen` on the RCC.
 
+The first step is to prepare the reference for alignment and abundance estimation. 
 
