@@ -239,7 +239,20 @@ sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/
 
 ## Differential expression analysis
 
-First we need to read in the data.
+First we need to read in the data. I will use tximport to enable seamless interactions between RSEM and DESeq2 -- but this has to be run on the RCC because that's where the files are (currently). So I'm saving the `txi.rsem` object as an RDS to move over to my local machine to then be able to be able to run things locally.
+
+
+```{r}
+library(tximport)
+dirs<-list.dirs()
+dirs<-dirs[grep("SN",dirs)]
+files<-unlist(lapply(dirs,list.files, 
+                     pattern=".genes.results",
+                     full.names=TRUE))
+
+txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
+
+```
 
 
 ```{r}
