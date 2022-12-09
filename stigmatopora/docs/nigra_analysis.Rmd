@@ -235,4 +235,33 @@ sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/
         /home/rccuser/pipefish_sbge/stigmatopora/results/RSEM.isoform.TMM.EXPR.matrix  \
         /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.fasta | tee /home/rccuser/pipefish_sbge/stigmatopora/results/ExN50_output"
 ```
+
+
+## Differential expression analysis
+
+First we need to read in the data.
+
+
+```{r}
+library(DESeq2)
+
+
+# get expression data
+cts<-as.matrix(read.table("RSEM.gene.counts.matrix"))
+
+# make sure sample info is in correct order
+samples <- read.table("../nigra_gonads_trinity.txt",
+                      header=FALSE)
+rownames(samples)<-samples$V2
+samples<-samples[order(samples$V2, colnames(cts)),1:2]
+samples$sex<-gsub("(\\w+)_(\\w+)_(\\w+)","\\3",samples$V1)
+samples$spp<-gsub("(\\w+)_(\\w+)_(\\w+)","\\1",samples$V1)
+samples$tis<-gsub("(\\w+)_(\\w+)_(\\w+)","\\2",samples$V1)
+
+# start DESeq analysis
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = samples,
+                              design= ~ sex)
+
 ```
+
