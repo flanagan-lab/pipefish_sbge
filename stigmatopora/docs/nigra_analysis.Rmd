@@ -212,6 +212,19 @@ sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/
 
 ```
 
+This took several days to run and saved each sample's data to its own directory.
+
+Finally, I need to run the following code to generate the summary matrix. Be sure to create the list of isoforms.results files first! (also, this needs to be the isoforms files, not the genes files).
+
+```{bash, eval=FALSE}
+ls */*isoforms.results > isoforms.results_list.txt
+
+sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/pipefish_sbge/stigmatopora/results && /usr/local/bin/util/abundance_estimates_to_matrix.pl --est_method RSEM \
+      --gene_trans_map /home/rccuser/pipefish_sbge/stigmatopora/results/trinity_nigra_gonads.Trinity.fasta.gene_trans_map \
+      --quant_files genes.results_list.txt \
+      --name_sample_by_basedir"
+```
+
 
 #### Transcriptome statistics based on expression categories
 
