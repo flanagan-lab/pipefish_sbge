@@ -279,6 +279,8 @@ samples$tis<-gsub("(\\w+)_(\\w+)_(\\w+)","\\2",samples$V1)
 dds <- DESeqDataSetFromTximport(txi = txi.rsem,
                               colData = samples,
                               design= ~ sex)
+dds <- DESeq(dds)
+res <- results(dds)
 
 ```
 
