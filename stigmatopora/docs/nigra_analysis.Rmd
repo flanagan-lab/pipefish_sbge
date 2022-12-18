@@ -245,7 +245,7 @@ sudo docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /bin/
 First we need to read in the data. I will use tximport to enable seamless interactions between RSEM and DESeq2 -- but this has to be run on the RCC because that's where the files are (currently). So I'm saving the `txi.rsem` object as an RDS to move over to my local machine to then be able to be able to run things locally.
 
 
-```{r}
+```{r tximport, eval=FALSE}
 library(tximport)
 dirs<-list.dirs()
 dirs<-dirs[grep("SN",dirs)]
@@ -254,16 +254,17 @@ files<-unlist(lapply(dirs,list.files,
                      full.names=TRUE))
 
 txi.rsem <- tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
-
+saveRDS(txi.rsem,"txi.rsem_gonads.RDS")
 ```
 
 
 ```{r}
 library(DESeq2)
 
-
 # get expression data
-cts<-as.matrix(read.table("RSEM.gene.counts.matrix"))
+txi.rsem<-readRDS("txi.rsem_gonads.RDS")
+# get the first few rows just to match up names
+cts<-read.table("RSEM.gene.counts.matrix",nrows = 2) 
 
 # make sure sample info is in correct order
 samples <- read.table("../nigra_gonads_trinity.txt",
