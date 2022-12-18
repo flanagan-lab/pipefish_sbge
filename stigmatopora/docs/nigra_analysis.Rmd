@@ -276,7 +276,7 @@ samples$spp<-gsub("(\\w+)_(\\w+)_(\\w+)","\\1",samples$V1)
 samples$tis<-gsub("(\\w+)_(\\w+)_(\\w+)","\\2",samples$V1)
 
 # start DESeq analysis
-dds <- DESeqDataSetFromMatrix(countData = cts,
+dds <- DESeqDataSetFromTximport(txi = txi.rsem,
                               colData = samples,
                               design= ~ sex)
 
