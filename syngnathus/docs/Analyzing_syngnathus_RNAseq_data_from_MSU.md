@@ -16,6 +16,7 @@ output:
 
 In order to access the **RTSF Genomics Core** FTP (File Transfer Protocol) server outside of MSU it requires secure (FTPS) connections. The data will remain available on this serve for 60 days. More details on the RTSF genomics core FTP are available on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/)
 
+
 The program **wget** is capable of doing this on command line. However, only versions of wget 1.17 or later are capable of supporting FTPS. If you attempt to run wget and you end up with an error message which stating: 'Unsupported scheme "ftps"' it means that the version of wget you are using does not support FTPS.
 
 1.  Check the version of wget that is running use: `wget -V`
