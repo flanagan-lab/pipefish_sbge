@@ -1,0 +1,165 @@
+---
+title: "Analyzing *Syngnathus floridae* RNAseq Data from MSU"
+author: "Coley Tosto"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        code_folding: show
+        toc: yes
+        toc_float: yes
+        number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Pre-assembly QUality Control and Filtering
+
+## Trimming the Reads with Trimmomatic
+[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. Currently for version **0.40** of trimmomatic these are the different steps:\
+\
+
+1.  **ILLUMINACLIP**: Cut adapter and other illumina-specific seuqences from the read.\
+    `:<fastaWithAdaptersEtc>:<seed mismatches>:<palindrome clip threshold>:<simple clip threshold>`\
+    -   fastaWithAdaptersEtc = specifies the path to a fasta file containing all the adapters, PCR sequences etc.
+    -   seedMismatches = the max. mismatch count which will still allow a full match to be performed.
+    -   palindromeClipThreshold = how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment
+    -   simpleClipThreshold = how accurate the match between any adapterect. sequence must be against a read.
+2.  **SLIDINGWINDOW**: Perform a sliding window trimming, cutting once the average quality within the window falls below a designated threshold.\
+    `:<windowSize>:<requiredQuality>`\
+    -   windowSize = the number of bases to average across
+    -   requiredQuality = the average quality required
+3.  **LEADING**: Cut bases off the start of a read, if below a designated threshold quality.\
+    `:<quality>`\
+    -   quality = the minimum quality required to keep a base
+4.  **TRAILING**: Cut bases off the end of a read, if below a designated threshold quality.\
+    `:<quality>`\
+    -   quality = the minimum quality required to keep a base
+5.  **CROP**: Cut the read to a specified length.\
+    `:<length>` 
+    -   length = the number of bases to keep, from the start of the read
+6.  **HEADCROP**: Cut the specified number of bases from the start of a read.\
+    `:<length>`\
+    -   length = the number of bases to remove from the start of the read
+7.  **MINLEN**: Drop the read if it is below a specified length.\
+    `:<length>`
+    -   length = the minimum length of reads to be kept
+
+For **paired-end** data, two input files are specified and 4 output files. Two for the **paired** output where both of the reads survived the processing, and two for the corresponding **unpaired** output where one read survived but it's partner did not.\
+\
+**Trimming occurs in the order which the steps are specified on the command line**. Recommended that if the adapter clipping is required it is done as early as possible.
+
+### Installing Trimmomatic
+
+Trimmomatic was installed on the RCC through conda in a conda environment called **Trim**.
+
+```
+conda create -n Trim
+conda activate Trim
+conda install trimmomatic
+```
+
+### Running trimmomatic across Multiple Pairs of Reads
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
+
+for fq in ${data}*_R1.fastq.gz
+        do
+        base=$(basename $fq _R1.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
+                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \    
+                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \    
+                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+```
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`.\
+
+## Using Kraken2 to remove biological contamination
+
+## Using SortMeRNA to remove rRNA contamination
+### Create a new environment and install SortMeRNA in it
+
+```
+conda create -n sortmerna
+conda activate sortmerna
+conda install sortmerna
+
+which sortmerna #check location of installation
+  /home/rccuser/anaconda3/envs/contamination/bin/sortmerna
+```
+
+### Test the installation of SortMeRNA
+
+```
+sortmerna --version
+    SortMeRNA version 4.3.6
+    Build Date: Aug 16 2022
+    sortmerna_build_git_sha:@db8c1983765f61986b46ee686734749eda235dcc@
+    sortmerna_build_git_date:@2022/08/16 11:42:59@
+```
+
+### Download the latest SortMeRNA databases (v4.3.4)
+The `database.tar.gz` file can also be downloaded from [this link](https://github.com/sortmerna/sortmerna/releases).
+
+```
+wget https://github.com/biocore/sortmerna/releases/download/v4.3.4/database.tar.gz
+mkdir rRNA_databases_v4.3.4
+tar -xvf database.tar.gz -C rRNA_databases_v4.3.4
+```
+
+These .fasta files are what will be used in the next step for our reference file. There are 4 fasta files associated with `v4.3.4`.
+
+  1. `smr_v4.3_default_db.fasta`: this FASTA file contains the **default** SortMeRNA database, which is a comprehensive rRNA database derived from the SILVA and Rfam databases. This database includes Bacteria 16S/23S (SILVA), Archaea 16S (SILVA), Eukarya 18S/28S (SILVA),5S/5.8s rRNA (Rfam).
+  
+  2. `smr_v4.3_sensitive_db_rfam_seeds.fasta`: this FASTA file contatins **seed sequences** of the covariance models (CMs) from the Rfam database. Rfam is a comprehensive collection of RNA families, each represented by a CM that describes the consensus secondary structure of the RNA family. These CMs are used to annotate RNA sequences in genomes and metagenomes. The sensitivity of SortMeRNA can be increased by including this database in the analysis, but it can also increase the runtime and memory requirements of the analysis.
+  
+  3. `smr_v4.3_fast_db.fasta`: this FASTA file contains **a subset of sequences** from the default SortMeRNA database. Here, the number of sequences in each database is reduced to improve the speed of the analysis. This file would be intended for use in cases where speed is a priority and a lower sensitivity is acceptable.
+  
+  4. `smr_v4.3_sensitive_db.fasta`: this FASTA file contains **a more comprehensive set of sequences** than the default SortMeRNA database. The sensitive database is intended for use in cases where higher sensitivity is required, such as in metagenomic or environmental sequencing studies, but similar to the second FASTA file it will also increase the runtime and memory requirements of the analysis.
+  
+**More than one of theses reference databases can be used at a time if desired**. To do this you add `--ref` twice in the script (e.g. `--ref smr_v4.3_default_db.fasta --ref smr_v4.3_sensitive_db_rfam_seeds.fasta` ).
+
+
+### Creating a for loop to run multiple samples at a time
+```{bash, eval = FALSE}
+#!/bin/bash
+
+## Set paths to the input and output directories
+input_dir=/home/rccuser/shared/coley_files/floridae_trimmed
+output_dir=/home/rccuser/shared/coley_files/floridae_norrna
+
+#Create arguments
+ref_fasta=$1 #desired reference fasta
+
+## Loop through all pairs of reads in the input directory
+for pair in $input_dir/*_R1.fastq.gz
+          do
+          
+          #Extract the sample name from the file name
+          sample=$(basename $pair _R1.fastq.gz)
+          
+          #Echo the sample name it is currently running
+          echo "Running SortMeRNA for ${sample}..."
+          
+          #Define the paths to the input and output files for this sample
+          input1=$input_dir/${sample}_R1.fastq.gz
+          input2=$input_dir/${sample}_R2.fastq.gz
+          output1=$output_dir/${sample}_sortmerna_R1.fastq.gz
+          output2=$ouput_dir/${sample}_sortmerna_R2.fastq.gz
+          
+          #Run SortMeRNA on this pair of reads
+          time sortmerna --ref $1 --reads $input1 --reads $input2 --paired_out $output1                            --paired_out $output2 --fastx --threads 16
+          
+done
+```
+## Doing a k-mer based correction with RCorrector
+
+# De novo transcriptome assembly
