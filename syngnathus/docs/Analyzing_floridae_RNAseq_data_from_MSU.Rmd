@@ -83,6 +83,74 @@ done
 -   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`.\
 
 ## Using Kraken2 to remove biological contamination
+### Create a new environment and install Kraken2 in it
+
+```
+conda create -n kraken2
+conda activate kraken2
+conda install kraken2
+```
+
+### Creating the Standard Kraken2 Database {.tabset}
+The Kraken2 Database can be generated in one of two ways
+
+#### Builidng it by Hand {.unnumbered}
+Kraken2 has a built in function `kraken2-build` that allows you to build whatever database you are wanting. For example if you want to generate the standard kraken2 database (That includes archea and bacteria):
+
+```
+mkdir kraken2_standard_db
+
+kraken2-buid --standard --db kraken2_standard_db/
+```
+
+If you run into the following error:
+"rsync_from_ncbi.pl: unexpected FTP path (new server?) for https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/900/128/725/GCF_900128725.1_BCifornacula_v1.0" 
+
+You will need to change some of the code in the file `rsync_from_ncbi.pl`. If Kraken 2 was installed via conda the file will be located in `/anaconda3/envs/kraken2/share/kraken2-2.1.2-4/libexec`. Use `nano` to edit the file and on line **46** replace _ftp_ with _((ht|f)tp(s?))_ so the whole line for 46 would look like this:
+
+`if (! ($full_path =~ s#^((ht|f)tp(s?))://${qm_server}${qm_server_path}/##)) {`
+
+
+#### Uploading a pre-built database {.unnumbered}
+This [website](https://benlangmead.github.io/aws-indexes/k2) also has all of the different datasets pre-built and available for download. To access one of these pre-built databases through the RCC directly use:
+
+```
+wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_20230314.tar.gz #Using the link associated to the dataset of choice
+
+mkdir kraken2_pluspfp_database
+tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
+```
+
+### Creating a for loop to run multiple samples at a time
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+ref_fasta=$1 #desired reference database
+input_dir=$2 #Input directory with the location on the reads
+output_dir=$3 #Desired location for the output
+
+## Loop through all pairs of reads in the input directory
+for pair in $2/*_R1.fq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running Kraken2 for ${sample}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$2/${sample}_R1.fq.gz
+        input2=$2/${sample}_R2.fq.gz
+
+        #Run Kraken2 on this pair of reads
+        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
+
+done
+```
+
+This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ > kraken2.log 2>&1 &`
 
 ## Using SortMeRNA to remove rRNA contamination
 ### Create a new environment and install SortMeRNA in it
@@ -132,34 +200,89 @@ These .fasta files are what will be used in the next step for our reference file
 ```{bash, eval = FALSE}
 #!/bin/bash
 
-## Set paths to the input and output directories
-input_dir=/home/rccuser/shared/coley_files/floridae_trimmed
-output_dir=/home/rccuser/shared/coley_files/floridae_norrna
-
 #Create arguments
-ref_fasta=$1 #desired reference fasta
+input_dir=$1 #location of the reads
+ref_fasta=$2 #desired reference fasta
+output_dir_rrna=$3 #desired location for the reads that are rRNA
+output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
 
 ## Loop through all pairs of reads in the input directory
-for pair in $input_dir/*_R1.fastq.gz
-          do
-          
-          #Extract the sample name from the file name
-          sample=$(basename $pair _R1.fastq.gz)
-          
-          #Echo the sample name it is currently running
-          echo "Running SortMeRNA for ${sample}..."
-          
-          #Define the paths to the input and output files for this sample
-          input1=$input_dir/${sample}_R1.fastq.gz
-          input2=$input_dir/${sample}_R2.fastq.gz
-          output1=$output_dir/${sample}_sortmerna_R1.fastq.gz
-          output2=$ouput_dir/${sample}_sortmerna_R2.fastq.gz
-          
-          #Run SortMeRNA on this pair of reads
-          time sortmerna --ref $1 --reads $input1 --reads $input2 --paired_out $output1                            --paired_out $output2 --fastx --threads 16
-          
+for pair in $1/*_R1.fastq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fastq.gz)
+
+        #Extract Fish ID
+        ID=$(basename $pair _paired_R1.fastq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running SortMeRNA for ${ID}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$1/${sample}_R1.fastq.gz
+        input2=$1/${sample}_R2.fastq.gz
+
+        #Run SortMeRNA on this pair of reads
+        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
+
+        #Remove SortMeRNA intermediate files before running again
+        rm -r /home/rccuser/sortmerna/run/kvdb
 done
 ```
+
+This script was run as `nohup bash bash_scripts/sortmerna.sh floridae_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta floridae_rrna floridae_norrna > sortmerna.log 2>&1 &`
+
 ## Doing a k-mer based correction with RCorrector
+Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
+
+### Create a new environment and install Rcorrector in it
+
+```
+conda create -n rcorrector
+conda activate rcorrector
+conda install rcorrector
+```
+
+### Creating a for loop to run multiple samples at a time
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$2 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_R1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _R1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
+
+done
+```
+
+This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector floridae_nobio floridae_kmer_corrected/ > rcor.log 2>&1 &`
 
 # De novo transcriptome assembly
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguements
+samples_file=$1 #File containing sample names and locations
+out_dir_name=$2 #Desired name for the output directory
+
+sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
+        --samples_file $1 \
+        --normalize_by_read_set \
+        --CPU 16 \
+        --output `pwd`/$2
+```
