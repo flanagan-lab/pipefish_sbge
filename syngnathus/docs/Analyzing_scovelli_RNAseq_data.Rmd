@@ -1,0 +1,139 @@
+---
+title: "Analyzing *Syngnathus scovelli* RNAseq data"
+author: "Coley Tosto"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        code_folding: show
+        toc: yes
+        toc_float: yes
+        number_sections: yes
+bibliography: "`r here::here('references.bib')`"
+---
+
+```{r knitsetup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
+```
+
+
+```{r chunksetup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,out.extra='',fig.pos="H",
+                      fig.path = "../figs/",
+                      dpi = 300,dev='png')
+```
+
+``` {r library, include = FALSE}
+
+```
+
+``` {r functions}
+```
+
+``` {r read-data}
+#This file contains the Sra run info for the various s. scovelli projects and was used to rename the samples
+scov_sra <- read.csv("data/SraRunInfo_Sscov.csv")
+```
+
+# Gathering Publically Acessible RNA Seq. Data
+## Installing sra-toolkit
+```
+##Install sra-toolkit
+sudo apt install sra-toolkit
+
+##Configure it
+vdb-config -i
+
+##Check that it installed properly
+fastq-dump --version
+    "fastq-dump" version 2.11.3
+    
+```
+
+**Steps for configuring sra-toolkit**
+You will see a screen where you operate the buttons by pressing the letter highlighted in red, or by pressing the tab-key until the wanted button is reached and then pressing the space- or the enter-key.
+
+1. You want to enable the "Remote Access" option on the Main screen.
+
+2. If you would like the toolkit to default to using the smaller SRA Lite format with simplified quality scores, set the "Prefer SRA Lite files with simplified base quality scores" option on the Main screen.
+
+3. Proceed to the "Cache" tab where you will want to enable "local file-caching" and you want to set the "Location of user-repository".
+     - The repository directory needs to be set to an **empty folder**. This is the folder where prefetch will deposit the files.
+
+4. Go to your cloud provider tab and accept to "report cloud instance identity".
+
+The cloud instance identity only reports back in what cloud (AWS v GCP) you are working so you can access data for free.
+
+## Obtain accessions
+Run accessions are used to dowload SRA data.
+
+1. Navigate to the [NIH SRA website](https://www.ncbi.nlm.nih.gov/sra) and enter the query for whatever you are interested in (i.e. `"syngnathus scovelli" AND "rna seq"[Strategy]`). 
+
+2. Click the checkboxes next to records (experiments) to select data of interest.
+
+3. Click **Send to** on the top of the page, check **File**, select **Accession List** and save this file in the location from which you are running the SRA ToolKit.
+
+`SraAccList.txt` should be formatted as so:
+```
+SRR10158924
+SRR10158925
+SRR10158926
+SRR10158932
+SRR10158933
+SRR10158934
+SRR10158935
+SRR10158936
+SRR10158937
+SRR10158938
+...
+```
+
+## Using sra-toolkit to gather public raw sequencing reads
+**Prefetch** is a part of the SRA toolkit and is used to download runs.
+
+```
+##One Run
+prefetch SRR10158924
+
+##A list of runs
+prefetch --option-file SraAccList.txt
+```
+
+- These files will be located in the the folder that you set as the **cache location** (see above steps) in a sub folder called `/sra`.
+
+**fasterq-dump** and **sam-dump** are also part of the tool kit and are used to convert the prefetched Runs from the compressed SRA format to either fastq or sam format. They are run as: `fasterq-dump --split-files SRR10158924.sra`. Once converted, all files were gzipped using `gzip`.
+
+```{r rename_sra, eval=FALSE}
+#Pulling out the information we need from the SraRunInfo
+scov_sra_summarized <- data.frame(scov_sra[c('Run', 'Experiment', 'Submission', 'Sex', 'Subject_ID', 'SampleName')])
+
+##Adding in subject names that follow the format I have previously used
+scov_sra_summarized$Subject_ID <- c('SSBF1', 'SSBM1', 'SSBM2', 'SSBF2', 'SSBF3', 'SSBM3', 'SSBM4', 'SSSF1', 'SSSF2', 'SSSM1', 'SSSM2', 'SSSM3', 'SSSM4', 'SSSM5', 'SSSF3', 'SSSF4', 'SSSF5', 'SSPTM1', 'SSPTM2', 'SSOF1', 'SSOF2', 'SSPTM3', 'SSPTM4', 'SSPTM5', 'SSNPTM1', 'SSNPTM2', 'SSOF3', 'SSOF4', 'SSOF5', 'NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','SSNPBPM1', 'SSPBPM1', 'SSNPBPM2', 'SSPBPM2', 'SSPBPM3', 'SSNPBPM3', 'SSPBPM4', 'SSNPBPM4')
+```
+
+## Description of the different sources of RNA_seq Data
+
+1. **Submission Number**: SRA582537
+   - RNA-seq brain of _Syngnathus scovelli_ including 4 pregnant males and 3 sexually mature females. 
+   - **Associated paper**: @BEAL2018120
+   - Fish euthanized with MS-222 and dissected immediately.
+   - **Whole brain was used** and extractions were done with the Maxwell16 simplyRNA kit (Promega).
+   - Samples sequences at UT Southwestern center in Dallas, TX on an Illumina HiSeq 2000. All samples had RIN > 8 and the pool was sequenced on one lane using paired-end 100 bp Illumina sequencing.
+   
+2. **Submission Number**: SRA966117 
+   - RNA-seq skin and muscle of _Syngnathus scovelli_ including 5 non-pregnant males and 5 sexually mature females. 
+   - **Associated paper**: @10.1093/jhered/esaa008
+   - Took a cross-section that was wide enough to include 2 of the ornamental bands on each side. The cross-section included **muscle, skin, and bone tissue** all taken together.
+   - Samples sequenced at MSU RTSF Genomics Core with the Illumina HiSeq 2500. No pooling across specimens.
+   
+3. **Submission Number**: SRA1439291 
+   - RNA-seq ovaries and testis of _Syngnathus scovelli_ including 5 pregnant males, 2 non-pregnant males and 5 sexually mature females. 
+   - **Associated paper**: @10.1111/evo.14579
+   - Samples sequenced across two lanes of Illumina HiSeq 2500 and are 150bp paired end reads.
+   
+4. **Submission Number**: SRA1651277 
+   - RNA-seq brood pouch of _Syngnathus scovelli_ including 4 pregnant males, and 4 non-pregnant males. 
+   - **Associated paper**:  
+
+# Pre-assembly Quality Control and Filtering
+
+# References
