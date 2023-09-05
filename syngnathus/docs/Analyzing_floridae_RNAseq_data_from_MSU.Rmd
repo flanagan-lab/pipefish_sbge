@@ -14,6 +14,17 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+``` {r library, include = FALSE}
+
+```
+
+``` {r functions}
+```
+
+``` {r read-data}
+
+```
+
 # Pre-assembly QUality Control and Filtering
 
 ## Trimming the Reads with Trimmomatic
@@ -62,7 +73,7 @@ conda install trimmomatic
 
 ### Running trimmomatic across Multiple Pairs of Reads
 
-```{bash, eval=FALSE}
+```{bash run_trimmomatic, eval=FALSE}
 #!/bin/bash
 
 data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
@@ -81,6 +92,9 @@ done
 -   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
 
 -   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`.\
+
+-   The **NexteraPE-PE.fa** file was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/NexteraPE-PE.fa`
+
 
 ## Using Kraken2 to remove biological contamination
 ### Create a new environment and install Kraken2 in it
@@ -122,7 +136,7 @@ tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
 ```
 
 ### Creating a for loop to run multiple samples at a time
-```{bash, eval = FALSE}
+```{bash run_kraken2, eval = FALSE}
 #!/bin/bash
 
 #Create arguments
@@ -197,7 +211,7 @@ These .fasta files are what will be used in the next step for our reference file
 
 
 ### Creating a for loop to run multiple samples at a time
-```{bash, eval = FALSE}
+```{bash run_sortmeRNA, eval = FALSE}
 #!/bin/bash
 
 #Create arguments
@@ -236,16 +250,14 @@ This script was run as `nohup bash bash_scripts/sortmerna.sh floridae_trimmed ..
 ## Doing a k-mer based correction with RCorrector
 Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
 
-### Create a new environment and install Rcorrector in it
+### Install Rcorrector 
 
-```
-conda create -n rcorrector
-conda activate rcorrector
-conda install rcorrector
-```
+1. Clone the GitHub Repo: `git clone https://github.com/mourisl/rcorrector.git`
+
+2. Run `make` in the repo directory.
 
 ### Creating a for loop to run multiple samples at a time
-```{bash, eval = FALSE}
+```{bash run_Rcorrector, eval = FALSE}
 #!/bin/bash
 
 #Create arguments
@@ -273,10 +285,64 @@ This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector florida
 
 # De novo transcriptome assembly
 
-```{bash, eval = FALSE}
+## Installing Trinity
+Trinity requires the installation of several programs, to get around this Trinity was installed via a Docker in the RCC and must be used within one. **The first time that you use Trinity you must pull the latest Docker image for Trinity** like so:
+
+```
+docker pull trinityrnaseq/trinityrnaseq
+
+```
+
+## Running Trinity 
+Once started, a successful Trinity run will take days to complete. There are a lot of extra components you can add onto a Trinity run (View the [Trinity User Manual](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity) for more information) but here are the main components you should specify:
+
+1.  **SeqType**: Signifies the type of reads (fa or fq).
+    `--seqType <string>`
+
+2.  **Max Memory**: Suggested max memory to use by Trinity where limiting can be enabled.
+    `--max_memory <string>`
+    -   This should be based on the available memory for your computer. For example `--max_memory 20G`
+    
+3.  **Read Locations**: Provide exact file locations for the left and right reads. One or more file names separated by commas, NOT spaces.
+    `--left <string>`
+    `--right <string>` 
+    -   The left and right reads must be paired up sequentially, if XXX32_R1 is mentioned first for the left, XXX32_R2 must also be first for the right.
+    -   If running across multiple samples `--samples_file <string>` can be used rather than typing out the location for each individual. See below for more details.
+
+4.  **CPU**: Tell Trinity the number of CPUs to use, default is 2.
+    `--CPU <int>`
+    -   This should be based on the number of cores the computer has and it must be an even number.
+    
+5.  **Output Directory**: Name of the directory for output.This will be created if it doesn't already exist.
+    `--output <string>`
+    -   Good to include trinity in the name as a safety precaution! Don't forget to include the full file path.
+    
+### Using multiple reads
+#### Creating a Sample Name File
+There are two options when using multiple files to generate your de novo transcriptome assembly. Each sample can be typed out individually, ensuring that the two reads are paired up by order. Alternatively, the argument `--samples_file` can be used instead. With this argument you must provide a tab-delimited text file indicating biological replicate relationships. This is the example provided on the [Trinity Website](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity):
+
+         cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
+         cond_A    cond_A_rep2    A_rep2_left.fq    A_rep2_right.fq
+         cond_B    cond_B_rep1    B_rep1_left.fq    B_rep1_right.fq
+         cond_B    cond_B_rep2    B_rep2_left.fq    B_rep2_right.fq
+         
+The samples file that was provided for the script below was adapted into this format:
+
+```
+FLG2F   FLG2F7  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R1.fq.gz  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R2.fq.gz
+FLG3F   FLG3F1  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F1_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F1_R2.fq.gz
+FLG3F   FLG3F2  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F2_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F2_R2.fq.gz
+FLG3M   FLG3M5  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M5_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M5_R2.fq.gz
+FLG3M   FLG3M7  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M7_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M7_R2.fq.gz
+...
+```
+The last two columns contain the **full** location to the desired reads.
+
+#### Script
+```{bash trinity_script, eval = FALSE}
 #!/bin/bash
 
-#Create arguements
+#Create arguments
 samples_file=$1 #File containing sample names and locations
 out_dir_name=$2 #Desired name for the output directory
 
@@ -286,3 +352,89 @@ sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType
         --CPU 16 \
         --output `pwd`/$2
 ```
+
+# Post-Assembly Quality Control
+## The Bellerophon Pipeline
+This pipeline was created to remove falsely assembled chimeric transcripts in de novo transcriptome assemblies. It integrates several tools including **TransRate**, **CD-HIT**, and **BUSCO**.
+
+### Installing the pipeline
+```
+git clone https://github.com/JesseKerkvliet/Bellerophon.git
+
+```
+There were issues trying to install the pipeline via Conda. Due to incompatibilities between packages. Because of this I am instead trying to install the pipeline with Vagrant VM. First Vagrant and virtualbox must be installed.
+
+```
+sudo apt install vagrant
+vagrant --version
+  Vagrant 2.2.19
+
+sudo apt install virtualbox
+virtualbox -h
+  Oracle VM VirtualBox VM Selector v6.1.38_Ubuntu
+  
+##Create the Vagrant File
+vagrant init bellerophon/bellerophon --box-version 1.0
+
+##Start the Virtual Machine
+vagrant up
+```
+
+
+# Alignment and Abundance Estimations
+## Using Salmon
+Salmon was installed in a conda environment
+```
+conda create -n salmon
+conda activate salmon
+conda install samlon
+```
+### Generating the index
+The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
+
+```{bash salmon-index, eval = FALSE}
+#!/bin/bash
+
+#Create the arguments
+transcriptome_file=$1 #This is the output .fasta file from Trinity
+output_index_name=$2
+desired_kmer_length=$3
+
+salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_floridae_May2023.Trinity.fasta floridae_salmon_index 31 > salmon.log 2>&1 &`
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). If I end up seeing a smaller mapping rate than expected I will generate another index using a smaller k-mer length.
+
+### Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash salmon-quant, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_R1.fq.gz
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _R1.fq.gz)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        salmon quant -i $2 -l A \
+                -1 $1/${sample}_R1.fq.gz \
+                -2 $1/${sample}_R2.fq.gz \
+                -p 16 --validateMappings -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash bash_scripts/salmon_quant.sh floridae_kmer_corrected floridae_salmon_index/ floridae_salmon_quant > salmon_quant.log 2>&1 &`
