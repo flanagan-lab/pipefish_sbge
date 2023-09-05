@@ -379,6 +379,49 @@ vagrant init bellerophon/bellerophon --box-version 1.0
 ##Start the Virtual Machine
 vagrant up
 ```
+## Using BUSCO to assess composition or 'completeness' of assembly
+[BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
+
+The base command to run a BUSCO assesment looks something like this:
+    ```
+    busco -i <SEQUENCE_FILE> -l <LINEAGE> -o <OUTPUT_NAME> -m <MODE>
+    
+      -i is a path to your FASTA file, either nucleotide or protein fast file
+      -l is the lineage, the manually picked dataset to be used for the assessment
+      -m is which analysis mode to run, wither genome (geno), protein (prot), or transcriptome (tran)
+      -o is the name of the output directory
+    ```  
+
+Use `busco --list-datasets` to print the full list of clades that can be used for the lineage.
+
+### Installing BUSCO from Bioconda
+
+```
+conda update -n base conda
+
+conda create -n busco -c conda_forge -c bioconda busco=5.2.2
+conda activate busco
+
+#Double check version
+busco -v
+```
+
+### Running BUSCO on a single transcriptome
+The lineage for _S. floridae_ was chosen as `actinopterygii_odb10` since it is the closest clade provided with BUSCO.
+
+```{bash run_busco, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+lineage=$2 #chosen dataset for assessment
+out_dir_name=$3 #Desired name for the output directory
+
+busco -i $1 -l $2 -m tran -o $3 -c 16
+
+
+```
+This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_floridae_May2023.Trinity.fasta actinopterygii_odb10 busco_out_floridae > busco.log 2>&1 &`
 
 
 # Alignment and Abundance Estimations
