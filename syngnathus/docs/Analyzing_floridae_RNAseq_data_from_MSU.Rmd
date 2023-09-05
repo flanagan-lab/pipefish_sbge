@@ -329,7 +329,7 @@ There are two options when using multiple files to generate your de novo transcr
 The samples file that was provided for the script below was adapted into this format:
 
 ```
-FLG2F   FLG2F7  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R1.fq.gz  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R2.fq.gz
+FLG2F   FLG2F7  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG2F7_R2.fq.gz
 FLG3F   FLG3F1  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F1_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F1_R2.fq.gz
 FLG3F   FLG3F2  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F2_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3F2_R2.fq.gz
 FLG3M   FLG3M5  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M5_R1.fq.gz        /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M5_R2.fq.gz
@@ -382,15 +382,14 @@ vagrant up
 ## Using BUSCO to assess composition or 'completeness' of assembly
 [BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
 
-The base command to run a BUSCO assesment looks something like this:
-    ```
+The base command to run a BUSCO assessment looks something like this:
+    
     busco -i <SEQUENCE_FILE> -l <LINEAGE> -o <OUTPUT_NAME> -m <MODE>
     
       -i is a path to your FASTA file, either nucleotide or protein fast file
       -l is the lineage, the manually picked dataset to be used for the assessment
       -m is which analysis mode to run, wither genome (geno), protein (prot), or transcriptome (tran)
       -o is the name of the output directory
-    ```  
 
 Use `busco --list-datasets` to print the full list of clades that can be used for the lineage.
 
@@ -423,6 +422,7 @@ busco -i $1 -l $2 -m tran -o $3 -c 16
 ```
 This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_floridae_May2023.Trinity.fasta actinopterygii_odb10 busco_out_floridae > busco.log 2>&1 &`
 
+### Interpreting BUSCO results
 
 # Alignment and Abundance Estimations
 ## Using Salmon
