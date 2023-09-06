@@ -283,6 +283,25 @@ done
 
 This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector floridae_nobio floridae_kmer_corrected/ > rcor.log 2>&1 &`
 
+# Checking quality of trimmed and filtered reads
+The quality of the reads once they finished going through the filtering and trimming pipeline outlined above was assessed with FastQC and the results were compiled using MultiQC.
+
+```{bash run_fastqc, eval=FALSE}
+#!/bin/bash
+
+input_dir=$1 #location of the reads
+output_dir=$2 #name of the desired output directory
+
+for fq in $1/*.gz
+        do
+        base=$(basename $fq)
+        echo "Running fastqc for ${base} ..."
+        time fastqc $fq -t 16 -o $2
+done
+```
+
+This script was run as `nohup bash bash_scripts/fastqc_script.sh floridae_kmer_corrected floridae_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`. 
+
 # De novo transcriptome assembly
 
 ## Installing Trinity
@@ -423,7 +442,34 @@ busco -i $1 -l $2 -m tran -o $3 -c 16
 ```
 This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_floridae_May2023.Trinity.fasta actinopterygii_odb10 busco_out_floridae > busco.log 2>&1 &`
 
-### Interpreting BUSCO results
+### Interpreting BUSCO results {.tabset}
+The main results from BUSCO are simplified into categories of _Complete and single-copy_, _Complete and duplicated_, _Fragmented_, or _Missing_. The results from BUSCO will only make sense in the context of the biology of your organism and data types.
+
+The transcriptome was not filtered for isoforms prior to running BUSCO which may then lead to a high proportion of duplicates. Additionally, not all BUSCO genes are necessarily expressed in the tissue/organ under consideration or at that specific timepoint. Therefore, transcriptomes are expected to show varying degrees of completeness.
+
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2 
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_out_dir_floridae_May2023.Trinity.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:94.6%[S:7.0%,D:87.6%],F:2.1%,M:3.3%,n:3640
+        3443    Complete BUSCOs (C)
+        253     Complete and single-copy BUSCOs (S)
+        3190    Complete and duplicated BUSCOs (D)
+        76      Fragmented BUSCOs (F)
+        121     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+
+#### Graphing Results {-}
 BUSCO includes a dedicated R script to produce a figure helping to visualise the results. To run the script Python is required.
 
 ```
@@ -435,7 +481,13 @@ BUSCO includes a dedicated R script to produce a figure helping to visualise the
 #Generate the plot
 python3 generate_plot.py -wd BUSCO_summaries/
 ```
+<p float="center">
 
+<img src="../imgs/busco_figure.png" style="width:650px;"/> 
+
+</p>
+
+By adding the flag `--no_r` to the generate plot command it will produce the R script required to reproduce the above plot. This script is located in the R/ folder.
 
 ## Assessing quality with Transrate
 [Transrate](http://hibberdlab.com/transrate/) allows you to analyse a de-novo transcriptome assembly using three kinds different methods:
