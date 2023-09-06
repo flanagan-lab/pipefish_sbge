@@ -379,6 +379,7 @@ vagrant init bellerophon/bellerophon --box-version 1.0
 ##Start the Virtual Machine
 vagrant up
 ```
+
 ## Using BUSCO to assess composition or 'completeness' of assembly
 [BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
 
@@ -396,13 +397,13 @@ Use `busco --list-datasets` to print the full list of clades that can be used fo
 ### Installing BUSCO from Bioconda
 
 ```
-conda update -n base conda
+> conda update -n base conda
 
-conda create -n busco -c conda_forge -c bioconda busco=5.2.2
-conda activate busco
+> conda create -n busco -c conda_forge -c bioconda busco=5.2.2
+> conda activate busco
 
 #Double check version
-busco -v
+> busco -v
 ```
 
 ### Running BUSCO on a single transcriptome
@@ -423,6 +424,48 @@ busco -i $1 -l $2 -m tran -o $3 -c 16
 This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_floridae_May2023.Trinity.fasta actinopterygii_odb10 busco_out_floridae > busco.log 2>&1 &`
 
 ### Interpreting BUSCO results
+BUSCO includes a dedicated R script to produce a figure helping to visualise the results. To run the script Python is required.
+
+```
+#Create directory to store BUSCO summaries in
+> mkdir BUSCO_summaries
+> cp busco_out_floridae/short_summary.specific.actinopterygii_odb10.busco_out_floridae.txt BUSCO_summaries/
+
+
+#Generate the plot
+python3 generate_plot.py -wd BUSCO_summaries/
+```
+
+
+## Assessing quality with Transrate
+[Transrate](http://hibberdlab.com/transrate/) allows you to analyse a de-novo transcriptome assembly using three kinds different methods:
+  1. Sequence based - if only the assembly is provided
+  2. Read mapping based - if the assembly PLUS the reads are provided
+  3. Reference based - if the assembly plus a reference genome is provided
+  
+### Installing Transrate
+Transrate was installed via a conda environment as it is available through **bioconda**.
+```
+> conda create -n transrate
+> conda avticate transrate
+
+> conda install intransrate
+> transrate -v
+    Transrate v1.0.3
+  
+```
+
+### Running a read-mapping based analysis with Transrate
+```{bash run_transrate_readmap, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+
+transrate --assembly $1 
+
+
+```
 
 # Alignment and Abundance Estimations
 ## Using Salmon
