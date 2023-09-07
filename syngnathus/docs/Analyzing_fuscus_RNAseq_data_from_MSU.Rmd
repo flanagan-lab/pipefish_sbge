@@ -1,0 +1,185 @@
+---
+title: "Analyzing *Syngnathus fuscus* RNAseq Data from MSU"
+author: "Coley Tosto"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: show
+        toc: yes
+        toc_float: yes
+        number_sections: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+``` {r library, include = FALSE}
+
+```
+
+``` {r functions}
+
+```
+
+``` {r read-data}
+
+```
+
+# Pre-assembly QUality Control and Filtering
+These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provied on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/).
+
+Quality scores were provided by MSU, so FastQC was not run on the raw reads. The provided scores were used to assist in choosing the settings for trimming and filtering. The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document. Analysis was conducted in a Remote Computing Cluster (RCC) at the University of Canterbury.
+
+## Trimming the raw reads with Trimmomatic
+
+Trimmomatic was install via a conda environment `Trim` on the RCC. `trimmomatic v0.39` was used for the following script.
+
+```{bash run_trimmomatic, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
+
+for fq in ${data}*_R1.fastq.gz
+        do
+        base=$(basename $fq _R1.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
+                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \
+                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \
+                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+```
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`.\
+
+-   The **NexteraPE-PE.fa** file was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/NexteraPE-PE.fa`
+
+## Using Kraken2 to remove biological contamination
+
+Kraken2 was installed in the conda environment `kraken2` on the RCC. `kraken2 v2.1.2` was used.
+
+```{bash run_kraken2, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+ref_fasta=$1 #desired reference database
+input_dir=$2 #Input directory with the location on the reads
+output_dir=$3 #Desired location for the output
+
+## Loop through all pairs of reads in the input directory
+for pair in $2/*_R1.fq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running Kraken2 for ${sample}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$2/${sample}_R1.fq.gz
+        input2=$2/${sample}_R2.fq.gz
+
+        #Run Kraken2 on this pair of reads
+        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
+
+done
+```
+
+This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ fuscus_trimmed fuscus_nobio > kraken2.log 2>&1 &`
+
+The kraken2 database used for this analysis included the standard database (archea, bacteria, viral) plus plant, fungi, and protozoan datbases. Only reads that did not map back to these databases were retained.
+
+## Using SortMeRNA to remove rRNA contamination
+
+SortmeRNA was installed via a conda environment `sortmerna` on the RCC.`sortmerna v4.3.6` was used
+
+```{bash run_sortmeRNA, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1 #location of the reads
+ref_fasta=$2 #desired reference fasta
+output_dir_rrna=$3 #desired location for the reads that are rRNA
+output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
+
+## Loop through all pairs of reads in the input directory
+for pair in $1/*_R1.fastq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fastq.gz)
+
+        #Extract Fish ID
+        ID=$(basename $pair _paired_R1.fastq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running SortMeRNA for ${ID}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$1/${sample}_R1.fastq.gz
+        input2=$1/${sample}_R2.fastq.gz
+
+        #Run SortMeRNA on this pair of reads
+        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
+
+        #Remove SortMeRNA intermediate files before running again
+        rm -r /home/rccuser/sortmerna/run/kvdb
+done
+```
+
+This script was run as `nohup bash bash_scripts/sortmerna.sh fuscus_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta fuscus_rrna fuscus_norrna > sortmerna.log 2>&1 &`.
+
+The chosed reference FASTA file contains **a subset of sequences** from the default SortMeRNA database. Here, the number of sequences in each database is reduced to improve the speed of the analysis.
+
+## Doing a k-mer based correction with RCorrector
+
+The Rcorrector github repo was cloned and Rcorrector was installed in the /shared folder on the RCC.
+
+```{bash run_Rcorrector, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$2 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_R1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _R1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
+done
+```
+
+This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector fuscus_nobio fuscus_kmer_corrected/ > rcor.log 2>&1 &`. After this step the fasta files were g-zipped.
+
+# Checking quality of trimmed and filtered reads
+The quality of the reads once they finished going through the filtering and trimming pipeline outlined above was assessed with FastQC and the results were compiled using MultiQC.
+
+```{bash run_fastqc, eval=FALSE}
+#!/bin/bash
+
+input_dir=$1 #location of the reads
+output_dir=$2 #name of the desired output directory
+
+for fq in $1/*.gz
+        do
+        base=$(basename $fq)
+        echo "Running fastqc for ${base} ..."
+        time fastqc $fq -t 16 -o $2
+done
+```
+
+This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_corrected fuscus_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`.
+
+From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 40 &pm; 7.2 million reads per sample.
