@@ -1,5 +1,5 @@
 ---
-title: "Analyzing *Syngnathus scovelli* RNAseq data"
+title: "Analyzing Syngnathus scovelli RNAseq data"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
 output: 
@@ -108,6 +108,23 @@ scov_sra_summarized <- data.frame(scov_sra[c('Run', 'Experiment', 'Submission', 
 
 ##Adding in subject names that follow the format I have previously used
 scov_sra_summarized$Subject_ID <- c('SSBF1', 'SSBM1', 'SSBM2', 'SSBF2', 'SSBF3', 'SSBM3', 'SSBM4', 'SSSF1', 'SSSF2', 'SSSM1', 'SSSM2', 'SSSM3', 'SSSM4', 'SSSM5', 'SSSF3', 'SSSF4', 'SSSF5', 'SSPTM1', 'SSPTM2', 'SSOF1', 'SSOF2', 'SSPTM3', 'SSPTM4', 'SSPTM5', 'SSNPTM1', 'SSNPTM2', 'SSOF3', 'SSOF4', 'SSOF5', 'NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','NA','SSNPBPM1', 'SSPBPM1', 'SSNPBPM2', 'SSPBPM2', 'SSPBPM3', 'SSNPBPM3', 'SSPBPM4', 'SSNPBPM4')
+
+##Exporting to a .txt file
+write.table(scov_sra_summarized, file = "scov_rename.txt", quote = FALSE, sep = "\t", col.names = TRUE)
+```
+
+scov_rename.txt was moved into the RCC and used to change the file names from the **Run Number** to the **Subject_ID**. This makes it easier for downstream analysis as the subject_ID is more descriptive to what the file actually is. 
+```
+##Rename the Raw reads
+
+while read -r line
+> do
+> old=$(echo $line | awk '{print $2}')
+> new=$(echo $line | awk '{print $6}')
+> echo $new $old
+> rename "s/$old/$new/g" *.gz
+> done < scov_rename.txt
+
 ```
 
 ## Description of the different sources of RNA_seq Data
@@ -135,5 +152,48 @@ scov_sra_summarized$Subject_ID <- c('SSBF1', 'SSBM1', 'SSBM2', 'SSBF2', 'SSBF3',
    - **Associated paper**:  
 
 # Pre-assembly Quality Control and Filtering
+The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document.
+
+## Initial FastQC on raw reads
+I wanted to check the quality of all of the reads to begin with as they were obtained from many different studies and were sequenced in various ways.
+
+```{bash run_fastqc, eval=FALSE}
+#!/bin/bash
+
+input_dir=$1 #location of the reads
+output_dir=$2 #name of the desired output directory
+
+for fq in $1/*.gz
+        do
+        base=$(basename $fq)
+        echo "Running fastqc for ${base} ..."
+        time fastqc $fq -t 16 -o $2
+done
+```
+
+This script was run as `nohup bash bash_scripts/fastqc_script.sh scovelli_raw scovelli_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc scovelli_FastQC`. 
+
+From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 40 &pm; 7.2 million reads per sample.
+
+## Trimming reads with Trimmomatic
+```{bash run_trimmomatic, eval=FALSE}
+#!/bin/bash
+
+data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
+
+for fq in ${data}*_R1.fastq.gz
+        do
+        base=$(basename $fq _R1.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
+                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \    
+                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \    
+                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+```
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`
 
 # References
