@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-# Pre-assembly QUality Control and Filtering
+# Pre-assembly Quality Control and Filtering
 These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provied on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/).
 
 Quality scores were provided by MSU, so FastQC was not run on the raw reads. The provided scores were used to assist in choosing the settings for trimming and filtering. The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document. Analysis was conducted in a Remote Computing Cluster (RCC) at the University of Canterbury.
@@ -183,3 +183,37 @@ done
 This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_corrected fuscus_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`.
 
 From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 40 &pm; 7.2 million reads per sample.
+
+# De novo transcriptome assembly
+For _Syngnathus fuscus_ I have chosen to use the De novo RNA-seq Assembly Pipeline (DRAP) to build the assembly. DRAP includes three modules:
+  1. **runDrap** generates the Oases or Trinity assembly
+  2. **runMeta** gathers all assemblies and merges them together to remove redundancy between sets.
+  3. **runAssessment** generates assembly and alignment metrics that are collected in a report
+  
+`DRAP v1.92` was installed using the Docker image onto the RCC. After installation the docker image was pulled with `docker pull sigenae/drap`.
+
+## Working through the pipeline
+### runDrap
+To see all of the argument options for `runDrap` I ran `sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --help`
+
+````{bash run_runDrap, eval=FALSE}
+#!/bin/bash
+
+#Generate list of reads(comma separated)
+R1=$(ls FUG*R1*.fq.gz | perl -pe 's/\n/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\//g' | perl -pe 's/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\/$//g')
+R2=$(ls FUG*R2*.fq.gz | perl -pe 's/\n/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\//g' | perl -pe 's/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\/$//g')
+
+#Generate arguments
+out_dir_name=$1
+
+sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --no-trim --outdir `pwd`/$1 \
+                --R1 `pwd`/$R1 \
+                --R2 `pwd`/$R2 \
+                --dbg trinity --norm-mem 188 --dbg-mem 188
+
+
+```
+
+This script was run in a screen session in the RCC. To run this you must be in the folder that contains the desired reads (For the `$R1` and `$R2`). The script was then run as `bash ../bash_scripts/runDrap.sh DRAP_fuscus_gills_Sept2023`.
+
+`runDRAP.sh` was run **separately** for all the different tissue types (gills, liver, ovaries, testes).
