@@ -173,27 +173,44 @@ done
 
 This script was run as `nohup bash bash_scripts/fastqc_script.sh scovelli_raw scovelli_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc scovelli_FastQC`. 
 
-From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 40 &pm; 7.2 million reads per sample.
+### FastQC results
+From the General stats reported in the MultiQC report we can see that prior to the filtering/trimming process we end up with an average of 22 &pm; 8.5 million reads  per sample, for a total of 1.63 billion reads.
+
+However, there were clear differences between the samples depending on which project they came from:
+
+| SUBMISSION |  READ LENGTH  | AVERAGE M. SEQS |
+|:----------:|:-------------:|:---------------:|
+|  SRA582537 |     100bp     |  22.9 &pm; 2.9  |
+|  SRA966117 |150bp(F)/125(M)|  32.2 &pm; 7.1  |
+| SRA1439291 |     150bp     |  18.1 &pm; 2.2  |
+| SRA1651277 |     150bp     |  14.2 &pm; 6.5  |
+
+Quality scores overall look good. All reads will need the chop at the front to fix the per base sequence content. 6 samples failed the Per sequence GC content, all of them are skin samples. Will need to go back and look at the paper to see if there is anything mentioned about this. Sequence duplication levels failed for most samples, but this was to be expected as we are working with RNAseq data. Adapter content is present and will need to be removed. 
 
 ## Trimming reads with Trimmomatic
-```{bash run_trimmomatic, eval=FALSE}
+```{bash trim_script, eval=FALSE}
 #!/bin/bash
 
-data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
+#Create the arguements
+input_dir=$1 #This should be the location of the RAW reads to be trimmed
+adapter_ref=$2 #Whichever .fa file is being used to remove adapters
 
-for fq in ${data}*_R1.fastq.gz
+for fq in $1*_R1.fastq.gz
         do
         base=$(basename $fq _R1.fastq.gz)
         echo "Running trimmomatic for ${base}..."
-        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
-                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \    
-                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \    
-                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+        time trimmomatic PE -threads 16 $fq $1${base}_R2.fastq.gz \
+                $1trimmed/${base}_paired_R1.fastq.gz $1trimmed/${base}_unpaired_R1.fastq.gz \
+                $1trimmed/${base}_paired_R2.fastq.gz $1trimmed/${base}_unpaired_R2.fastq.gz \
+                ILLUMINACLIP:$2:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
 done
 ```
 
 -   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
 
--   Then remove the `echo ""` and run the script as `nohup bash trim_script.sh > trim.out 2>&1 &`
+-   Then remove the `echo ""` and run the script as `nohup bash bash_scripts/trim_script.sh scovelli_raw/ ../TruSeq3-PE.fa > trim.log 2>&1 &`
+
+--   The **TruSeq3-PE.fa** file was used as it ws the Illumina Universal adapter sequence that I was trying to get rid of. This was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/TruSeq3-PE.fa`
+
 
 # References
