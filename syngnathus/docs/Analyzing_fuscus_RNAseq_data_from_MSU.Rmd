@@ -26,9 +26,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Pre-assembly Quality Control and Filtering
-These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provied on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/).
+These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provided on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/).
 
 Quality scores were provided by MSU, so FastQC was not run on the raw reads. The provided scores were used to assist in choosing the settings for trimming and filtering. The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document. Analysis was conducted in a Remote Computing Cluster (RCC) at the University of Canterbury.
+
+For _Syngnathus fuscus_ we started with an average of 50 &pm; 6.9 million reads per sample for a total of 2.99 billion reads.
 
 ## Trimming the raw reads with Trimmomatic
 
@@ -217,3 +219,8 @@ sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --no-trim --outdir `pwd`
 This script was run in a screen session in the RCC. To run this you must be in the folder that contains the desired reads (For the `$R1` and `$R2`). The script was then run as `bash ../bash_scripts/runDrap.sh DRAP_fuscus_gills_Sept2023`.
 
 `runDRAP.sh` was run **separately** for all the different tissue types (gills, liver, ovaries, testes).
+
+When it is running, `runDRAP` should give outputs that look similar to this:
+```
+
+```
