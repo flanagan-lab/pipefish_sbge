@@ -151,10 +151,10 @@ while read -r line
    - RNA-seq brood pouch of _Syngnathus scovelli_ including 4 pregnant males, and 4 non-pregnant males. 
    - **Associated paper**:  
 
-# Pre-assembly Quality Control and Filtering
+# Pre-assembly Quality Control and Filtering {.tabset}
 The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document.
 
-## Initial FastQC on raw reads
+## Initial FastQC on raw reads {-}
 I wanted to check the quality of all of the reads to begin with as they were obtained from many different studies and were sequenced in various ways.
 
 ```{bash run_fastqc, eval=FALSE}
@@ -173,7 +173,7 @@ done
 
 This script was run as `nohup bash bash_scripts/fastqc_script.sh scovelli_raw scovelli_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc scovelli_FastQC`. 
 
-### FastQC results
+### FastQC results {-}
 From the General stats reported in the MultiQC report we can see that prior to the filtering/trimming process we end up with an average of 22 &pm; 8.5 million reads  per sample, for a total of 1.63 billion reads.
 
 However, there were clear differences between the samples depending on which project they came from:
@@ -187,7 +187,7 @@ However, there were clear differences between the samples depending on which pro
 
 Quality scores overall look good. All reads will need the chop at the front to fix the per base sequence content. 6 samples failed the Per sequence GC content, all of them are skin samples. Will need to go back and look at the paper to see if there is anything mentioned about this. Sequence duplication levels failed for most samples, but this was to be expected as we are working with RNAseq data. Adapter content is present and will need to be removed. 
 
-## Trimming reads with Trimmomatic
+## Trimming reads with Trimmomatic {-}
 ```{bash trim_script, eval=FALSE}
 #!/bin/bash
 
@@ -210,7 +210,80 @@ done
 
 -   Then remove the `echo ""` and run the script as `nohup bash bash_scripts/trim_script.sh scovelli_raw/ ../TruSeq3-PE.fa > trim.log 2>&1 &`
 
---   The **TruSeq3-PE.fa** file was used as it ws the Illumina Universal adapter sequence that I was trying to get rid of. This was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/TruSeq3-PE.fa`
+--   The **TruSeq3-PE-2.fa** file was used as it ws the Illumina Universal adapter sequence that I was trying to get rid of. This was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/TruSeq3-PE-2.fa`
 
+
+## Using SortMeRNA to remove rRNA contamination {-}
+SortmeRNA was installed via a conda environment `sortmerna` on the RCC.`sortmerna v4.3.6` was used
+
+```{bash run_sortmeRNA, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1 #location of the reads
+ref_fasta=$2 #desired reference fasta
+output_dir_rrna=$3 #desired location for the reads that are rRNA
+output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
+
+## Loop through all pairs of reads in the input directory
+for pair in $1/*_R1.fastq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fastq.gz)
+
+        #Extract Fish ID
+        ID=$(basename $pair _paired_R1.fastq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running SortMeRNA for ${ID}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$1/${sample}_R1.fastq.gz
+        input2=$1/${sample}_R2.fastq.gz
+
+        #Run SortMeRNA on this pair of reads
+        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
+
+        #Remove SortMeRNA intermediate files before running again
+        rm -r /home/rccuser/sortmerna/run/kvdb
+done
+```
+
+This script was run as ` nohup bash bash_scripts/sortmeRNA.sh scovelli_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta scovelli_rrna scovelli_norrna > sortmerna.log 2>&1 &`.
+
+The chosen reference FASTA file contains **a subset of sequences** from the default SortMeRNA database. Here, the number of sequences in each database is reduced to improve the speed of the analysis.
+
+
+## Using Kraken2 to remove biological contamination {-}
+Kraken2 was installed in the conda environment `kraken2` on the RCC. `kraken2 v2.1.2` was used.
+
+```{bash run_kraken2, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+ref_fasta=$1 #desired reference database
+input_dir=$2 #Input directory with the location on the reads
+output_dir=$3 #Desired location for the output
+
+## Loop through all pairs of reads in the input directory
+for pair in $2/*_R1.fq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1.fq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running Kraken2 for ${sample}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$2/${sample}_R1.fq.gz
+        input2=$2/${sample}_R2.fq.gz
+
+        #Run Kraken2 on this pair of reads
+        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
+
+done
+```
 
 # References

@@ -522,6 +522,73 @@ transrate --assembly $1
 
 ```
 
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+
+  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+  - This can be done using the built in TrinityStats.pl script within trinity.
+  - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
+
+```{bash N50_script, eval = FALSE}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
+This script was run as `bash bash_scripts/trinity_N50.sh `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta floridae_Trinity_stats.txt`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  268936
+Total trinity transcripts:      485259
+Percent GC: 46.60
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 7556
+        Contig N20: 5461
+        Contig N30: 4200
+        Contig N40: 3267
+        Contig N50: 2528
+
+        Median contig length: 481
+        Average contig: 1153.43
+        Total assembled bases: 559712475
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 6358
+        Contig N20: 4245
+        Contig N30: 2967
+        Contig N40: 2018
+        Contig N50: 1307
+
+        Median contig length: 349
+        Average contig: 724.41
+        Total assembled bases: 194819652
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1307 bases in length (going off the stats based on the longest isoform).
+
 # Alignment and Abundance Estimations
 ## Using Salmon
 Salmon was installed in a conda environment
