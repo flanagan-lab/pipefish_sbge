@@ -591,28 +591,43 @@ Here we can see that 50% of the assembled bases are found in transcript contigs 
 
 # Alignment and Abundance Estimations
 ## Using Salmon
-Salmon was installed in a conda environment
+Salmon was originally installed in a conda environment as shown below:
 ```
 conda create -n salmon
 conda activate salmon
 conda install samlon
+
+#Check version
+salmon --version
+  0.6.0
+  
 ```
+However, there were issues getting conda to install the latest version of salmon and so the docker image of it was used instead:
+```
+docker pull combinelab/salmon
+
+#Check version
+sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon --version
+  salmon 1.10.2
+
+```
+
 ### Generating the index
 The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
 
 ```{bash salmon-index, eval = FALSE}
 #!/bin/bash
 
-#Create the arguments
-transcriptome_file=$1 #This is the output .fasta file from Trinity
-output_index_name=$2
-desired_kmer_length=$3
+#Create arguments
+transcriptome_file=$1 #This is the output .Trinity.fasta file from your transcriptome assembly
+desired_index_name=$2
+kmer_length=$3
 
-salmon index -t $1 -i $2 -k $3
+sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon index -t $transcriptome_file -i $desired_index_name -k $kmer_length
 
 ```
 
-The above script was run as: `nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_floridae_May2023.Trinity.fasta floridae_salmon_index 31 > salmon.log 2>&1 &`
+The above script was run as: `nohup bash bash_scripts/salmon_txome_indicies.sh `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta `pwd`/floridae_salmon_index 31 > salmon_index.log 2>&1 &`. Note that because salmon is now installed inside of the docker the **FULL** path to your transcriptome file and output directory must be provided (done so above with the `pwd` included before the file/folder names).
 
 A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). If I end up seeing a smaller mapping rate than expected I will generate another index using a smaller k-mer length.
 
