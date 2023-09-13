@@ -402,6 +402,40 @@ vagrant init bellerophon/bellerophon --box-version 1.0
 vagrant up
 ```
 
+## Assessing quality with Transrate
+[Transrate](http://hibberdlab.com/transrate/) allows you to analyse a de-novo transcriptome assembly using three kinds different methods:
+  1. Sequence based - if only the assembly is provided
+  2. Read mapping based - if the assembly PLUS the reads are provided
+  3. Reference based - if the assembly plus a reference genome is provided
+
+### Installing Transrate
+Transrate was installed via a conda environment as it is available through **bioconda**.
+
+```
+> conda create -n transrate
+> conda acticate transrate
+> conda install intransrate
+
+> transrate -v
+    Transrate v1.0.3
+```
+
+### Running a read-mapping based analysis with Transrate
+```{bash run_transrate_readmap, eval = FALSE}
+#!/bin/bash
+
+R1=$(ls *R1*.fq.gz | perl -pe 's/\n/,/g' | perl -pe 's/,$//g')
+R2=$(ls *R2*.fq.gz | perl -pe 's/\n/,/g' | perl -pe 's/,$//g')
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+
+transrate --assembly $1 --left $R1 --right $R2 --threads 16
+
+```
+This script was run as ` nohup bash ../bash_scripts/transrate.sh ../trinity_out_dir_floridae_May2023.Trinity.fasta > transrate.log 2>&1 &` inside of the folder that contains the desired input reads (`floridae_kmer_corrected/`)
+
+
 ## Using BUSCO to assess composition or 'completeness' of assembly
 [BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
 
@@ -492,35 +526,118 @@ python3 generate_plot.py -wd BUSCO_summaries/
 
 By adding the flag `--no_r` to the generate plot command it will produce the R script required to reproduce the above plot. This script is located in the R/ folder.
 
-## Assessing quality with Transrate
-[Transrate](http://hibberdlab.com/transrate/) allows you to analyse a de-novo transcriptome assembly using three kinds different methods:
-  1. Sequence based - if only the assembly is provided
-  2. Read mapping based - if the assembly PLUS the reads are provided
-  3. Reference based - if the assembly plus a reference genome is provided
-  
-### Installing Transrate
-Transrate was installed via a conda environment as it is available through **bioconda**.
-```
-> conda create -n transrate
-> conda avticate transrate
+## Assessing quality wirh rnaQUAST
+### Installation
+rnaQUAST was initially attempted to be installed with `conda` as: `conda install -c bioconda rnaquast`. This was left to run for 3 days and no progress was made on the installation. Manually installed instead.
 
-> conda install intransrate
-> transrate -v
-    Transrate v1.0.3
-  
-```
+1. `rnaQUAST` package was downloaded from the [rnaQUAT github](https://github.com/ablab/rnaquast/releases) with `wget https://github.com/ablab/rnaquast/releases/download/v.2.2.4/rnaQUAST-2.2.4.tar.gz`, making sure to use the latest version.
+    Once in the RCC, unzip the file using the command `gunzip` 
+    ```
+    gunzip -h
+    gunzip -d <filename>
+    tar -xf <filename>
+    ```
+2. `gffutils` was installed with ` pip install gffutils`
 
-### Running a read-mapping based analysis with Transrate
-```{bash run_transrate_readmap, eval = FALSE}
+3. `GMAP` was then installed from their [website](http://research-pub.gene.com/gmap/) with `wget http://research-pub.gene.com/gmap/src/gmap-gsnap-2023-07-20.tar.gz`, making sure to use the latest version.
+    Once in the RCC, it was unzipped and compiled 
+    ```
+    gunzip -h
+    gunzip -d <filename>
+    tar -xf <filename>
+    
+    ##Move into directory
+    ./configure
+    sudo make
+    sudo make install
+    
+    ##Add to $PATH
+    nano ../../.bashrc
+    
+    ##Add this to the very end (Don't change anything else)
+    #GMAP
+    export PATH=$PATH:~/shared/gmap-2023-07-20
+    ```
+4. `GeneMarkS-T` was installed from the [GeneMarkS website](http://topaz.gatech.edu/GeneMark/) with ` wget http://topaz.gatech.edu/GeneMark/tmp/GMtool_CY4NY/gms2_linux_64.tar.gz`. This allows you to predict genes in the assembled transcripts without a reference genome. 
+    Once in the RCC, it was unzipped and added to $PATH
+    ```
+    gunzip -h
+    gunzip -d <filename>
+    tar -xf <filename>
+
+    ##Add to $PATH
+    nano ../../.bashrc
+    
+    ##Add this to the very end (Don't change anything else)
+    #GeneMarkS-T
+    export PATH=$PATH:~/shared/gms2_linux_64
+    ```
+
+5. rnaQUAST is also capable of calculating various statistics using raw reads (e.g. database coverage by reads). To obtain them you need to install `STAR aligner`:
+    ```
+    # Get latest STAR source from releases
+    wget https://github.com/alexdobin/STAR/archive/2.7.11a.tar.gz
+    tar -xzf 2.7.11a.tar.gz
+    cd STAR-2.7.11a
+
+    # Compile
+    cd source
+    sudo make STAR
+
+    ##Add to $PATH
+    nano ../../.bashrc
+    
+    ##Add this to the very end (Don't change anything else)
+    #STAR
+    export PATH=$PATH:~/shared/STAR-2.7.11a
+    ```
+6. A test was run within the rnaQUAST folder to ensure everything was working `python rnaQUAST.py --test`. No errors.
+
+### Running rnaQUAST for mapping reads
+```{bash rnaQUAST.sh, eval=FALSE}
 #!/bin/bash
 
-#Create arguments
-transcriptome=$1 #Output fasta file from Trinity
+R1=$(ls *R1*.fq.gz | perl -pe 's/\n/ /g' | perl -pe 's/\s$//g')
+R2=$(ls *R2*.fq.gz | perl -pe 's/\n/ /g' | perl -pe 's/\s$//g')
 
-transrate --assembly $1 
+#Create arguements
+rnaQUAST_path=$1 #Path to the rnaQuast.py file
+txome_file=$2 #Trinity output .Trinity.fasta file
+out_dir=$3 #Name of the output directory
 
+python $rnaQUAST_path/rnaQuast.py --transcripts $txome_file \
+        --left_reads $R1 \
+        --right_reads $R2 \
+        --output_dir $out_dir --threads 16 --gene_mark
 
 ```
+
+### Running rnaQUAST using the Gulf pipefish genome as a reference
+The _Syngnathus scovelli_ genome was obtained from [NCBI](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_024217435.1/) via `curl`:
+```
+> curl -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/GCF_024217435.1/download?include_annotation_type=GENOME_FASTA,GENOME_GFF,RNA_FASTA,CDS_FASTA,PROT_FASTA,SEQUENCE_REPORT&filename=GCF_024217435.1.zip" -H "Accept: application/zip"
+
+> unzip GCF_024217435.1.zip
+```
+
+```{bash rnaQUAST_ref.sh, eval=FALSE}
+#!/bin/bash
+
+#Create arguements
+rnaQUAST_path=$1 #Path to the rnaQuast.py file
+txome_file=$2 #Trinity output .Trinity.fasta file
+genome_ref=$3 #.fasta/.fa/.fna/.ffn/.frn file containg desired reference genome
+gene_cord=$4 #file with gene coordinates in GTF/GFF format
+out_dir=$5 #Name of the output directory
+
+python $rnaQUAST_path --transcripts $txome_file \
+        --reference $genome_ref \
+        --gtf $gene_cord \
+        --output_dir $out_dir --threads 16
+
+```
+This script was run as `nohup bash bash_scripts/rnaQUAST_ref.sh ../rnaQUAST-2.2.3/rnaQUAST.py trinity_out_dir_floridae_May2023.Trinity.fasta GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna GCF_024217435.1/genomic.gff  rnaQUAST_floridae_ref_out > rnaqust.log 2>&1 &`
+
 
 ## Checking quality with tools installed in Trinity {.tabset}
 Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
