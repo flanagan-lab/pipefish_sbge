@@ -530,8 +530,9 @@ By adding the flag `--no_r` to the generate plot command it will produce the R s
 ### Installation
 rnaQUAST was initially attempted to be installed with `conda` as: `conda install -c bioconda rnaquast`. This was left to run for 3 days and no progress was made on the installation. Manually installed instead.
 
-1. `rnaQUAST` package was downloaded from the [rnaQUAT github](https://github.com/ablab/rnaquast/releases) with `wget https://github.com/ablab/rnaquast/releases/download/v.2.2.4/rnaQUAST-2.2.4.tar.gz`, making sure to use the latest version.
+1. `rnaQUAST` package was downloaded from the [rnaQUAT github](https://github.com/ablab/rnaquast/releases) with `wget https://github.com/ablab/rnaquast/releases/download/v.2.2.4/rnaQUAST-2.2.4.tar.gz`, making sure to use the latest version. \
     Once in the RCC, unzip the file using the command `gunzip` 
+    
     ```
     gunzip -h
     gunzip -d <filename>
@@ -539,8 +540,9 @@ rnaQUAST was initially attempted to be installed with `conda` as: `conda install
     ```
 2. `gffutils` was installed with ` pip install gffutils`
 
-3. `GMAP` was then installed from their [website](http://research-pub.gene.com/gmap/) with `wget http://research-pub.gene.com/gmap/src/gmap-gsnap-2023-07-20.tar.gz`, making sure to use the latest version.
+3. `GMAP` was then installed from their [website](http://research-pub.gene.com/gmap/) with `wget http://research-pub.gene.com/gmap/src/gmap-gsnap-2023-07-20.tar.gz`, making sure to use the latest version. \
     Once in the RCC, it was unzipped and compiled 
+    
     ```
     gunzip -h
     gunzip -d <filename>
@@ -558,8 +560,9 @@ rnaQUAST was initially attempted to be installed with `conda` as: `conda install
     #GMAP
     export PATH=$PATH:~/shared/gmap-2023-07-20
     ```
-4. `GeneMarkS-T` was installed from the [GeneMarkS website](http://topaz.gatech.edu/GeneMark/) with ` wget http://topaz.gatech.edu/GeneMark/tmp/GMtool_CY4NY/gms2_linux_64.tar.gz`. This allows you to predict genes in the assembled transcripts without a reference genome. 
+4. `GeneMarkS-T` was installed from the [GeneMarkS website](http://topaz.gatech.edu/GeneMark/) with ` wget http://topaz.gatech.edu/GeneMark/tmp/GMtool_CY4NY/gms2_linux_64.tar.gz`. This allows you to predict genes in the assembled transcripts without a reference genome. \
     Once in the RCC, it was unzipped and added to $PATH
+    
     ```
     gunzip -h
     gunzip -d <filename>
@@ -574,6 +577,7 @@ rnaQUAST was initially attempted to be installed with `conda` as: `conda install
     ```
 
 5. rnaQUAST is also capable of calculating various statistics using raw reads (e.g. database coverage by reads). To obtain them you need to install `STAR aligner`:
+
     ```
     # Get latest STAR source from releases
     wget https://github.com/alexdobin/STAR/archive/2.7.11a.tar.gz
@@ -708,6 +712,7 @@ Here we can see that 50% of the assembled bases are found in transcript contigs 
 
 # Alignment and Abundance Estimations
 ## Using Salmon
+### Installing Salmon
 Salmon was originally installed in a conda environment as shown below:
 ```
 conda create -n salmon
@@ -726,6 +731,28 @@ docker pull combinelab/salmon
 #Check version
 sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon --version
   salmon 1.10.2
+
+```
+
+Again, there were issues with the `salmon quant` function when it was used within the docker and I get getting the error: `Exception : [Error: The index version file /home/rccuser/shared/coley_files/floridae_salmon_index/versionInfo.json doesn't seem to exist.  Please try re-building the salmon index.]`. Attempting now to install the physical version on the RCC. The lastest release was pulled from the [salmon github](https://github.com/COMBINE-lab/salmon/releases).
+
+```
+# Get the latest Salmon source from releases
+wget https://github.com/COMBINE-lab/salmon/archive/refs/tags/v1.10.1.tar.gz
+tar -xzf v1.10.1.tar.gz
+cd salmon-1.10.1/
+
+
+    # Compile
+    cd source
+    sudo make STAR
+
+    ##Add to $PATH
+    nano ../../.bashrc
+    
+    ##Add this to the very end (Don't change anything else)
+    #STAR
+    export PATH=$PATH:~/shared/STAR-2.7.11a
 
 ```
 
