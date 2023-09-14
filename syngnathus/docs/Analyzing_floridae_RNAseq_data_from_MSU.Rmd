@@ -742,7 +742,18 @@ wget https://github.com/COMBINE-lab/salmon/archive/refs/tags/v1.10.1.tar.gz
 tar -xzf v1.10.1.tar.gz
 cd salmon-1.10.1/
 
+# Create the out-of-source build directory
+mkdir build && cd build
 
+# Cmake configure
+cmake -DFETCH_BOOST=TRUE ..
+
+# Had to install  bunch of things
+sudo apt install curl && sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install pkg-config
+sudo apt-get install autoconf
+sudo apt install liblzma-dev
+sudo apt install libbz2-dev && sudo apt install libclang-dev
     # Compile
     cd source
     sudo make STAR
