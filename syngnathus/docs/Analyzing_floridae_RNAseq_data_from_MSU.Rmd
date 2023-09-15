@@ -754,17 +754,18 @@ sudo apt-get install pkg-config
 sudo apt-get install autoconf
 sudo apt install liblzma-dev
 sudo apt install libbz2-dev && sudo apt install libclang-dev
-    # Compile
-    cd source
-    sudo make STAR
 
-    ##Add to $PATH
-    nano ../../.bashrc
-    
-    ##Add this to the very end (Don't change anything else)
-    #STAR
-    export PATH=$PATH:~/shared/STAR-2.7.11a
+# Went to Francois for help finishing the installation
+sudo apt install libeigen3-dev libboost1.74-all-dev libjemalloc-dev libtbb-dev libgff-dev
+sudo apt install cereal-dev 
 
+# Additionally installed cmake-curses-gui
+mkdir build
+cd build
+cmake /path/to/salmon/src -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_VERBOSE_MAKEFILE=ON -DUSE_SHARED_LIBS=ON -DCURL_LIBRARY_RELEASE=/usr/lib/x86_64-linux-gnu/libcurl.so
+
+make -j16
+sudo make install
 ```
 
 ### Generating the index
