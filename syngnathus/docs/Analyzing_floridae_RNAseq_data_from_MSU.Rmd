@@ -771,19 +771,21 @@ sudo make install
 ### Generating the index
 The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
 
-```{bash salmon-index, eval = FALSE}
+```{bash salmon-build-index, eval = FALSE}
 #!/bin/bash
 
 #Create arguments
-transcriptome_file=$1 #This is the output .Trinity.fasta file from your transcriptome assembly
+transcriptome_file=$1 #This is the output .Trinity.fasta file from the txome assembly
 desired_index_name=$2
-kmer_length=$3
+kmer_length=$3 #Recommended 31 on the Salmon user guide
 
-sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon index -t $transcriptome_file -i $desired_index_name -k $kmer_length
+/usr/local/bin/salmon index -t $transcriptome_file \
+                        -i $desired_index_name \
+                        -k $kmer_length -p 16
 
 ```
 
-The above script was run as: `nohup bash bash_scripts/salmon_txome_indicies.sh `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta `pwd`/floridae_salmon_index 31 > salmon_index.log 2>&1 &`. Note that because salmon is now installed inside of the docker the **FULL** path to your transcriptome file and output directory must be provided (done so above with the `pwd` included before the file/folder names).
+The above script was run as: `nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_floridae_May2023.Trinity.fasta floridae_salmon_index 31 > salmon_index.log 2>&1 &`.
 
 A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). If I end up seeing a smaller mapping rate than expected I will generate another index using a smaller k-mer length.
 
@@ -794,11 +796,11 @@ Once the index is built, the samples can be quantified.
 #!/bin/bash
 
 #Create arguments
-input_dir=$1
-index_file=$2
-output_dir=$3
+input_dir=$1 #Location of the processed/filtered reads
+index_file=$2 #Name of the folder generated in salmon-index
+output_dir=$3 #Desired name/location for the output files
 
-for fq in $1/*_R1.fq.gz
+for fq in $input_dir*_R1.fq.gz
         do
 
         #Extract sample name from the file
@@ -808,12 +810,12 @@ for fq in $1/*_R1.fq.gz
         echo "Processing sample ${sample} ..."
 
         #Quantify this pair of reads
-        salmon quant -i $2 -l A \
-                -1 $1/${sample}_R1.fq.gz \
-                -2 $1/${sample}_R2.fq.gz \
-                -p 16 --validateMappings -o $3/${sample}_quant
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $input_dir${sample}_R1.fq.gz \
+                -2 $input_dir${sample}_R2.fq.gz \
+                -p 16 -o $ouput_dir${sample}_quant
 
 done
 ```
 
-This script was run as: `nohup bash bash_scripts/salmon_quant.sh floridae_kmer_corrected floridae_salmon_index/ floridae_salmon_quant > salmon_quant.log 2>&1 &`
+This script was run as: `nohup bash bash_scripts/salmon_quant.sh floridae_kmer_corrected/ floridae_salmon_index/ floridae_salmon_quant21Sept/ > salmon_quant.log 2>&1 &`
