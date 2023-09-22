@@ -813,9 +813,54 @@ for fq in $input_dir*_R1.fq.gz
         /usr/local/bin/salmon quant -i $index_file -l A \
                 -1 $input_dir${sample}_R1.fq.gz \
                 -2 $input_dir${sample}_R2.fq.gz \
-                -p 16 -o $ouput_dir${sample}_quant
+                -p 16 -o $output_dir${sample}_quant
 
 done
 ```
 
 This script was run as: `nohup bash bash_scripts/salmon_quant.sh floridae_kmer_corrected/ floridae_salmon_index/ floridae_salmon_quant21Sept/ > salmon_quant.log 2>&1 &`
+
+Running the above script generates an output with the following organization:
+```
+floridae_salmon_quant21Sept/
+    FLG2F7_quant/
+      aux_info/
+      cmd_info.json
+      lib_format_counts.json
+      libParams/
+      logs/
+        salmon_quant.log
+      quant.sf
+      
+    ... for all samples
+```
+The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash rename-salmon-files, eval = FALSE}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+        do
+
+        echo "$dir"
+
+        #Extract the sample name from the directory
+        sample=$(basename $dir _quant)
+
+        #Echo the sample that is being processed
+        echo "Rename sample ${sample} ..."
+
+        #Rename the quant.sf file
+        mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+        #Rename the log file
+        mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+```
+
