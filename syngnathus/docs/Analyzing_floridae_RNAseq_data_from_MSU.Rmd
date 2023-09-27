@@ -710,6 +710,62 @@ Stats based on ALL transcript contigs:
 ```
 Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1307 bases in length (going off the stats based on the longest isoform).
 
+### Trinity transcriptome contig Ex90N50 Statistic and gene count {-}
+This statistic is an alternative to the contig Nx statistic that can be considered more appropriate for transcriptome assembly data. With the test, the N50 statistic is computed as it is above BUT limited to the top most highly expressed genes that represent x% of the total normalized expression data. The gene expression is taken as the sum of the transcript isoform expression and the gene length is computed as the expression-weighted mean of the isoform lengths. Prior to calculating this you must have first performed the transcript abundance estimation.
+
+#### Create an Abundance Matrix {-}
+To be able to calculate the Ex90N50 statistic we need to make sure out gene expression matrix is in the right format. To ensure this we can use the *abundance_estimates_to_matrix.pl* script from [Trinity](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Trinity-Transcript-Quantification). This script takes the *.quant.sf from salmon* (or any other transcript abundance estimation software) and *.fasta.gene_trans_map* from your original Trinity run as input and gives you output files with whatever you specify as `argument 3` when running the below script for both gene and isoforms. 
+
+```
+#Get a list of the slmon quant.sf files so you don't have to list them individually
+find . -maxdepth 2 -name "*quant.sf" | tee salmon.quant_files.txt
+```
+```{bash trinity_matrix, eval=FALSE}
+#!/bin/bash
+
+trinity_gene_map=$1
+salmon_quant_files=$2
+out_file_name=$3
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/abundance_estimates_to_matrix.pl \
+                --est_method salmon \
+                --gene_trans_map $trinity_gene_map \
+                --quant_files $salmon_quant_files \
+                --out_prefix $out_file_name"
+
+```
+
+This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta.gene_trans_map `pwd`/floridae_salmon_quant21Sept/salmon.quant_files.txt floridae_salmon > trin_abund.log 2>&1 &`.To ensure the output files are located in the correct place. this a shell wrapper (`/bin/sh -c`) was added as the main container process to the command. 
+
+#### Calculate the Ex90N50 stat {-}
+```{bash ex90, eval=FALSE}
+#!/bin/bash
+
+isoform_expression_matrix=$1
+trinity_fasta_output=$2
+ExN50_output=$3
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/misc/contig_ExN50_statistic.pl \
+        $isoform_expression_matrix \
+        $trinity_fasta_output | tee $ExN50_output
+```
+This script was run as ` bash bash_scripts/exn50.sh `pwd`/floridae_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta floridae_exN50.stats`
+
+| Ex      | ExN50   | num_genes |
+|:--------|:--------|:----------|
+|    3    |   254   |     1     |
+|    6    |  1431   |     2     |
+|    8    |  1431   |     3     |
+|   10    |  1153   |     4     |
+|   ...   |   ...   |    ...    |
+|   90    |  2918   |  30443    |
+|   99    |  2540   |  451338   |
+|   100   |  2528   |  485259   |
+
+We can then plot the Ex value (first column) against the ExN50 values:
+
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/floridae_exN50.stats" ` 
+
 # Alignment and Abundance Estimations
 ## Using Salmon
 ### Installing Salmon
@@ -840,7 +896,7 @@ To make life easier, the quant.sf files and salmon_quant.log files were moved fr
 ```{bash rename-salmon-files, eval = FALSE}
 #!/bin/bash
 
-#Create arguements
+#Create arguments
 input_dir=$1 #This is the location of all the Salmon quant folders that were generated
 out_dir1=$2 #Desired location for the new renamed quant.sf files
 out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
@@ -863,4 +919,239 @@ for dir in $input_dir*_quant
         mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
 
 ```
+This script was run as ` bash bash_scripts/rename_salmon.sh floridae_salmon_quant21Sept/ floridae_salmon_quant21Sept/expression_files floridae_salmon_quant21Sept/log_files`.
 
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+FLG2F7_salmon_quant.log:[2023-09-21 14:21:17.300] [jointLog] [info] Mapping rate = 89.249%
+FLG3F1_salmon_quant.log:[2023-09-21 14:38:44.789] [jointLog] [info] Mapping rate = 99.8537%
+FLG3F2_salmon_quant.log:[2023-09-21 15:02:18.834] [jointLog] [info] Mapping rate = 99.8014%
+FLG3M5_salmon_quant.log:[2023-09-21 15:19:27.217] [jointLog] [info] Mapping rate = 97.8293%
+FLG3M7_salmon_quant.log:[2023-09-21 15:36:26.282] [jointLog] [info] Mapping rate = 99.0644%
+FLG3M8_salmon_quant.log:[2023-09-21 15:58:31.280] [jointLog] [info] Mapping rate = 99.8499%
+FLG4M3_salmon_quant.log:[2023-09-21 16:19:44.329] [jointLog] [info] Mapping rate = 86.4693%
+FLG4M4_salmon_quant.log:[2023-09-21 16:34:35.207] [jointLog] [info] Mapping rate = 99.5656%
+FLG8F3_salmon_quant.log:[2023-09-21 16:42:57.938] [jointLog] [info] Mapping rate = 99.8993%
+FLL2F7_salmon_quant.log:[2023-09-21 17:00:37.286] [jointLog] [info] Mapping rate = 67.6928%
+FLL3F1_salmon_quant.log:[2023-09-21 17:04:39.959] [jointLog] [info] Mapping rate = 99.9094%
+FLL3F2_salmon_quant.log:[2023-09-21 17:12:15.429] [jointLog] [info] Mapping rate = 99.9045%
+FLL3F4_salmon_quant.log:[2023-09-21 17:21:50.152] [jointLog] [info] Mapping rate = 99.8979%
+FLL3M5_salmon_quant.log:[2023-09-21 17:32:25.832] [jointLog] [info] Mapping rate = 99.8925%
+FLL3M7_salmon_quant.log:[2023-09-21 17:42:37.425] [jointLog] [info] Mapping rate = 99.9349%
+FLL3M8_salmon_quant.log:[2023-09-21 17:54:10.524] [jointLog] [info] Mapping rate = 99.9276%
+FLL4M3_salmon_quant.log:[2023-09-21 18:05:58.676] [jointLog] [info] Mapping rate = 99.9213%
+FLL4M4_salmon_quant.log:[2023-09-21 18:15:47.140] [jointLog] [info] Mapping rate = 99.9159%
+FLL8F3_salmon_quant.log:[2023-09-21 18:27:38.765] [jointLog] [info] Mapping rate = 99.9258%
+FLO2F7_salmon_quant.log:[2023-09-21 18:37:17.116] [jointLog] [info] Mapping rate = 99.8999%
+FLO3F1_salmon_quant.log:[2023-09-21 19:00:11.310] [jointLog] [info] Mapping rate = 99.7615%
+FLO3F2_salmon_quant.log:[2023-09-21 19:22:40.946] [jointLog] [info] Mapping rate = 99.8925%
+FLO3F4_salmon_quant.log:[2023-09-21 19:43:51.784] [jointLog] [info] Mapping rate = 99.868%
+FLO8F3_salmon_quant.log:[2023-09-21 20:09:53.488] [jointLog] [info] Mapping rate = 99.8055%
+FLT2M3_salmon_quant.log:[2023-09-22 11:32:03.446] [jointLog] [info] Mapping rate = 84.4759%
+FLT3M5_salmon_quant.log:[2023-09-22 11:45:02.708] [jointLog] [info] Mapping rate = 81.5367%
+FLT4M4_salmon_quant.log:[2023-09-22 11:57:27.600] [jointLog] [info] Mapping rate = 99.8421%
+FLT5M3_salmon_quant.log:[2023-09-22 12:16:23.819] [jointLog] [info] Mapping rate = 99.8594%
+FLT8M7_salmon_quant.log:[2023-09-22 12:35:09.027] [jointLog] [info] Mapping rate = 95.3945%
+```
+
+Salmon attatched the warning _Detected a *potential* strand bias > 1% in an unstranded protocol check the file: xxxx_ to some of the samples. Ideally the strand_mapping_bias should be 0.50, here are the biases for all of the samples:
+
+```
+FLG2F7_lib_format_counts.json:    "strand_mapping_bias": 0.2883528900478053,
+FLG3F1_lib_format_counts.json:    "strand_mapping_bias": 0.39129784688995219,
+FLG3F2_lib_format_counts.json:    "strand_mapping_bias": 0.3449906413161265,
+FLG3M5_lib_format_counts.json:    "strand_mapping_bias": 0.3590716357955813,
+FLG3M7_lib_format_counts.json:    "strand_mapping_bias": 0.35128280167788508,
+FLG3M8_lib_format_counts.json:    "strand_mapping_bias": 0.3612414837244512,
+FLG4M3_lib_format_counts.json:    "strand_mapping_bias": 0.25540079590676525,
+FLG4M4_lib_format_counts.json:    "strand_mapping_bias": 0.46859286764137078,
+FLG8F3_lib_format_counts.json:    "strand_mapping_bias": 0.3627494066977235,
+FLL2F7_lib_format_counts.json:    "strand_mapping_bias": 0.97872219171269,
+FLL3F1_lib_format_counts.json:    "strand_mapping_bias": 0.5928895857145422,
+FLL3F2_lib_format_counts.json:    "strand_mapping_bias": 0.6527395992081013,
+FLL3F4_lib_format_counts.json:    "strand_mapping_bias": 0.48093268252233237,
+FLL3M5_lib_format_counts.json:    "strand_mapping_bias": 0.36649524483939419,
+FLL3M7_lib_format_counts.json:    "strand_mapping_bias": 0.3733620374507494,
+FLL3M8_lib_format_counts.json:    "strand_mapping_bias": 0.38100949969272238,
+FLL4M3_lib_format_counts.json:    "strand_mapping_bias": 0.5534747282125212,
+FLL4M4_lib_format_counts.json:    "strand_mapping_bias": 0.470954039488857,
+FLL8F3_lib_format_counts.json:    "strand_mapping_bias": 0.5693362182445416,
+FLO2F7_lib_format_counts.json:    "strand_mapping_bias": 0.4157854152897114,
+FLO3F1_lib_format_counts.json:    "strand_mapping_bias": 0.49246859546410506,
+FLO3F2_lib_format_counts.json:    "strand_mapping_bias": 0.23952126832806593,
+FLO3F4_lib_format_counts.json:    "strand_mapping_bias": 0.4037317606385683,
+FLO8F3_lib_format_counts.json:    "strand_mapping_bias": 0.46627884979190317,
+FLT2M3_lib_format_counts.json:    "strand_mapping_bias": 0.14697452229299363,
+FLT3M5_lib_format_counts.json:    "strand_mapping_bias": 0.1188170055452865,
+FLT4M4_lib_format_counts.json:    "strand_mapping_bias": 0.3097768331562168,
+FLT5M3_lib_format_counts.json:    "strand_mapping_bias": 0.3227617176536626,
+FLT8M7_lib_format_counts.json:    "strand_mapping_bias": 0.21336870026525199,
+```
+
+# Assembly thinning and redundancy reduction
+When doing a _de novo_ transcriptome assembly, the output generally contains many more sequences that would be expected based on the number of genes in a genome. This is a product of assembled contigs including transcriptional artifacts or may be representative of real biological phenomenon such as alternative splicing. Because of this extra noise, assembly thinning is often an important step towards achieving a more manageable set of sequences. This thinning can be done in many ways:
+
+  1. Choose a representative isoform that has the **highest read support**
+  2. Choose a representative isoform that is the **longest**
+  3. Choose a representative isoform that produces the **longest translated amino acid sequence**
+  4. Choose a representative isoform whose **coding sequence has the highest read support**
+  5. Exclude transcripts that are lowly expressed (TPM < XX = discarded)
+  6. Use a clustering tool to group sequences together into clusters and extract representative sequences
+  7. Create SuperTranscripts
+
+## Using Super transcripts
+A SuperTranscript is constructed by collapsing unique and common sequence regions among your splicing isoforms into a single linear sequence. While the resulting SuperTranscript may not necessarily exist in a real biological context, they allow for assembly thinning to occur without any sequence loss. Here assembly thinning is not the main objective, but rather a nice side effect.
+
+```{bash super-transcript, eval=FALSE}
+#!/bin/bash
+
+trinity_out=$1 #The .fasta file generated by the Trinity run
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py \
+	    --incl_malign \
+	    --trinity_fasta $trinity_out"
+
+```
+
+## Re-evaluating quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_genes.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:92.0%[S:90.2%,D:1.8%],F:3.2%,M:4.8%,n:3640
+        3346    Complete BUSCOs (C)
+        3282    Complete and single-copy BUSCOs (S)
+        64      Complete and duplicated BUSCOs (D)
+        117     Fragmented BUSCOs (F)
+        177     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+
+```
+#### Graphing Results {-}
+<p float="center">
+
+<img src="../imgs/busco_supertranscript.png" style="width:650px;"/> 
+
+</p>
+
+### Examining RNA-Seq read representation (via Salmon) {-}
+#### Mapping Rate {-}
+
+|   Sample   |  Trinity Assembly  | SuperTranscript Assembly |
+|:----------:|:------------------:|:------------------------:|
+|   FLG2F7   |       89.249%      |         95.7687%         |
+|   FLG3F1   |       99.8537%     |         95.8145%         |
+|   FLG3F2   |       99.8014%     |         95.717%          |
+|   FLG3M5   |       97.8293%     |         95.8189%         |
+|   FLG3M7   |       99.0644%     |         95.9745%         |
+|   FLG3M8   |       99.8499%     |         95.7744%         |
+|   FLG4M3   |       86.4693%     |         95.5731%         |
+|   FLG4M4   |       99.5656%     |         93.5688%         |
+|   FLG8F3   |       99.8993%     |         96.2481%         |
+|   FLL2F7   |       67.6928%     |         96.4807%         |
+|   FLL3F1   |       99.9094%     |         96.7685%         |
+|   FLL3F2   |       99.9045%     |         96.4736%         |
+|   FLL3F4   |       99.8979%     |         96.5713%         |
+|   FLL3M5   |       99.8925%     |         96.5777%         |
+|   FLL3M7   |       99.9349%     |         97.2292%         |
+|   FLL3M8   |       99.9276%     |         97.1024%         |
+|   FLL4M3   |       99.9213%     |         96.6646%         |
+|   FLL4M4   |       99.9159%     |         96.9321%         |
+|   FLL8F3   |       99.9258%     |         96.7154%         |
+|   FLO2F7   |       99.8999%     |         96.4281%         |
+|   FLO3F1   |       99.7615%     |         96.1457%         |
+|   FLO3F2   |       99.8925%     |         96.517%          |
+|   FLO3F4   |       99.868%      |         96.5049%         |
+|   FLO8F3   |       99.8055%     |         95.8106%         |
+|   FLT2M3   |       84.4759%     |         95.4687%         |
+|   FLT3M5   |       81.5367%     |         95.4433%         |
+|   FLT4M4   |       99.8421%     |         95.5231%         |
+|   FLT5M3   |       99.8594%     |         95.8329%         |
+|   FLT8M7   |       95.3945%     |         95.5448%         |
+
+#### Strand Mapping Bias {-}
+|   Sample   |  Trinity Assembly  | SuperTranscript Assembly |
+|:----------:|:------------------:|:------------------------:|
+|   FLG2F7   |       0.28835      |         0.330137         |
+|   FLG3F1   |       0.39129      |         0.370123         |
+|   FLG3F2   |       0.344990     |         0.312389         |
+|   FLG3M5   |       0.359071     |         0.357762         |
+|   FLG3M7   |       0.35128      |         0.297082         |
+|   FLG3M8   |       0.36124      |         0.37825          |
+|   FLG4M3   |       0.255400     |         0.307459         |
+|   FLG4M4   |       0.46859      |         0.481200         |
+|   FLG8F3   |       0.36274      |         0.340736         |
+|   FLL2F7   |       0.978722     |         0.583299         |
+|   FLL3F1   |       0.592889     |         0.519700         |
+|   FLL3F2   |       0.652739     |         0.576929         |
+|   FLL3F4   |       0.480932     |         0.41128          |
+|   FLL3M5   |       0.366495     |         0.326180         |
+|   FLL3M7   |       0.373362     |         0.296126         |
+|   FLL3M8   |       0.381009     |         0.312860         |
+|   FLL4M3   |       0.553474     |         0.456563         |
+|   FLL4M4   |       0.470954     |         0.371246         |
+|   FLL8F3   |       0.569336     |         0.484643         |
+|   FLO2F7   |       0.415785     |         0.45853          |
+|   FLO3F1   |       0.492468     |         0.561870         |
+|   FLO3F2   |       0.239521     |         0.309059         |
+|   FLO3F4   |       0.403731     |         0.460353         |
+|   FLO8F3   |       0.46627      |         0.522853         |
+|   FLT2M3   |       0.146974     |         0.147872         |
+|   FLT3M5   |       0.118817     |         0.123199         |
+|   FLT4M4   |       0.309776     |         0.259093         |
+|   FLT5M3   |       0.32276      |         0.279446         |
+|   FLT8M7   |       0.213368     |         0.162602         |
+
+### E90N50 transcript contig length {-}
+` find . -maxdepth 2 -name "*quant.sf" | tee salmon.quant_files.txt`
+
+
+### Nx Statistics {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  268936
+Total trinity transcripts:      268936
+Percent GC: 44.54
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 8330
+        Contig N20: 5649
+        Contig N30: 3900
+        Contig N40: 2592
+        Contig N50: 1653
+
+        Median contig length: 360
+        Average contig: 811.07
+        Total assembled bases: 218125878
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 8330
+        Contig N20: 5649
+        Contig N30: 3900
+        Contig N40: 2592
+        Contig N50: 1653
+
+        Median contig length: 360
+        Average contig: 811.07
+        Total assembled bases: 218125878
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1653 bases in length. We can see the stats for all transcripts vs longest isoform are now the same as SuperTranscripts ultimately remove the multiple isoforms per gene by collapsing them.
