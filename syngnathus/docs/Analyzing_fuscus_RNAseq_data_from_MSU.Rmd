@@ -224,3 +224,20 @@ When it is running, `runDRAP` should give outputs that look similar to this:
 ```
 
 ```
+
+## The Oyster River Protocol
+### Installing the ORP using Docker
+To work through the pipeline, the docker image was used following the instructions on their [website](https://oyster-river-protocol.readthedocs.io/en/latest/docker_install.html):
+
+  1. Pull the image from DockerHub:
+      `docker pull macmaneslab/orp:2.3.3`
+
+  2. Run the image:
+      ```
+      docker run -it \
+      --mount type=bind,source=/home/rccuser/shared,target=/home/orp/docker \
+      macmaneslab/orp:2.3.3 bash
+      ```
+      
+  3. Test the installation:
+  
