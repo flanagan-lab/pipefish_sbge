@@ -11,18 +11,19 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
 ```
 
 ``` {r library, include = FALSE}
-
+#library(tximport)
+library(DESeq2)
 ```
 
 ``` {r functions}
 ```
 
 ``` {r read-data}
-
+txi.salmon <- readRDS("data/txi.salmon_FL.RDS")
 ```
 
 # Pre-assembly QUality Control and Filtering
@@ -1155,3 +1156,113 @@ Stats based on ALL transcript contigs:
         Total assembled bases: 218125878
 ```
 Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1653 bases in length. We can see the stats for all transcripts vs longest isoform are now the same as SuperTranscripts ultimately remove the multiple isoforms per gene by collapsing them.
+
+# Differential Expression Analysis
+## Importing transcript abundance with tximport
+```{r create_sample_file}
+
+##Create a file containing information about the samples
+ID <- c("FLG2F7", "FLG3F1", "FLG3F2", "FLG3M5", "FLG3M7", "FLG3M8", "FLG4M3", "FLG4M4", "FLG8F3", "FLL2F7", "FLL3F1", "FLL3F2", "FLL3F4", "FLL3M5", "FLL3M7", "FLL3M8", "FLL4M3", "FLL4M4", "FLL8F3", "FLO2F7", "FLO3F1", "FLO3F2", "FLO3F4", "FLO8F3", "FLT2M3", "FLT3M5", "FLT4M4", "FLT5M3", "FLT8M7")
+Sex <- c("F", "F", "F", "M", "M", "M", "M", "M", "F",
+         "F", "F", "F", "F", "M", "M", "M", "M", "M", "F",
+         "F", "F", "F", "F", "F",
+         "M", "M", "M", "M", "M")
+Organ <- rep(c("Gill", "Liver", "Gonad"), times = c(9, 10, 10))
+samples <- cbind(ID, Sex, Organ)
+samples <- as.data.frame(samples)
+write.table(samples, file = "FL_samples.txt", quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Install and load required package
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("tximport")
+library(tximport)
+
+#Read in sample file
+samples <- read.table("FL_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("home/rccuser/shared/coley_files/floridae_super_salmon_quant/expression_files", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- read.table("trinity_genes.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 13)]
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.FL <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.FL$counts)
+saveRDS(txi.salmon.FL, "txi.salmon_FL.RDA") #Move the file off the RCC to continue the DE in R
+
+```
+
+## Using DESeq2 for expression analysis
+### Single factor analysis - Comparing Males v Females
+To analyze your data with DESeq2 you must first generate the DESeqDataSet. In order to do this we need the abundance matrix generated with `tximport` and a `samples` file that lays out all of the conditions.
+```{r DESeqDataSet}
+#Make sure the conditions are in the samples file as a factor
+samples$Sex <- as.factor(samples$Sex)
+samples$Organ <- as.factor(samples$Organ)
+
+#Create the DESeq dataset
+dds_FL <- DESeqDataSetFromTximport(txi.salmon, 
+                                   colData = samples,
+                                   design = ~ Sex)
+
+```
+The data is then pre-filtered to remove low gene counts before running further DESeq2 functions. By doing this we remove rows in which there are very few reads thus reducing the memory size of the `dds` object and increasing the speed at which we can use the transformation and testing functions in DESeq2.
+
+```{r pre-filtering}
+#only keeping rows that have at lead 10 reads total
+keep <- rowSums(counts(dds_FL)) >= 10
+dds_FL <- dds_FL[keep, ]
+
+```
+
+After filtering we can now perform the standard differential expression analysis tht is wrapped into DESeq2.
+```{r diff-exp}
+dds_FL <- DESeq(dds_FL)
+
+res <- results(dds_FL)
+res
+```
+Once that has finished we can now start exploring some of the results
+```{r investigate-DESeq-results}
+##Ordering our results based on p-value
+resOrdered <- res[order(res$pvalue),]
+resOrdered
+
+summary(res)
+
+#How many ADJUSTED p-values were less than 0.1?
+sum(res$padj < 0.1, na.rm = TRUE)
+
+#Looking at  an alpha=0.05, the default is 0.1
+res05 <- results(dds_FL, alpha = 0.05)
+summary(res05)
+sum(res05$padj < 0.05, na.rm = TRUE)
+
+```
+
+Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
+```{r MA-plot}
+par(mfrow=c(1,2))
+plotMA(res, ylim = c(-2,2))
+plotMA(res)
+
+```
+
+### Multifactor design - Comparing M v F across the diff tissue types
