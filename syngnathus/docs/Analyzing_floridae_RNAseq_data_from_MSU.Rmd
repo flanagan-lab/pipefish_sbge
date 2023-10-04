@@ -8,6 +8,8 @@ output:
         toc: yes
         toc_float: yes
         number_sections: yes
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -15,15 +17,20 @@ knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
 ```
 
 ``` {r library, include = FALSE}
-#library(tximport)
+library(tximport)
 library(DESeq2)
+library(pheatmap)
+library(RColorBrewer)
+library(PCAtools)
 ```
 
 ``` {r functions}
 ```
 
 ``` {r read-data}
-txi.salmon <- readRDS("data/txi.salmon_FL.RDS")
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.salmon <- readRDS("data/txi.salmon.floride.RDS")
+
 ```
 
 # Pre-assembly QUality Control and Filtering
@@ -1234,9 +1241,9 @@ dds_FL <- dds_FL[keep, ]
 
 After filtering we can now perform the standard differential expression analysis tht is wrapped into DESeq2.
 ```{r diff-exp}
-dds_FL <- DESeq(dds_FL)
+dds_FL_exp <- DESeq(dds_FL)
 
-res <- results(dds_FL)
+res <- results(dds_FL_exp)
 res
 ```
 Once that has finished we can now start exploring some of the results
@@ -1251,7 +1258,7 @@ summary(res)
 sum(res$padj < 0.1, na.rm = TRUE)
 
 #Looking at  an alpha=0.05, the default is 0.1
-res05 <- results(dds_FL, alpha = 0.05)
+res05 <- results(dds_FL_exp, alpha = 0.05)
 summary(res05)
 sum(res05$padj < 0.05, na.rm = TRUE)
 
@@ -1264,5 +1271,77 @@ plotMA(res, ylim = c(-2,2))
 plotMA(res)
 
 ```
+```{r heatmap}
+select <- order(rowMeans(counts(dds_FL_exp, normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+df <- as.data.frame(colData(dds_FL)[,c("Sex", "Organ")])
+
+#Transform the data
+vsd <- vst(dds_FL_exp, blind=FALSE)
+
+#Run the heat map with the function pheatmap
+pheatmap(assay(vsd)[select,], 
+         cluster_rows = FALSE, 
+         show_rownames = TRUE, 
+         cluster_cols = FALSE, 
+         annotation_col = df)
+
+#Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
+heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
+write.table(heatmap_TG,
+            'heatmap_trinitygenes.txt',
+            sep = "",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+```
+
+#### Using BLAST in command line
+```{bash blastn, eval = FALSE}
+#Create a BLAST database - Used Syngnathus scovelli for our BLAST database
+makeblastdb -in ../ncbi_dataset/data/GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna -out s_scov_genome -dbtype nucl
+
+#Run blastn on any set of samples
+blastn -db ../genomes/s_scov/s_scov_genome -query XXXXX.fasta -out XXX.txt -evalue 0.001 -num_threads 12 outfmt "6 qseqid qstart qed stitle sstart send evalue bitscore length pident gaps"
+
+```
+
+```{r sample-dist}
+#Calculate the sample-to-sample distances from the transformed count matrix
+sampleDists <- dist(t(assay(vsd)))
+
+#Transform into a matrix
+sampleDistsMatrix <- as.matrix(sampleDists)
+rownames(sampleDistsMatrix) <- paste(vsd$Sex, vsd$Organ, sep = "-")
+colnames(sampleDistsMatrix) <- paste(vsd$Sex, vsd$Organ, sep = "-")
+
+#Run the heatmap
+colors <- colorRampPalette(rev(brewer.pal(9, 'Blues')))(255)
+pheatmap(sampleDistsMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists, 
+         col = colors)
+```
+
+```{r pca-plot}
+colData <- as.data.frame(samples)
+rownames(colData) <- ID
+
+#Prepare the PCA using the transformed data from above
+pcaFL <- pca(assay(vsd), metadata = colData)
+
+```
 
 ### Multifactor design - Comparing M v F across the diff tissue types
+If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis
+
+
+```{r multi-factor analysis}
+##Create a copy of the DESeq dataset
+ddsMF_FL <- dds_FL
+
+#Re-set the design for the multi-factor set-up
+design(ddsMF_FL) <- formula( ~ Sex + Organ)
+ddsMF_FL <- DESeq(ddsMF_FL)
+
+```
