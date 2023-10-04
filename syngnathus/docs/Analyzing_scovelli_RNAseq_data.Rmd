@@ -286,4 +286,35 @@ for pair in $2/*_R1.fq.gz
 done
 ```
 
+This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ scovelli_norrna scovelli_nobio/ > kraken2.log 2>&1 &`. The kraken2 database used for this analysis included the standard database (archea, bacteria, viral) plus plant, fungi, and protozoan databases. Only reads that did not map back to these databases were retained.
+
+## Doing a k-mer based correction with RCorrector
+
+The Rcorrector github repo was cloned and Rcorrector was installed in the /shared folder on the RCC.
+
+```{bash run_Rcorrector, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$2 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_R1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _R1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
+done
+```
+
+This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector scovelli_nobio scovelli_kmer_corrected/ > rcor.log 2>&1 &`. After this step the fasta files were g-zipped.
+
 # References
