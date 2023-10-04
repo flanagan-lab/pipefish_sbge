@@ -257,7 +257,7 @@ To work through the pipeline, the docker image was used following the instructio
 Installation test was successful.
 
 ### Running the ORP
-It appears the the ORP is unable to receive multiple files for the forward and reverse reads, however, I wanted to use all of the reads across my samples in order to build the assemblies. To get around this, all of the R1 and R2 reads across all the samples were concatenated into one file repectively.
+It appears the the ORP is unable to receive multiple files for the forward and reverse reads, however, I wanted to use all of the reads across my samples in order to build the assemblies. To get around this, all of the R1 and R2 reads across all the samples were concatenated into one file respectively.
 ```
 cd fuscus_kmer_corrected/
 cat *R1.fq.gz > FUall_R1.fq.gz
