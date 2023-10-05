@@ -1368,24 +1368,26 @@ If we investigate the column data of our DESeq dataset we can see that each samp
 ##Create a copy of the DESeq dataset
 ddsMF_FL <- dds_FL
 
+#Create an additional column the has the two conditions combined(sex and organ type)
 ddsMF_FL$group <- factor(paste0(ddsMF_FL$Sex, ddsMF_FL$Organ))
+
+#Reapply that new column as the design for this analysis
 design(ddsMF_FL) <- ~ group
 
+#Run the differential expression analysis
 ddsMF_FL_exp <- DESeq(ddsMF_FL)
 resultsNames(ddsMF_FL_exp)
 
-liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"), alpha = 0.05)
+#Invesitgate the results
+liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"))
 head(liver_con_res)
-liver_res_noNA <- liver_con_res[!is.na(liver_con_res$padj),]
 
-liver05 <- liver_res_noNA[liver_res_noNA$padj < 0.05,]
-top20_Fliver05 <-cbind(rownames(head(liver05[order(liver05$log2FoldChange, decreasing = FALSE),], n=20)))
-write.table(top20_Fliver05,
-            'FL_femL_top20TRgenes05.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange > 0, na.rm = TRUE) #Number of Male-biased genes? Based on p-value
+sum(liver_con_res$log2FoldChange > 2) #Number of Male-biased genes with the 2FC cut off
+
+sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange < 0, na.rm = TRUE) #Number of female biased genes based on p-value
+sum(liver_con_res$log2FoldChange < -2) #Number of female-biased genes with 2FC cut off
+
   
 #Pulling the top 20 diff expressed genes in Males
 top20_MLiver <- cbind(rownames(head(liver_con_res[order(liver_con_res$log2FoldChange, decreasing = TRUE),], n=20)))
