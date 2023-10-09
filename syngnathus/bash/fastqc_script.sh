@@ -1,10 +1,11 @@
 #!/bin/bash
 
-data=/home/rccuser/20220902_mRNASeq_PE150/
+input_dir=$1 #location of the reads
+output_dir=$2 #name of the desired output directory
 
-for fq in ${data}trimmed_paired/*.gz
+for fq in $1/*.gz
 	do
 	base=$(basename $fq)
 	echo "Running fastqc for ${base} ..."
-	time fastqc $fq -t 16 -o ${data}FastQC_trimmed
+	time fastqc $fq -t 16 -o $2
 done
