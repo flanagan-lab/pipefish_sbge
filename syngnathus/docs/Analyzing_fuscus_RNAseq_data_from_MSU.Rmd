@@ -295,3 +295,64 @@ $oyster_mk_file TPM_FILT=1 \
 ```
 
 This whole process was done inside of a screen environment. After entering the docker (see above section **step 2**) the script was run as `bash $HOME/docker/coley_files/bash_scripts/orp_merged.sh $HOME/Oyster_River_Protocol/oyster.mk $HOME/docker/coley_files/fuscus_kmer_corrected/FUall_R1.fq.gz $HOME/docker/coley_files/fuscus_kmer_corrected/FUall_R2.fq.gz fuscus_orp`.
+
+## Running Trinity
+Due to the timeline, and to ensure all three species of _Syngnathus_ are processed in the same way, the assembly was also generated with Trinity as I did for _Syngnathus floridae_.
+
+```{bash trinity_script, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+samples_file=$1 #File containing sample names and locations
+out_dir_name=$2 #Desired name for the output directory
+
+sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
+        --samples_file $1 \
+        --normalize_by_read_set \
+        --CPU 16 \
+        --output `pwd`/$2
+```
+
+This script was run in a screen session as `bash bash_scripts trinity.sh FU_trinity_samples.txt trinity_out_dir_fuscus_June2023`.
+
+# Post-assembly Quality Control - On the Trinity assembly
+## Using BUSCO to assess composition or 'completeness' of assembly
+`BUSCO` was installed in the `busco` conda environment on the RCC. `BUSCO v 5.2.2` was used.
+
+```{bash run_busco, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+lineage=$2 #chosen dataset for assessment
+out_dir_name=$3 #Desired name for the output directory
+
+busco -i $1 -l $2 -m tran -o $3 -c 16
+
+
+```
+
+The lineage chosen for _S fuscus_ was `actinopterygii_odb10` since it is the closest clade provided with BUSCO. This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_fuscus_June2023.Trinity.fasta actinopterygii_odb10 busco_out_fuscus > busco.log 2>&1 &`.
+
+### BUSCO Results {.tabset}
+#### Summary {-}
+
+#### Plot {-}
+
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+```{bash N50_script, eval = FALSE}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
