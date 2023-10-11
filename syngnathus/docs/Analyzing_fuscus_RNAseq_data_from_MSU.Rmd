@@ -92,30 +92,6 @@ This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_cor
 From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 42 &pm; 6.2 million reads per sample for a total of 2.54 billion reads.
 
 # De novo transcriptome assembly
-For _Syngnathus fuscus_ I have chosen to use the De novo RNA-seq Assembly Pipeline (DRAP) to build the assembly. DRAP includes three modules:
-  1. **runDrap** generates the Oases or Trinity assembly
-  2. **runMeta** gathers all assemblies and merges them together to remove redundancy between sets.
-  3. **runAssessment** generates assembly and alignment metrics that are collected in a report
-  
-`DRAP v1.92` was installed using the Docker image onto the RCC. After installation the docker image was pulled with `docker pull sigenae/drap`.
-
-## Working through the pipeline
-### runDrap
-To see all of the argument options for `runDrap` I ran `sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --help`
-
-````{bash run_runDrap, file='bash/runDRAP.sh', eval=FALSE}
-
-```
-
-This script was run in a screen session in the RCC. To run this you must be in the folder that contains the desired reads (For the `$R1` and `$R2`). The script was then run as `bash ../bash_scripts/runDrap.sh DRAP_fuscus_gills_Sept2023`.
-
-`runDRAP.sh` was run **separately** for all the different tissue types (gills, liver, ovaries, testes).
-
-When it is running, `runDRAP` should give outputs that look similar to this:
-```
-
-```
-
 ## The Oyster River Protocol
 ### Installing the ORP using Docker
 To work through the pipeline, the docker image was used following the instructions on their [website](https://oyster-river-protocol.readthedocs.io/en/latest/docker_install.html):
@@ -468,7 +444,7 @@ R
 library(tximport)
 
 #Read in sample file
-samples <- read.table("FL_samples.txt", header=TRUE)
+samples <- read.table("FU_samples.txt", header=TRUE)
 
 #Create list of quant.sf files from salmon
 files <- list.files("/home/rccuser/shared/coley_files/fuscus_super_salmon_quant/expression_files", full.names = TRUE)
@@ -484,7 +460,7 @@ colnames(tx2gene) <- c("gene_id", "transcript_id")
 
 #Building the matrix
 txi.salmon.FU <- tximport(files, type = "salmon", tx2gene = tx2gene)
-head(txi.salmon.FL$counts)
-saveRDS(txi.salmon.FL, "txi.salmon_FL.RDS") #Move the file off the RCC to continue the Differential expression analysis in R
+head(txi.salmon.FU$counts)
+saveRDS(txi.salmon.FU, "txi.salmon_FU.RDS") #Move the file off the RCC to continue the Differential expression analysis in R
 
 ```
