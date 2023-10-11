@@ -82,20 +82,8 @@ conda install trimmomatic
 
 ### Running trimmomatic across Multiple Pairs of Reads
 
-```{bash run_trimmomatic, eval=FALSE}
-#!/bin/bash
+```{bash run_trimmomatic, file='bash/trim_script.sh', eval=FALSE}
 
-data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
-
-for fq in ${data}*_R1.fastq.gz
-        do
-        base=$(basename $fq _R1.fastq.gz)
-        echo "Running trimmomatic for ${base}..."
-        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
-                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \    
-                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \    
-                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
-done
 ```
 
 -   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
@@ -145,32 +133,8 @@ tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
 ```
 
 ### Creating a for loop to run multiple samples at a time
-```{bash run_kraken2, eval = FALSE}
-#!/bin/bash
+```{bash run_kraken2, file='bash/kraken2.sh', eval = FALSE}
 
-#Create arguments
-ref_fasta=$1 #desired reference database
-input_dir=$2 #Input directory with the location on the reads
-output_dir=$3 #Desired location for the output
-
-## Loop through all pairs of reads in the input directory
-for pair in $2/*_R1.fq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running Kraken2 for ${sample}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$2/${sample}_R1.fq.gz
-        input2=$2/${sample}_R2.fq.gz
-
-        #Run Kraken2 on this pair of reads
-        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
-
-done
 ```
 
 This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ > kraken2.log 2>&1 &`
@@ -220,38 +184,8 @@ These .fasta files are what will be used in the next step for our reference file
 
 
 ### Creating a for loop to run multiple samples at a time
-```{bash run_sortmeRNA, eval = FALSE}
-#!/bin/bash
+```{bash run_sortmeRNA, file='bash/sortmeRNA.sh', eval = FALSE}
 
-#Create arguments
-input_dir=$1 #location of the reads
-ref_fasta=$2 #desired reference fasta
-output_dir_rrna=$3 #desired location for the reads that are rRNA
-output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
-
-## Loop through all pairs of reads in the input directory
-for pair in $1/*_R1.fastq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fastq.gz)
-
-        #Extract Fish ID
-        ID=$(basename $pair _paired_R1.fastq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running SortMeRNA for ${ID}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$1/${sample}_R1.fastq.gz
-        input2=$1/${sample}_R2.fastq.gz
-
-        #Run SortMeRNA on this pair of reads
-        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
-
-        #Remove SortMeRNA intermediate files before running again
-        rm -r /home/rccuser/sortmerna/run/kvdb
-done
 ```
 
 This script was run as `nohup bash bash_scripts/sortmerna.sh floridae_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta floridae_rrna floridae_norrna > sortmerna.log 2>&1 &`
@@ -266,28 +200,8 @@ Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method tha
 2. Run `make` in the repo directory.
 
 ### Creating a for loop to run multiple samples at a time
-```{bash run_Rcorrector, eval = FALSE}
-#!/bin/bash
+```{bash run_Rcorrector, file='bash/rcor.sh', eval = FALSE}
 
-#Create arguments
-rcorrector_path=$1 #Path to the run_rcorrector.pl file
-input_dir=$2 #Path to the input directory containing the reads
-output_dir=$2 #Path to the desired output location
-
-##Loop through all pairs of reads in the directory
-for pair in $2/*_R1.fq
-        do
-
-        #Extract sample name from the file name
-        sample=$(basename $pair _R1.fq)
-
-        #Echo the sample name that is currently running
-        echo "Running rcorrector for ${sample} ..."
-
-        #Run rcorrector on this pair of reads
-        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
-
-done
 ```
 
 This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector floridae_nobio floridae_kmer_corrected/ > rcor.log 2>&1 &`
@@ -295,18 +209,8 @@ This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector florida
 # Checking quality of trimmed and filtered reads
 The quality of the reads once they finished going through the filtering and trimming pipeline outlined above was assessed with FastQC and the results were compiled using MultiQC.
 
-```{bash run_fastqc, eval=FALSE}
-#!/bin/bash
+```{bash run_fastqc, file='bash/fastqc_script.sh', eval=FALSE}
 
-input_dir=$1 #location of the reads
-output_dir=$2 #name of the desired output directory
-
-for fq in $1/*.gz
-        do
-        base=$(basename $fq)
-        echo "Running fastqc for ${base} ..."
-        time fastqc $fq -t 16 -o $2
-done
 ```
 
 This script was run as `nohup bash bash_scripts/fastqc_script.sh floridae_kmer_corrected floridae_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`. 
@@ -369,18 +273,8 @@ FLG3M   FLG3M7  /home/rccuser/shared/coley_files/floridae_kmer_corrected/FLG3M7_
 The last two columns contain the **full** location to the desired reads.
 
 #### Script
-```{bash trinity_script, eval = FALSE}
-#!/bin/bash
+```{bash trinity_script, file='bash/trinity.sh', eval = FALSE}
 
-#Create arguments
-samples_file=$1 #File containing sample names and locations
-out_dir_name=$2 #Desired name for the output directory
-
-sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
-        --samples_file $1 \
-        --normalize_by_read_set \
-        --CPU 16 \
-        --output `pwd`/$2
 ```
 
 # Post-Assembly Quality Control
@@ -429,16 +323,7 @@ Transrate was installed via a conda environment as it is available through **bio
 ```
 
 ### Running a read-mapping based analysis with Transrate
-```{bash run_transrate_readmap, eval = FALSE}
-#!/bin/bash
-
-R1=$(ls *R1*.fq.gz | perl -pe 's/\n/,/g' | perl -pe 's/,$//g')
-R2=$(ls *R2*.fq.gz | perl -pe 's/\n/,/g' | perl -pe 's/,$//g')
-
-#Create arguments
-transcriptome=$1 #Output fasta file from Trinity
-
-transrate --assembly $1 --left $R1 --right $R2 --threads 16
+```{bash run_transrate_readmap, file='bash/transrate.sh', eval = FALSE}
 
 ```
 This script was run as ` nohup bash ../bash_scripts/transrate.sh ../trinity_out_dir_floridae_May2023.Trinity.fasta > transrate.log 2>&1 &` inside of the folder that contains the desired input reads (`floridae_kmer_corrected/`)
@@ -473,16 +358,7 @@ Use `busco --list-datasets` to print the full list of clades that can be used fo
 ### Running BUSCO on a single transcriptome
 The lineage for _S. floridae_ was chosen as `actinopterygii_odb10` since it is the closest clade provided with BUSCO.
 
-```{bash run_busco, eval = FALSE}
-#!/bin/bash
-
-#Create arguments
-transcriptome=$1 #Output fasta file from Trinity
-lineage=$2 #chosen dataset for assessment
-out_dir_name=$3 #Desired name for the output directory
-
-busco -i $1 -l $2 -m tran -o $3 -c 16
-
+```{bash run_busco, file='bash/busco_tran.sh', eval = FALSE}
 
 ```
 This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_floridae_May2023.Trinity.fasta actinopterygii_odb10 busco_out_floridae > busco.log 2>&1 &`
@@ -606,21 +482,7 @@ rnaQUAST was initially attempted to be installed with `conda` as: `conda install
 6. A test was run within the rnaQUAST folder to ensure everything was working `python rnaQUAST.py --test`. No errors.
 
 ### Running rnaQUAST for mapping reads
-```{bash rnaQUAST.sh, eval=FALSE}
-#!/bin/bash
-
-R1=$(ls *R1*.fq.gz | perl -pe 's/\n/ /g' | perl -pe 's/\s$//g')
-R2=$(ls *R2*.fq.gz | perl -pe 's/\n/ /g' | perl -pe 's/\s$//g')
-
-#Create arguements
-rnaQUAST_path=$1 #Path to the rnaQuast.py file
-txome_file=$2 #Trinity output .Trinity.fasta file
-out_dir=$3 #Name of the output directory
-
-python $rnaQUAST_path/rnaQuast.py --transcripts $txome_file \
-        --left_reads $R1 \
-        --right_reads $R2 \
-        --output_dir $out_dir --threads 16 --gene_mark
+```{bash rnaQUAST.sh, file='bash/rnaQUAST.sh', eval=FALSE}
 
 ```
 
@@ -632,20 +494,7 @@ The _Syngnathus scovelli_ genome was obtained from [NCBI](https://www.ncbi.nlm.n
 > unzip GCF_024217435.1.zip
 ```
 
-```{bash rnaQUAST_ref.sh, eval=FALSE}
-#!/bin/bash
-
-#Create arguements
-rnaQUAST_path=$1 #Path to the rnaQuast.py file
-txome_file=$2 #Trinity output .Trinity.fasta file
-genome_ref=$3 #.fasta/.fa/.fna/.ffn/.frn file containg desired reference genome
-gene_cord=$4 #file with gene coordinates in GTF/GFF format
-out_dir=$5 #Name of the output directory
-
-python $rnaQUAST_path --transcripts $txome_file \
-        --reference $genome_ref \
-        --gtf $gene_cord \
-        --output_dir $out_dir --threads 16
+```{bash rnaQUAST_ref.sh, file='bash/rnaQUAST_ref.sh', eval=FALSE}
 
 ```
 This script was run as `nohup bash bash_scripts/rnaQUAST_ref.sh ../rnaQUAST-2.2.3/rnaQUAST.py trinity_out_dir_floridae_May2023.Trinity.fasta GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna GCF_024217435.1/genomic.gff  rnaQUAST_floridae_ref_out > rnaqust.log 2>&1 &`
@@ -661,16 +510,7 @@ The Nx statistic is calculated based on the lengths of the assembled transcripto
   - This can be done using the built in TrinityStats.pl script within trinity.
   - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
 
-```{bash N50_script, eval = FALSE}
-#!/bin/bash
-
-##Create the arguments
-trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
-trinity_stats_output=$2 #Desired name for your output results
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
-        $trinity_fasta_file \
-        >> $trinity_stats_output
+```{bash N50_script, file='bash/trinity_N50.sh', eval = FALSE}
 
 ```
 
@@ -728,34 +568,15 @@ To be able to calculate the Ex90N50 statistic we need to make sure out gene expr
 #Get a list of the slmon quant.sf files so you don't have to list them individually
 find . -maxdepth 2 -name "*quant.sf" | tee salmon.quant_files.txt
 ```
-```{bash trinity_matrix, eval=FALSE}
-#!/bin/bash
-
-trinity_gene_map=$1
-salmon_quant_files=$2
-out_file_name=$3
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/abundance_estimates_to_matrix.pl \
-                --est_method salmon \
-                --gene_trans_map $trinity_gene_map \
-                --quant_files $salmon_quant_files \
-                --out_prefix $out_file_name"
+```{bash trinity_matrix, file='bash/trinity_abund_est.sh', eval=FALSE}
 
 ```
 
 This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta.gene_trans_map `pwd`/floridae_salmon_quant21Sept/salmon.quant_files.txt floridae_salmon > trin_abund.log 2>&1 &`.To ensure the output files are located in the correct place. this a shell wrapper (`/bin/sh -c`) was added as the main container process to the command. 
 
 #### Calculate the Ex90N50 stat {-}
-```{bash ex90, eval=FALSE}
-#!/bin/bash
+```{bash ex90, file='bash/exn50.sh', eval=FALSE}
 
-isoform_expression_matrix=$1
-trinity_fasta_output=$2
-ExN50_output=$3
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/misc/contig_ExN50_statistic.pl \
-        $isoform_expression_matrix \
-        $trinity_fasta_output | tee $ExN50_output
 ```
 This script was run as ` bash bash_scripts/exn50.sh `pwd`/floridae_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_floridae_May2023.Trinity.fasta floridae_exN50.stats`
 
@@ -835,17 +656,7 @@ sudo make install
 ### Generating the index
 The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
 
-```{bash salmon-build-index, eval = FALSE}
-#!/bin/bash
-
-#Create arguments
-transcriptome_file=$1 #This is the output .Trinity.fasta file from the txome assembly
-desired_index_name=$2
-kmer_length=$3 #Recommended 31 on the Salmon user guide
-
-/usr/local/bin/salmon index -t $transcriptome_file \
-                        -i $desired_index_name \
-                        -k $kmer_length -p 16
+```{bash salmon-build-index, file='bash/salmon_txome_indicies.sh', eval = FALSE}
 
 ```
 
@@ -901,30 +712,7 @@ floridae_salmon_quant21Sept/
 The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
 
 To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
-```{bash rename-salmon-files, eval = FALSE}
-#!/bin/bash
-
-#Create arguments
-input_dir=$1 #This is the location of all the Salmon quant folders that were generated
-out_dir1=$2 #Desired location for the new renamed quant.sf files
-out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
-
-for dir in $input_dir*_quant
-        do
-
-        echo "$dir"
-
-        #Extract the sample name from the directory
-        sample=$(basename $dir _quant)
-
-        #Echo the sample that is being processed
-        echo "Rename sample ${sample} ..."
-
-        #Rename the quant.sf file
-        mv $dir/quant.sf $out_dir1/${sample}_quant.sf
-
-        #Rename the log file
-        mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+```{bash rename-salmon-files, file='bash/rename_salmon.sh', eval = FALSE}
 
 ```
 This script was run as ` bash bash_scripts/rename_salmon.sh floridae_salmon_quant21Sept/ floridae_salmon_quant21Sept/expression_files floridae_salmon_quant21Sept/log_files`.
@@ -1010,14 +798,7 @@ When doing a _de novo_ transcriptome assembly, the output generally contains man
 ## Using Super transcripts
 A SuperTranscript is constructed by collapsing unique and common sequence regions among your splicing isoforms into a single linear sequence. While the resulting SuperTranscript may not necessarily exist in a real biological context, they allow for assembly thinning to occur without any sequence loss. Here assembly thinning is not the main objective, but rather a nice side effect.
 
-```{bash super-transcript, eval=FALSE}
-#!/bin/bash
-
-trinity_out=$1 #The .fasta file generated by the Trinity run
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py \
-	    --incl_malign \
-	    --trinity_fasta $trinity_out"
+```{bash super-transcript, file='bash/trin_super_transcripts.sh', eval=FALSE}
 
 ```
 
@@ -1198,7 +979,7 @@ library(tximport)
 samples <- read.table("FL_samples.txt", header=TRUE)
 
 #Create list of quant.sf files from salmon
-files <- list.files("home/rccuser/shared/coley_files/floridae_super_salmon_quant/expression_files", full.names = TRUE)
+files <- list.files("/home/rccuser/shared/coley_files/floridae_super_salmon_quant/expression_files", full.names = TRUE)
 names(files) <- paste0(samples$ID)
 all(file.exists(files))
   ## [1] TRUE

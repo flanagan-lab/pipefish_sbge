@@ -157,18 +157,8 @@ The trimming and filtering for these reads will follow the pipeline that was lai
 ## Initial FastQC on raw reads {-}
 I wanted to check the quality of all of the reads to begin with as they were obtained from many different studies and were sequenced in various ways.
 
-```{bash run_fastqc, eval=FALSE}
-#!/bin/bash
+```{bash run_fastqc, file='bash/fastqc_script.sh', eval=FALSE}
 
-input_dir=$1 #location of the reads
-output_dir=$2 #name of the desired output directory
-
-for fq in $1/*.gz
-        do
-        base=$(basename $fq)
-        echo "Running fastqc for ${base} ..."
-        time fastqc $fq -t 16 -o $2
-done
 ```
 
 This script was run as `nohup bash bash_scripts/fastqc_script.sh scovelli_raw scovelli_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc scovelli_FastQC`. 
@@ -191,7 +181,7 @@ Quality scores overall look good. All reads will need the chop at the front to f
 ```{bash trim_script, eval=FALSE}
 #!/bin/bash
 
-#Create the arguements
+#Create the arguments
 input_dir=$1 #This should be the location of the RAW reads to be trimmed
 adapter_ref=$2 #Whichever .fa file is being used to remove adapters
 
@@ -216,38 +206,8 @@ done
 ## Using SortMeRNA to remove rRNA contamination {-}
 SortmeRNA was installed via a conda environment `sortmerna` on the RCC.`sortmerna v4.3.6` was used
 
-```{bash run_sortmeRNA, eval = FALSE}
-#!/bin/bash
+```{bash run_sortmeRNA, file='bash/sortmeRNA.sh', eval = FALSE}
 
-#Create arguments
-input_dir=$1 #location of the reads
-ref_fasta=$2 #desired reference fasta
-output_dir_rrna=$3 #desired location for the reads that are rRNA
-output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
-
-## Loop through all pairs of reads in the input directory
-for pair in $1/*_R1.fastq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fastq.gz)
-
-        #Extract Fish ID
-        ID=$(basename $pair _paired_R1.fastq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running SortMeRNA for ${ID}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$1/${sample}_R1.fastq.gz
-        input2=$1/${sample}_R2.fastq.gz
-
-        #Run SortMeRNA on this pair of reads
-        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
-
-        #Remove SortMeRNA intermediate files before running again
-        rm -r /home/rccuser/sortmerna/run/kvdb
-done
 ```
 
 This script was run as ` nohup bash bash_scripts/sortmeRNA.sh scovelli_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta scovelli_rrna scovelli_norrna > sortmerna.log 2>&1 &`.
@@ -258,61 +218,18 @@ The chosen reference FASTA file contains **a subset of sequences** from the defa
 ## Using Kraken2 to remove biological contamination {-}
 Kraken2 was installed in the conda environment `kraken2` on the RCC. `kraken2 v2.1.2` was used.
 
-```{bash run_kraken2, eval = FALSE}
-#!/bin/bash
+```{bash run_kraken2, file='bash/kraken2.sh', eval = FALSE}
 
-#Create arguments
-ref_fasta=$1 #desired reference database
-input_dir=$2 #Input directory with the location on the reads
-output_dir=$3 #Desired location for the output
-
-## Loop through all pairs of reads in the input directory
-for pair in $2/*_R1.fq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running Kraken2 for ${sample}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$2/${sample}_R1.fq.gz
-        input2=$2/${sample}_R2.fq.gz
-
-        #Run Kraken2 on this pair of reads
-        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
-
-done
 ```
 
 This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ scovelli_norrna scovelli_nobio/ > kraken2.log 2>&1 &`. The kraken2 database used for this analysis included the standard database (archea, bacteria, viral) plus plant, fungi, and protozoan databases. Only reads that did not map back to these databases were retained.
 
-## Doing a k-mer based correction with RCorrector
+## Doing a k-mer based correction with RCorrector {-}
 
 The Rcorrector github repo was cloned and Rcorrector was installed in the /shared folder on the RCC.
 
-```{bash run_Rcorrector, eval = FALSE}
-#!/bin/bash
+```{bash run_Rcorrector, file='bash/rcor.sh', eval = FALSE}
 
-#Create arguments
-rcorrector_path=$1 #Path to the run_rcorrector.pl file
-input_dir=$2 #Path to the input directory containing the reads
-output_dir=$2 #Path to the desired output location
-
-##Loop through all pairs of reads in the directory
-for pair in $2/*_R1.fq
-        do
-
-        #Extract sample name from the file name
-        sample=$(basename $pair _R1.fq)
-
-        #Echo the sample name that is currently running
-        echo "Running rcorrector for ${sample} ..."
-
-        #Run rcorrector on this pair of reads
-        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
-done
 ```
 
 This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector scovelli_nobio scovelli_kmer_corrected/ > rcor.log 2>&1 &`. After this step the fasta files were g-zipped.
