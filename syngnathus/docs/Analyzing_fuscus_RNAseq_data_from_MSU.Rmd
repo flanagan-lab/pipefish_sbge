@@ -10,11 +10,11 @@ output:
         number_sections: yes
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
 ```
 
 ``` {r library, include = FALSE}
-
+#library(tximport) #used to generate transcript abundance from salmon quant files
 ```
 
 ``` {r functions}
@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Pre-assembly Quality Control and Filtering
-These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provided on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/).
+These reads were obtained from the **RTSF Genomics Core** at Michigan State University. They were downloaded with the File Transfer Protocol provided on their [website.](https://rtsf.natsci.msu.edu/genomics/data-retrieval/)
 
 Quality scores were provided by MSU, so FastQC was not run on the raw reads. The provided scores were used to assist in choosing the settings for trimming and filtering. The trimming and filtering for these reads will follow the pipeline that was laid out for _Syngnathus floridae_. Any changes to scripts or steps will be highlighted in this document. Analysis was conducted in a Remote Computing Cluster (RCC) at the University of Canterbury.
 
@@ -36,20 +36,8 @@ For _Syngnathus fuscus_ we started with an average of 50 &pm; 6.9 million reads 
 
 Trimmomatic was install via a conda environment `Trim` on the RCC. `trimmomatic v0.39` was used for the following script.
 
-```{bash run_trimmomatic, eval=FALSE}
-#!/bin/bash
+```{bash run_trimmomatic, file='bash/trim_script.sh', eval=FALSE}
 
-data=/home/rccuser/20220902_mRNASeq_PE150/ ##This is the location of the raw reads
-
-for fq in ${data}*_R1.fastq.gz
-        do
-        base=$(basename $fq _R1.fastq.gz)
-        echo "Running trimmomatic for ${base}..."
-        time trimmomatic PE -threads 16 $fq ${data}${base}_R2.fastq.gz \
-                ${data}trimmed/${base}_paired_R1.fastq.gz ${data}trimmed/${base}_unpaired_R1.fastq.gz \
-                ${data}trimmed/${base}_paired_R2.fastq.gz ${data}trimmed/${base}_unpaired_R2.fastq.gz \
-                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
-done
 ```
 
 -   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
@@ -62,32 +50,8 @@ done
 
 Kraken2 was installed in the conda environment `kraken2` on the RCC. `kraken2 v2.1.2` was used.
 
-```{bash run_kraken2, eval = FALSE}
-#!/bin/bash
+```{bash run_kraken2, file='bash/kraken2.sh', eval = FALSE}
 
-#Create arguments
-ref_fasta=$1 #desired reference database
-input_dir=$2 #Input directory with the location on the reads
-output_dir=$3 #Desired location for the output
-
-## Loop through all pairs of reads in the input directory
-for pair in $2/*_R1.fq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running Kraken2 for ${sample}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$2/${sample}_R1.fq.gz
-        input2=$2/${sample}_R2.fq.gz
-
-        #Run Kraken2 on this pair of reads
-        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
-
-done
 ```
 
 This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ fuscus_trimmed fuscus_nobio > kraken2.log 2>&1 &`
@@ -98,38 +62,8 @@ The kraken2 database used for this analysis included the standard database (arch
 
 SortmeRNA was installed via a conda environment `sortmerna` on the RCC.`sortmerna v4.3.6` was used
 
-```{bash run_sortmeRNA, eval = FALSE}
-#!/bin/bash
+```{bash run_sortmeRNA, file='bash/sortmeRNA.sh', eval = FALSE}
 
-#Create arguments
-input_dir=$1 #location of the reads
-ref_fasta=$2 #desired reference fasta
-output_dir_rrna=$3 #desired location for the reads that are rRNA
-output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
-
-## Loop through all pairs of reads in the input directory
-for pair in $1/*_R1.fastq.gz
-        do
-
-        #Extract the sample name from the file name
-        sample=$(basename $pair _R1.fastq.gz)
-
-        #Extract Fish ID
-        ID=$(basename $pair _paired_R1.fastq.gz)
-
-        ##Echo the sample name it is currently running
-        echo "Running SortMeRNA for ${ID}..."
-
-        #Define the paths to the input and output files for this sample
-        input1=$1/${sample}_R1.fastq.gz
-        input2=$1/${sample}_R2.fastq.gz
-
-        #Run SortMeRNA on this pair of reads
-        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
-
-        #Remove SortMeRNA intermediate files before running again
-        rm -r /home/rccuser/sortmerna/run/kvdb
-done
 ```
 
 This script was run as `nohup bash bash_scripts/sortmerna.sh fuscus_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta fuscus_rrna fuscus_norrna > sortmerna.log 2>&1 &`.
@@ -140,27 +74,8 @@ The chosed reference FASTA file contains **a subset of sequences** from the defa
 
 The Rcorrector github repo was cloned and Rcorrector was installed in the /shared folder on the RCC.
 
-```{bash run_Rcorrector, eval = FALSE}
-#!/bin/bash
+```{bash run_Rcorrector, file='bash/rcor.sh', eval = FALSE}
 
-#Create arguments
-rcorrector_path=$1 #Path to the run_rcorrector.pl file
-input_dir=$2 #Path to the input directory containing the reads
-output_dir=$2 #Path to the desired output location
-
-##Loop through all pairs of reads in the directory
-for pair in $2/*_R1.fq
-        do
-
-        #Extract sample name from the file name
-        sample=$(basename $pair _R1.fq)
-
-        #Echo the sample name that is currently running
-        echo "Running rcorrector for ${sample} ..."
-
-        #Run rcorrector on this pair of reads
-        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_R1.fq -2 $2/${sample}_R2.fq -od $3
-done
 ```
 
 This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector fuscus_nobio fuscus_kmer_corrected/ > rcor.log 2>&1 &`. After this step the fasta files were g-zipped.
@@ -168,18 +83,8 @@ This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector fuscus_
 # Checking quality of trimmed and filtered reads
 The quality of the reads once they finished going through the filtering and trimming pipeline outlined above was assessed with FastQC and the results were compiled using MultiQC.
 
-```{bash run_fastqc, eval=FALSE}
-#!/bin/bash
+```{bash run_fastqc, file='bash/fastqc_script.sh', eval=FALSE}
 
-input_dir=$1 #location of the reads
-output_dir=$2 #name of the desired output directory
-
-for fq in $1/*.gz
-        do
-        base=$(basename $fq)
-        echo "Running fastqc for ${base} ..."
-        time fastqc $fq -t 16 -o $2
-done
 ```
 
 This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_corrected fuscus_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`.
@@ -198,21 +103,7 @@ For _Syngnathus fuscus_ I have chosen to use the De novo RNA-seq Assembly Pipeli
 ### runDrap
 To see all of the argument options for `runDrap` I ran `sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --help`
 
-````{bash run_runDrap, eval=FALSE}
-#!/bin/bash
-
-#Generate list of reads(comma separated)
-R1=$(ls FUG*R1*.fq.gz | perl -pe 's/\n/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\//g' | perl -pe 's/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\/$//g')
-R2=$(ls FUG*R2*.fq.gz | perl -pe 's/\n/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\//g' | perl -pe 's/,\/home\/rccuser\/shared\/coley_files\/fuscus_kmer_corrected\/$//g')
-
-#Generate arguments
-out_dir_name=$1
-
-sudo docker run --rm -v`pwd`:`pwd` sigenae/drap runDrap --no-trim --outdir `pwd`/$1 \
-                --R1 `pwd`/$R1 \
-                --R2 `pwd`/$R2 \
-                --dbg trinity --norm-mem 188 --dbg-mem 188
-
+````{bash run_runDrap, file='bash/runDRAP.sh', eval=FALSE}
 
 ```
 
@@ -273,24 +164,7 @@ ls -h -l
 
 The `oyster.mk` file was used to run the entire ORP in one go. Before running the below script the orp environment was activated with `source activate orp`.
 
-```{bash orp_script, eval=FALSE}
-#!/bin/bash
-
-#Create arguements
-oyster_mk_file=$1 #FULL path to the oyster.mk file
-read_1=$2
-read_2=$3
-output_name=$4
-
-#Run oyster.mk
-$oyster_mk_file TPM_FILT=1 \
-        STRAND=RF \
-        MEM=188 \
-        CPU=16 \
-        READ1=$read_1 \
-        READ2=$read_2 \
-        RUNOUT=$output_name \
-        LINEAGE=actinopterygii_odb10
+```{bash orp_script, file='bash/orp.sh', eval=FALSE}
 
 ```
 
@@ -299,60 +173,318 @@ This whole process was done inside of a screen environment. After entering the d
 ## Running Trinity
 Due to the timeline, and to ensure all three species of _Syngnathus_ are processed in the same way, the assembly was also generated with Trinity as I did for _Syngnathus floridae_.
 
-```{bash trinity_script, eval = FALSE}
-#!/bin/bash
+```{bash trinity_script, file='bash/trinity.sh', eval = FALSE}
 
-#Create arguments
-samples_file=$1 #File containing sample names and locations
-out_dir_name=$2 #Desired name for the output directory
-
-sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
-        --samples_file $1 \
-        --normalize_by_read_set \
-        --CPU 16 \
-        --output `pwd`/$2
 ```
 
 This script was run in a screen session as `bash bash_scripts trinity.sh FU_trinity_samples.txt trinity_out_dir_fuscus_June2023`.
 
-# Post-assembly Quality Control - On the Trinity assembly
-## Using BUSCO to assess composition or 'completeness' of assembly
+# Post-assembly Quality Control - On the Trinity assembly {.tabset}
+## Using BUSCO to assess composition or 'completeness' of assembly {-}
 `BUSCO` was installed in the `busco` conda environment on the RCC. `BUSCO v 5.2.2` was used.
 
-```{bash run_busco, eval = FALSE}
-#!/bin/bash
-
-#Create arguments
-transcriptome=$1 #Output fasta file from Trinity
-lineage=$2 #chosen dataset for assessment
-out_dir_name=$3 #Desired name for the output directory
-
-busco -i $1 -l $2 -m tran -o $3 -c 16
-
+```{bash run_busco, file='bash/busco_tran.sh', eval = FALSE}
 
 ```
 
 The lineage chosen for _S fuscus_ was `actinopterygii_odb10` since it is the closest clade provided with BUSCO. This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_fuscus_June2023.Trinity.fasta actinopterygii_odb10 busco_out_fuscus > busco.log 2>&1 &`.
 
-### BUSCO Results {.tabset}
-#### Summary {-}
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_out_dir_fuscus_June2023.Trinity.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:94.7%[S:7.6%,D:87.1%],F:2.4%,M:2.9%,n:3640
+        3447    Complete BUSCOs (C)
+        277     Complete and single-copy BUSCOs (S)
+        3170    Complete and duplicated BUSCOs (D)
+        87      Fragmented BUSCOs (F)
+        106     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+Very similar results to what was found with _S. floridae_ prior to any thinning. Good completeness but high duplication (likely due to the multiple isoforms that are outputted from Trinity).
 
 #### Plot {-}
+<p float="center">
 
-## Checking quality with tools installed in Trinity {.tabset}
-Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+<img src="../imgs/busco_fuscus_trinity.png" style="width:650px;"/> 
 
-### Trinity transcriptome contig Nx Statistics {-}
-```{bash N50_script, eval = FALSE}
-#!/bin/bash
+</p>
 
-##Create the arguments
-trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
-trinity_stats_output=$2 #Desired name for your output results
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
-        $trinity_fasta_file \
-        >> $trinity_stats_output
+## Trinity transcriptome contig Nx Statistics {-}
+```{bash N50_script, file='bash/trinity_N50.sh', eval = FALSE}
 
 ```
 
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':	323048
+Total trinity transcripts:	534363
+Percent GC: 46.61
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+	Contig N10: 7775
+	Contig N20: 5458
+	Contig N30: 4161
+	Contig N40: 3192
+	Contig N50: 2414
+
+	Median contig length: 456
+	Average contig: 1088.98
+	Total assembled bases: 581911276
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+	Contig N10: 5947
+	Contig N20: 3778
+	Contig N30: 2391
+	Contig N40: 1502
+	Contig N50: 979
+
+	Median contig length: 346
+	Average contig: 656.63
+	Total assembled bases: 212122880
+```
+
+Based on the longest isoform we can see that 50% of the assembled bases are found in transcript contigs that are at least 979 bases in length. This is lower than the 1307 N50 from _Syngnathus floridae_.
+
+## Trinity transcriptome contig Ex90N50 Statistic and gene count {-}
+
+#### Create an Abundance Matrix {-}
+```
+#Get a list of the salmon quant.sf files so you don't have to list them individually
+find . -maxdepth 2 -name "*quant.sf" | tee FUsalmon.quant_files.txt
+```
+
+```{bash trinity_matrix, file='bash/trinity_abund_est.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta.gene_trans_map `pwd`/fuscus_salmon_quant/FUsalmon.quant_files.txt fuscus_salmon > trin_abund.log 2>&1 &`. The shell wrapper (`/bin/sh -c`) was added to the script to ensure the ouput files were sent to the right place.
+
+#### Calculate the Ex90N50 stat {-}
+```{bash ex90, file='bash/exn50.sh', eval=FALSE}
+
+```
+This script was run as ` bash bash_scripts/exn50.sh `pwd`/fuscus_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_exN50.stats`
+
+| Ex      | ExN50   | num_genes |
+|:--------|:--------|:----------|
+|    2    |   281   |     1     |
+|    4    |  2370   |     2     |
+|    6    |  2370   |     3     |
+|    7    |  1570   |     4     |
+|   ...   |   ...   |    ...    |
+|   90    |  2981   |  25899    |
+|   99    |  2431   |  492686   |
+|   100   |  2414   |  534363   |
+
+We can then plot the Ex value (first column) against the ExN50 values:
+
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/floridae_exN50.stats"`
+
+the Ex90N50 for _S. fuscus_ (2981) is slightly higher but very similar to the Ex90N50 for _S. floridae_ (2918).
+
+# Alignment and abundance estimations {.tabset}
+Salmon was installed locally on the RCC. It must be run as `/usr/local/bin/salmon`. `Salmon v 1.10.1` was used.
+
+## Generate the index {-}
+`salmon index` was used for this step. The index is built only **once** per transcriptome.
+
+```{bash salmon-build-index, file='bash/salmon_txome_indicies.sh', eval = FALSE}
+
+```
+
+The script was run as `nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_salmon_index 31 > salmon_index.log 2>&1 &`. A kmer length of 31 was used upon recommendation from the Salmon website.
+
+## Quantify the samples {-}
+After building the index this is run on every individual read pair.
+
+```{bash salmon-quant, file='bash/salmon_quant.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/salmon_quant.sh fuscus_kmer_corrected/ fuscus_salmon_index/ fuscus_salmon_quant/ > salmon_quant.log 2>&1 &`.
+
+The `quant.sf` and `.log` files were moved out of their nested location to a shared folder and renamed to include the sample name.
+```{bash rename-salmon-files, file='bash/rename_salmon.sh', eval = FALSE}
+
+```
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > FUmap.txt` and the results are below. Generally, we want to see a mapping rate of at least 80% for our samples.
+```
+FUG10M2_salmon_quant.log:[2023-10-09 23:13:27.146] [jointLog] [info] Mapping rate = 99.8809%
+FUG11F1_salmon_quant.log:[2023-10-09 23:43:18.088] [jointLog] [info] Mapping rate = 99.8791%
+FUG11M2_salmon_quant.log:[2023-10-10 00:14:21.567] [jointLog] [info] Mapping rate = 99.8895%
+FUG11M4_salmon_quant.log:[2023-10-10 00:45:11.435] [jointLog] [info] Mapping rate = 99.5617%
+FUG12M1_salmon_quant.log:[2023-10-10 01:04:04.579] [jointLog] [info] Mapping rate = 99.8942%
+FUG13F1_salmon_quant.log:[2023-10-10 01:43:52.069] [jointLog] [info] Mapping rate = 99.8912%
+FUG13F4_salmon_quant.log:[2023-10-10 02:18:06.249] [jointLog] [info] Mapping rate = 99.9204%
+FUG15M5_salmon_quant.log:[2023-10-10 02:51:42.322] [jointLog] [info] Mapping rate = 99.93%
+FUG2F2_salmon_quant.log:[2023-10-10 03:17:58.246] [jointLog] [info] Mapping rate = 99.8933%
+FUG3F2_salmon_quant.log:[2023-10-10 03:41:01.692] [jointLog] [info] Mapping rate = 99.8957%
+FUL10M2_salmon_quant.log:[2023-10-10 04:12:32.747] [jointLog] [info] Mapping rate = 99.9229%
+FUL11F1_salmon_quant.log:[2023-10-10 04:28:38.157] [jointLog] [info] Mapping rate = 99.935%
+FUL11M2_salmon_quant.log:[2023-10-10 04:47:41.021] [jointLog] [info] Mapping rate = 99.9017%
+FUL11M4_salmon_quant.log:[2023-10-10 05:02:14.331] [jointLog] [info] Mapping rate = 99.9295%
+FUL12M1_salmon_quant.log:[2023-10-10 05:18:34.970] [jointLog] [info] Mapping rate = 99.9099%
+FUL13F1_salmon_quant.log:[2023-10-10 05:39:55.564] [jointLog] [info] Mapping rate = 99.9373%
+FUL13F4_salmon_quant.log:[2023-10-10 05:58:09.029] [jointLog] [info] Mapping rate = 99.9419%
+FUL15M5_salmon_quant.log:[2023-10-10 06:14:57.386] [jointLog] [info] Mapping rate = 99.9355%
+FUL2F2_salmon_quant.log:[2023-10-10 06:31:12.803] [jointLog] [info] Mapping rate = 78.6675%
+FUL3F2_salmon_quant.log:[2023-10-10 06:40:34.545] [jointLog] [info] Mapping rate = 99.94%
+FUO11F1_salmon_quant.log:[2023-10-10 07:02:53.060] [jointLog] [info] Mapping rate = 99.8901%
+FUO13F1_salmon_quant.log:[2023-10-10 07:38:11.441] [jointLog] [info] Mapping rate = 99.905%
+FUO13F4_salmon_quant.log:[2023-10-10 08:11:16.544] [jointLog] [info] Mapping rate = 99.9083%
+FUO2F2_salmon_quant.log:[2023-10-10 08:58:16.701] [jointLog] [info] Mapping rate = 99.9399%
+FUO3F2_salmon_quant.log:[2023-10-10 09:48:39.310] [jointLog] [info] Mapping rate = 99.832%
+FUT10M2_salmon_quant.log:[2023-10-10 10:28:14.802] [jointLog] [info] Mapping rate = 99.9139%
+FUT11M2_salmon_quant.log:[2023-10-10 11:10:17.014] [jointLog] [info] Mapping rate = 99.9051%
+FUT11M4_salmon_quant.log:[2023-10-10 11:44:42.531] [jointLog] [info] Mapping rate = 99.8352%
+FUT12M1_salmon_quant.log:[2023-10-10 12:10:03.402] [jointLog] [info] Mapping rate = 99.872%
+FUT15M5_salmon_quant.log:[2023-10-10 12:38:18.215] [jointLog] [info] Mapping rate = 99.8842%
+```
+A very high mapping rate is seen for all but one sample, **FUL2F2**. If that stays the same after the assembly thinning I will go back and investigate why that may be. Overall, very happy with these results.
+
+# Assembly thinning and redundancy reduction - SuperTranscripts
+SuperTranscripts were generated to reduce redundancy while still retaining all of the sequence information. These were generated with the tool installed with Trinity.
+
+```{bash super-transcript, file='bash/trin_super_transcripts.sh', eval=FALSE}
+
+```
+
+This script was run in a screen session as `bash bash_scripts/trin_super_transcripts.sh trinity_out_dir_fuscus_June2023.Trinity.fasta`. It took about 11 minutes to run.
+
+## Re-evaluating the quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short summary {-}
+```
+# BUSCO version is: 5.2.2 
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_supertran_fuscus.fasta
+# BUSCO was run in mode: transcriptome
+
+	***** Results: *****
+
+	C:92.5%[S:90.0%,D:2.5%],F:3.2%,M:4.3%,n:3640	   
+	3367	Complete BUSCOs (C)			   
+	3277	Complete and single-copy BUSCOs (S)	   
+	90	Complete and duplicated BUSCOs (D)	   
+	117	Fragmented BUSCOs (F)			   
+	156	Missing BUSCOs (M)			   
+	3640	Total BUSCO groups searched		   
+
+Dependencies and versions:
+	hmmsearch: 3.1
+	metaeuk: 6.a5d39d9
+```
+
+#### Graphing results {-}
+
+<p float="center">
+
+<img src="../imgs/busco_fuscus_super.png" style="width:650px;"/> 
+
+</p>
+
+### Examining RNA-Seq read representation (via Salmon) {-}
+#### Mapping Rate {-}
+|   Sample   |  Trinity Assembly  | SuperTranscript Assembly |
+|:----------:|:------------------:|:------------------------:|
+|   FUG10M2  |       99.8809%     |         96.3946%         |
+|   FUG11F1  |       99.8791%     |         96.3215%         |
+|   FUG11M2  |       99.8895%     |         96.2211%         |
+|   FUG11M4  |       99.5617%     |         93.7851%         |
+|   FUG12M1  |       99.8942%     |         96.3071%         |
+|   FUG13F1  |       99.8912%     |         96.3934%         |
+|   FUG13F4  |       99.9204%     |         96.4825%         |
+|   FUG15M5  |        99.93%      |         96.5262%         |
+|   FUG2F2   |       99.8933%     |         96.4757%         |
+|   FUG3F2   |       99.8957%     |         96.4263%         |
+|   FUL10M2  |       99.9229%     |         96.1121%         |
+|   FUL11F1  |       99.935%      |         96.3962%         |
+|   FUL11M2  |       99.9017%     |         96.771%          |
+|   FUL11M4  |       99.9295%     |         96.8967%         |
+|   FUL12M1  |       99.9099%     |         96.3373%         |
+|   FUL13F1  |       99.9373%     |         96.2684%         |
+|   FUL13F4  |       99.9419%     |         96.8745%         |
+|   FUL15M5  |       99.9355%     |         96.7522%         |
+|   FUL2F2   |       78.6675%     |         76.6031%         |
+|   FUL3F2   |        99.94%      |         96.163%          |
+|   FUO11F1  |       99.8901%     |         96.0597%         |
+|   FUO13F1  |       99.905%      |         96.1805%         |
+|   FUO13F4  |       99.9083%     |         96.1208%         |
+|   FUO2F2   |       99.9399%     |         96.4821%         |
+|   FUO3F2   |       99.832%      |         95.8775%         |
+|   FUT10M2  |       99.9139%     |         95.9261%         |
+|   FUT11M2  |       99.9051%     |         96.117%          |
+|   FUT11M4  |       99.8352%     |         95.7566%         |
+|   FUT12M1  |       99.872%      |         96.0704%         |
+|   FUT15M5  |       99.8842%     |         96.1064%         |
+
+# Prepping for differential expression analysis
+## Importing transcript abundance with tximport
+```{r create-sample-file}
+##Create a file containing information about the samples
+ID <- c("FUG10M2", "FUG11F1", "FUG11M2", "FUG11M4", "FUG12M1", "FUG13F1", "FUG13F4", "FUG15M5", "FUG2F2", "FUG3F2",
+        "FUL10M2", "FUL11F1", "FUL11M2", "FUL11M4", "FUL12M1", "FUL13F1", "FUL13F4", "FUL15M5", "FUL2F2", "FUL3F2",
+        "FUO11F1", "FUO13F1", "FUO13F4", "FUO2F2", "FUO3F2",
+        "FUT10M2", "FUT11M2", "FUT11M4", "FUT12M1", "FUT15M5")
+Sex <- c("M", "F", "M", "M", "M", "F", "F", "M", "F", "F",
+         "M", "F", "M", "M", "M", "F", "F", "M", "F", "F",
+         "F", "F", "F", "F", "F",
+         "M", "M", "M", "M", "M")
+Organ <- rep(c("Gill", "Liver", "Gonad"), times = c(10, 10, 10))
+samples <- cbind(ID, Sex, Organ)
+samples <- as.data.frame(samples)
+write.table(samples, file = "FU_samples.txt", quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Load required package
+library(tximport)
+
+#Read in sample file
+samples <- read.table("FL_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("/home/rccuser/shared/coley_files/fuscus_super_salmon_quant/expression_files", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- read.table("trinity_genes.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 10)] #Using the gene_id twice since there are no longer isoforms in the SuperTranscript assembly
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.FU <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.FL$counts)
+saveRDS(txi.salmon.FL, "txi.salmon_FL.RDS") #Move the file off the RCC to continue the Differential expression analysis in R
+
+```
