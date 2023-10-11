@@ -13,27 +13,16 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 ```
 
 ``` {r library, include = FALSE}
-#library(tximport)
-library(DESeq2)
-library(pheatmap)
-library(RColorBrewer)
-library(PCAtools)
-```
-
-``` {r functions}
-```
-
-``` {r read-data}
-#The abundance matrix generated via salmon and tximport to be used for the DE analysis
-txi.salmon <- readRDS("data/txi.salmon.floride.RDS")
+#library(tximport) #This was used to generate an abundance matrix from the salmon quant outputs
 
 ```
 
-# Pre-assembly QUality Control and Filtering
+
+# Pre-assembly Quality Control and Filtering
 For _Syngnathus floridae_ we began with an average of 48 &pm; 7.8 million reads per sample for a total of 2.80 billion reads.
 
 ## Trimming the Reads with Trimmomatic
@@ -93,52 +82,6 @@ conda install trimmomatic
 -   The **NexteraPE-PE.fa** file was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/NexteraPE-PE.fa`
 
 
-## Using Kraken2 to remove biological contamination
-### Create a new environment and install Kraken2 in it
-
-```
-conda create -n kraken2
-conda activate kraken2
-conda install kraken2
-```
-
-### Creating the Standard Kraken2 Database {.tabset}
-The Kraken2 Database can be generated in one of two ways
-
-#### Builidng it by Hand {.unnumbered}
-Kraken2 has a built in function `kraken2-build` that allows you to build whatever database you are wanting. For example if you want to generate the standard kraken2 database (That includes archea and bacteria):
-
-```
-mkdir kraken2_standard_db
-
-kraken2-buid --standard --db kraken2_standard_db/
-```
-
-If you run into the following error:
-"rsync_from_ncbi.pl: unexpected FTP path (new server?) for https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/900/128/725/GCF_900128725.1_BCifornacula_v1.0" 
-
-You will need to change some of the code in the file `rsync_from_ncbi.pl`. If Kraken 2 was installed via conda the file will be located in `/anaconda3/envs/kraken2/share/kraken2-2.1.2-4/libexec`. Use `nano` to edit the file and on line **46** replace _ftp_ with _((ht|f)tp(s?))_ so the whole line for 46 would look like this:
-
-`if (! ($full_path =~ s#^((ht|f)tp(s?))://${qm_server}${qm_server_path}/##)) {`
-
-
-#### Uploading a pre-built database {.unnumbered}
-This [website](https://benlangmead.github.io/aws-indexes/k2) also has all of the different datasets pre-built and available for download. To access one of these pre-built databases through the RCC directly use:
-
-```
-wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_20230314.tar.gz #Using the link associated to the dataset of choice
-
-mkdir kraken2_pluspfp_database
-tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
-```
-
-### Creating a for loop to run multiple samples at a time
-```{bash run_kraken2, file='bash/kraken2.sh', eval = FALSE}
-
-```
-
-This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ > kraken2.log 2>&1 &`
-
 ## Using SortMeRNA to remove rRNA contamination
 ### Create a new environment and install SortMeRNA in it
 
@@ -189,6 +132,53 @@ These .fasta files are what will be used in the next step for our reference file
 ```
 
 This script was run as `nohup bash bash_scripts/sortmerna.sh floridae_trimmed ../rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta floridae_rrna floridae_norrna > sortmerna.log 2>&1 &`
+
+
+## Using Kraken2 to remove biological contamination
+### Create a new environment and install Kraken2 in it
+
+```
+conda create -n kraken2
+conda activate kraken2
+conda install kraken2
+```
+
+### Creating the Standard Kraken2 Database {.tabset}
+The Kraken2 Database can be generated in one of two ways
+
+#### Builidng it by Hand {.unnumbered}
+Kraken2 has a built in function `kraken2-build` that allows you to build whatever database you are wanting. For example if you want to generate the standard kraken2 database (That includes archea and bacteria):
+
+```
+mkdir kraken2_standard_db
+
+kraken2-buid --standard --db kraken2_standard_db/
+```
+
+If you run into the following error:
+"rsync_from_ncbi.pl: unexpected FTP path (new server?) for https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/900/128/725/GCF_900128725.1_BCifornacula_v1.0" 
+
+You will need to change some of the code in the file `rsync_from_ncbi.pl`. If Kraken 2 was installed via conda the file will be located in `/anaconda3/envs/kraken2/share/kraken2-2.1.2-4/libexec`. Use `nano` to edit the file and on line **46** replace _ftp_ with _((ht|f)tp(s?))_ so the whole line for 46 would look like this:
+
+`if (! ($full_path =~ s#^((ht|f)tp(s?))://${qm_server}${qm_server_path}/##)) {`
+
+
+#### Uploading a pre-built database {.unnumbered}
+This [website](https://benlangmead.github.io/aws-indexes/k2) also has all of the different datasets pre-built and available for download. To access one of these pre-built databases through the RCC directly use:
+
+```
+wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_20230314.tar.gz #Using the link associated to the dataset of choice
+
+mkdir kraken2_pluspfp_database
+tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
+```
+
+### Creating a for loop to run multiple samples at a time
+```{bash run_kraken2, file='bash/kraken2.sh', eval = FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/kraken2.sh ../kraken2_pluspfp/ floridae_norrna floridae_nobio > kraken2.log 2>&1 &`
 
 ## Doing a k-mer based correction with RCorrector
 Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
@@ -277,58 +267,9 @@ The last two columns contain the **full** location to the desired reads.
 
 ```
 
+Trinity was run inside of a **screen** session as `bash bash_scripts/trinity.sh `pwd`/FL_trinity_samples.txt trinity_out_dir_floridae_May2023`. The `pwd` was added in front of the samples file name as a shortcut since Trinity needs to full path to the file (since it was installed as a docker image).
+
 # Post-Assembly Quality Control
-## The Bellerophon Pipeline
-This pipeline was created to remove falsely assembled chimeric transcripts in de novo transcriptome assemblies. It integrates several tools including **TransRate**, **CD-HIT**, and **BUSCO**.
-
-### Installing the pipeline
-```
-git clone https://github.com/JesseKerkvliet/Bellerophon.git
-
-```
-There were issues trying to install the pipeline via Conda. Due to incompatibilities between packages. Because of this I am instead trying to install the pipeline with Vagrant VM. First Vagrant and virtualbox must be installed.
-
-```
-sudo apt install vagrant
-vagrant --version
-  Vagrant 2.2.19
-
-sudo apt install virtualbox
-virtualbox -h
-  Oracle VM VirtualBox VM Selector v6.1.38_Ubuntu
-  
-##Create the Vagrant File
-vagrant init bellerophon/bellerophon --box-version 1.0
-
-##Start the Virtual Machine
-vagrant up
-```
-
-## Assessing quality with Transrate
-[Transrate](http://hibberdlab.com/transrate/) allows you to analyse a de-novo transcriptome assembly using three kinds different methods:
-  1. Sequence based - if only the assembly is provided
-  2. Read mapping based - if the assembly PLUS the reads are provided
-  3. Reference based - if the assembly plus a reference genome is provided
-
-### Installing Transrate
-Transrate was installed via a conda environment as it is available through **bioconda**.
-
-```
-> conda create -n transrate
-> conda acticate transrate
-> conda install intransrate
-
-> transrate -v
-    Transrate v1.0.3
-```
-
-### Running a read-mapping based analysis with Transrate
-```{bash run_transrate_readmap, file='bash/transrate.sh', eval = FALSE}
-
-```
-This script was run as ` nohup bash ../bash_scripts/transrate.sh ../trinity_out_dir_floridae_May2023.Trinity.fasta > transrate.log 2>&1 &` inside of the folder that contains the desired input reads (`floridae_kmer_corrected/`)
-
-
 ## Using BUSCO to assess composition or 'completeness' of assembly
 [BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
 
@@ -409,96 +350,6 @@ python3 generate_plot.py -wd BUSCO_summaries/
 </p>
 
 By adding the flag `--no_r` to the generate plot command it will produce the R script required to reproduce the above plot. This script is located in the R/ folder.
-
-## Assessing quality wirh rnaQUAST
-### Installation
-rnaQUAST was initially attempted to be installed with `conda` as: `conda install -c bioconda rnaquast`. This was left to run for 3 days and no progress was made on the installation. Manually installed instead.
-
-1. `rnaQUAST` package was downloaded from the [rnaQUAT github](https://github.com/ablab/rnaquast/releases) with `wget https://github.com/ablab/rnaquast/releases/download/v.2.2.4/rnaQUAST-2.2.4.tar.gz`, making sure to use the latest version. \
-    Once in the RCC, unzip the file using the command `gunzip` 
-    
-    ```
-    gunzip -h
-    gunzip -d <filename>
-    tar -xf <filename>
-    ```
-2. `gffutils` was installed with ` pip install gffutils`
-
-3. `GMAP` was then installed from their [website](http://research-pub.gene.com/gmap/) with `wget http://research-pub.gene.com/gmap/src/gmap-gsnap-2023-07-20.tar.gz`, making sure to use the latest version. \
-    Once in the RCC, it was unzipped and compiled 
-    
-    ```
-    gunzip -h
-    gunzip -d <filename>
-    tar -xf <filename>
-    
-    ##Move into directory
-    ./configure
-    sudo make
-    sudo make install
-    
-    ##Add to $PATH
-    nano ../../.bashrc
-    
-    ##Add this to the very end (Don't change anything else)
-    #GMAP
-    export PATH=$PATH:~/shared/gmap-2023-07-20
-    ```
-4. `GeneMarkS-T` was installed from the [GeneMarkS website](http://topaz.gatech.edu/GeneMark/) with ` wget http://topaz.gatech.edu/GeneMark/tmp/GMtool_CY4NY/gms2_linux_64.tar.gz`. This allows you to predict genes in the assembled transcripts without a reference genome. \
-    Once in the RCC, it was unzipped and added to $PATH
-    
-    ```
-    gunzip -h
-    gunzip -d <filename>
-    tar -xf <filename>
-
-    ##Add to $PATH
-    nano ../../.bashrc
-    
-    ##Add this to the very end (Don't change anything else)
-    #GeneMarkS-T
-    export PATH=$PATH:~/shared/gms2_linux_64
-    ```
-
-5. rnaQUAST is also capable of calculating various statistics using raw reads (e.g. database coverage by reads). To obtain them you need to install `STAR aligner`:
-
-    ```
-    # Get latest STAR source from releases
-    wget https://github.com/alexdobin/STAR/archive/2.7.11a.tar.gz
-    tar -xzf 2.7.11a.tar.gz
-    cd STAR-2.7.11a
-
-    # Compile
-    cd source
-    sudo make STAR
-
-    ##Add to $PATH
-    nano ../../.bashrc
-    
-    ##Add this to the very end (Don't change anything else)
-    #STAR
-    export PATH=$PATH:~/shared/STAR-2.7.11a
-    ```
-6. A test was run within the rnaQUAST folder to ensure everything was working `python rnaQUAST.py --test`. No errors.
-
-### Running rnaQUAST for mapping reads
-```{bash rnaQUAST.sh, file='bash/rnaQUAST.sh', eval=FALSE}
-
-```
-
-### Running rnaQUAST using the Gulf pipefish genome as a reference
-The _Syngnathus scovelli_ genome was obtained from [NCBI](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_024217435.1/) via `curl`:
-```
-> curl -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/GCF_024217435.1/download?include_annotation_type=GENOME_FASTA,GENOME_GFF,RNA_FASTA,CDS_FASTA,PROT_FASTA,SEQUENCE_REPORT&filename=GCF_024217435.1.zip" -H "Accept: application/zip"
-
-> unzip GCF_024217435.1.zip
-```
-
-```{bash rnaQUAST_ref.sh, file='bash/rnaQUAST_ref.sh', eval=FALSE}
-
-```
-This script was run as `nohup bash bash_scripts/rnaQUAST_ref.sh ../rnaQUAST-2.2.3/rnaQUAST.py trinity_out_dir_floridae_May2023.Trinity.fasta GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna GCF_024217435.1/genomic.gff  rnaQUAST_floridae_ref_out > rnaqust.log 2>&1 &`
-
 
 ## Checking quality with tools installed in Trinity {.tabset}
 Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
@@ -945,7 +796,7 @@ Stats based on ALL transcript contigs:
 ```
 Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1653 bases in length. We can see the stats for all transcripts vs longest isoform are now the same as SuperTranscripts ultimately remove the multiple isoforms per gene by collapsing them.
 
-# Differential Expression Analysis
+# Prepping for differential expression analysis
 ## Importing transcript abundance with tximport
 ```{r create_sample_file}
 
@@ -986,205 +837,13 @@ all(file.exists(files))
   
 #Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
 gtf <- read.table("trinity_genes.gtf", header = FALSE)
-tx2gene <- gtf[,c(10, 13)]
+tx2gene <- gtf[,c(10, 10)] #Using the geneID for both the gene and transcript ID as we no longer has isoform information in the SuperTranscripts assembly
 tx2gene <- unique(tx2gene)
 colnames(tx2gene) <- c("gene_id", "transcript_id")
 
 #Building the matrix
 txi.salmon.FL <- tximport(files, type = "salmon", tx2gene = tx2gene)
 head(txi.salmon.FL$counts)
-saveRDS(txi.salmon.FL, "txi.salmon_FL.RDA") #Move the file off the RCC to continue the DE in R
+saveRDS(txi.salmon.FL, "txi.salmon_FL.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
 
-```
-
-## Using DESeq2 for expression analysis
-### Single factor analysis - Comparing Males v Females
-To analyze your data with DESeq2 you must first generate the DESeqDataSet. In order to do this we need the abundance matrix generated with `tximport` and a `samples` file that lays out all of the conditions.
-```{r DESeqDataSet}
-#Make sure the conditions are in the samples file as a factor
-samples$Sex <- as.factor(samples$Sex)
-samples$Organ <- as.factor(samples$Organ)
-
-#Create the DESeq dataset
-dds_FL <- DESeqDataSetFromTximport(txi.salmon, 
-                                   colData = samples,
-                                   design = ~ Sex)
-
-```
-The data is then pre-filtered to remove low gene counts before running further DESeq2 functions. By doing this we remove rows in which there are very few reads thus reducing the memory size of the `dds` object and increasing the speed at which we can use the transformation and testing functions in DESeq2.
-
-```{r pre-filtering}
-#only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_FL)) >= 10
-dds_FL <- dds_FL[keep, ]
-
-```
-
-After filtering we can now perform the standard differential expression analysis that is wrapped into DESeq2.
-```{r diff-exp}
-dds_FL_exp <- DESeq(dds_FL)
-
-res <- results(dds_FL_exp)
-res
-```
-Once that has finished we can now start exploring some of the results
-```{r investigate-DESeq-results}
-##Ordering our results based on p-value
-resOrdered <- res[order(res$pvalue),]
-resOrdered
-
-summary(res)
-
-#How many ADJUSTED p-values were less than 0.1?
-sum(res$padj < 0.1, na.rm = TRUE)
-
-#Looking at  an alpha=0.05, the default is 0.1
-res05 <- results(dds_FL_exp, alpha = 0.05)
-summary(res05)
-sum(res05$padj < 0.05, na.rm = TRUE)
-
-```
-
-Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
-```{r MA-plot}
-par(mfrow=c(1,2))
-plotMA(res, ylim = c(-2,2))
-plotMA(res)
-
-```
-
-We can also generate a heat map to look ar overall expression levels across our samples. Note, this is not differentially expressed genes.
-```{r heatmap}
-select <- order(rowMeans(counts(dds_FL_exp, normalized = TRUE)),
-                decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds_FL)[,c("Sex", "Organ")])
-
-#Transform the data
-vsd <- vst(dds_FL_exp, blind=FALSE)
-
-#Run the heat map with the function pheatmap
-pheatmap(assay(vsd)[select,], 
-         cluster_rows = FALSE, 
-         show_rownames = TRUE, 
-         cluster_cols = FALSE, 
-         annotation_col = df)
-
-#Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
-heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
-write.table(heatmap_TG,
-            'heatmap_trinitygenes.txt',
-            sep = "",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
-```
-
-#### Using BLAST in command line
-```{bash blastn, eval = FALSE}
-#Create a BLAST database - Used Syngnathus scovelli for our BLAST database
-makeblastdb -in ../ncbi_dataset/data/GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna -out s_scov_genome -dbtype nucl
-
-#Run blastn on any set of samples
-blastn -db ../genomes/s_scov/s_scov_genome -query XXXXX.fasta -out XXX.txt -evalue 0.001 -num_threads 12 outfmt "6 qseqid qstart qed stitle sstart send evalue bitscore length pident gaps"
-
-```
-
-```{r sample-dist}
-#Calculate the sample-to-sample distances from the transformed count matrix
-sampleDists <- dist(t(assay(vsd)))
-
-#Transform into a matrix
-sampleDistsMatrix <- as.matrix(sampleDists)
-rownames(sampleDistsMatrix) <- paste(vsd$Sex, vsd$Organ, sep = "-")
-colnames(sampleDistsMatrix) <- paste(vsd$Sex, vsd$Organ, sep = "-")
-
-#Run the heatmap
-colors <- colorRampPalette(rev(brewer.pal(9, 'Blues')))(255)
-pheatmap(sampleDistsMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists, 
-         col = colors)
-```
-
-```{r pca-plot}
-colData <- as.data.frame(samples)
-rownames(colData) <- ID
-
-#Prepare the PCA using the transformed data from above
-pcaFL <- pca(assay(vsd), metadata = colData)
-
-#Plot the PCA
-biplot(pcaFL,
-       showLoadings = FALSE,
-       colby = 'Organ', colkey = c('Liver'='forestgreen', 'Gill'='purple', 'Gonad'='gold'),
-       colLegendTitle = "Organ Type",
-       hline = 0, vline = 0,
-       vlineType = 'dashed',
-       pointSize = 3,
-       legendPosition = 'left', legendLabSize = 10, legendIconSize = 6.0, legendTitleSize = 10,
-       shape = 'Sex', shapekey = c('M'=17, 'F'=8),
-       shapeLegendTitle = 'Sex',
-       drawConnectors = FALSE,
-       title = 'PCA bi-plot for Syngnathus floridae')
-
-pairsplot(pcaFL,
-          components = getComponents(pcaFL, c(1, 2, 3)),
-          triangle = FALSE,
-          hline = 0, vline = 0,
-          pointSize = 3,
-          gridlines.major = FALSE, gridlines.minor = FALSE,
-          colby = 'Organ', colkey = c('Liver'='forestgreen', 'Gill'='purple', 'Gonad'='gold'),
-          shape = 'Sex', shapekey = c('M'=17, 'F'=8),
-          title = 'Pairs plot', titleLabSize = 22,
-          legendPosition = 'left',
-          axisLabSize = 10, plotaxes = TRUE,
-          margingaps = unit(c(0.1, 0.1, 0.1, 0.1), 'cm'))
-```
-
-### Multifactor design - Comparing M v F across the diff tissue types
-If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis
-
-
-```{r multi-factor analysis}
-##Create a copy of the DESeq dataset
-ddsMF_FL <- dds_FL
-
-#Create an additional column the has the two conditions combined(sex and organ type)
-ddsMF_FL$group <- factor(paste0(ddsMF_FL$Sex, ddsMF_FL$Organ))
-
-#Reapply that new column as the design for this analysis
-design(ddsMF_FL) <- ~ group
-
-#Run the differential expression analysis
-ddsMF_FL_exp <- DESeq(ddsMF_FL)
-resultsNames(ddsMF_FL_exp)
-
-#Invesitgate the results
-liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"))
-head(liver_con_res)
-
-sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange > 0, na.rm = TRUE) #Number of Male-biased genes? Based on p-value
-sum(liver_con_res$log2FoldChange > 2) #Number of Male-biased genes with the 2FC cut off
-
-sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange < 0, na.rm = TRUE) #Number of female biased genes based on p-value
-sum(liver_con_res$log2FoldChange < -2) #Number of female-biased genes with 2FC cut off
-
-  
-#Pulling the top 20 diff expressed genes in Males
-top20_MLiver <- cbind(rownames(head(liver_con_res[order(liver_con_res$log2FoldChange, decreasing = TRUE),], n=20)))
-write.table(top20_MLiver,
-            'FL_maleL_top20TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-
-#Pulling the top 20 diff expressed genes in Females
-top20_Fliver <- cbind(rownames(head(liver_con_res[order(liver_con_res$log2FoldChange, decreasing = FALSE),], n=20)))
-write.table(top20_Fliver,
-            'FL_femL_top20TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
 ```
