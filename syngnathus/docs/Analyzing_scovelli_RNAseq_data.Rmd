@@ -234,4 +234,106 @@ The Rcorrector github repo was cloned and Rcorrector was installed in the /share
 
 This script was run as `nohup bash bash_scripts/rcor.sh ../../rcorrector scovelli_nobio scovelli_kmer_corrected/ > rcor.log 2>&1 &`. After this step the fasta files were g-zipped.
 
+# Checking quality of trimmed and filtered reads
+After each step of the filtering/trimming step above the quality of the reads was assessed with FastQC and the results were compiled using MultiQC.
+
+```{bash run_fastqc, file='bash/fastqc_script.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/fastqc_script.sh input_reads output_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc output_FastQC`.
+
+From the General stats reported in the MultiQC report we can see that at the very end of the filtering/trimming process we end up with an average of  &pm;  million reads per sample for a total of billion reads.
+
+# De novo transcriptome assembly
+To generate comparative results across the three _Syngnathus_ species Trinity was used once again for the _de novo_ assembly.
+
+```{bash trinity_script, file='bash/trinity.sh', eval = FALSE}
+
+```
+
+This script was run in a screen session as `bash bash_scripts trinity.sh ss_trinity_samples.txt trinity_out_dir_scovelli_Oct2023`.
+
+# Post-assembly Quality Control {.tabset}
+## Using BUSCO to assess composition or 'completeness' of assembly {-}
+`BUSCO` was installed in the `busco` conda environment on the RCC. `BUSCO v 5.2.2` was used.
+
+```{bash run_busco, file='bash/busco_tran.sh', eval = FALSE}
+
+```
+
+The lineage chosen for _S. scovelli_ was `actinopterygii_odb10` since it is the closest clade provided with BUSCO. This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_scovelli_Oct2023.Trinity.fasta actinopterygii_odb10 busco_out_scovelli > busco.log 2>&1 &`.
+
+#### Short Summary {-}
+```
+
+```
+
+
+#### Plot {-}
+<p float="center">
+
+<img src="../imgs/busco_scovelli_trinity.png" style="width:650px;"/> 
+
+</p>
+
+
+## Trinity transcriptome contig Nx Statistics {-}
+```{bash N50_script, file='bash/trinity_N50.sh', eval = FALSE}
+
+```
+
+This script was run as `bash bash_scripts/trinity_N50.sh `pwd`/trinity_out_dir_scovelli_Oct2023.Trinity.fasta ss_Trinity_stats.txt`.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  304903
+Total trinity transcripts:      505799
+Percent GC: 45.80
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 7715
+        Contig N20: 5525
+        Contig N30: 4241
+        Contig N40: 3277
+        Contig N50: 2523
+
+        Median contig length: 506
+        Average contig: 1172.24
+        Total assembled bases: 592916647
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 6107
+        Contig N20: 3958
+        Contig N30: 2634
+        Contig N40: 1725
+        Contig N50: 1154
+
+        Median contig length: 372
+        Average contig: 720.79
+        Total assembled bases: 219772198
+
+```
+
+Based on the longest isoform we can see that 50% of the assembled bases are found in transcript contigs that are at least 1154 bases in length. This is high than the 979 N50 from _Syngnathus fuscus_ but lower than the 1307 N50 from _Syngnathus floridae_.
+
+# Assembly thinning and redundancy reduction - SuperTranscripts
+SuperTranscripts were generated to reduce redundancy while still retaining all of the sequence information. These were generated with the tool installed with Trinity.
+
+```{bash super-transcript, file='bash/trin_super_transcripts.sh', eval=FALSE}
+
+```
+
+This script was run in a screen session as `bash bash_scripts/trin_super_transcripts.sh trinity_out_dir_scovelli_Oct2023.Trinity.fasta`. It took about 11 minutes to run.
+
 # References

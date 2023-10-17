@@ -87,7 +87,7 @@ The quality of the reads once they finished going through the filtering and trim
 
 ```
 
-This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_corrected fuscus_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc floridae_FastQC`.
+This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_corrected fuscus_FastQC > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc fuscus_FastQC`.
 
 From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 42 &pm; 6.2 million reads per sample for a total of 2.54 billion reads.
 
