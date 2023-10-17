@@ -120,16 +120,6 @@ write.table(heatmap_TG,
             col.names = FALSE)
 ```
 
-#### Using BLAST in command line{-}
-```{bash blastn, eval = FALSE}
-#Create a BLAST database - Used Syngnathus scovelli for our BLAST database
-makeblastdb -in ../ncbi_dataset/data/GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna -out s_scov_genome -dbtype nucl
-
-#Run blastn on any set of samples
-blastn -db ../genomes/s_scov/s_scov_genome -query XXXXX.fasta -out XXX.txt -evalue 0.001 -num_threads 12 outfmt "6 qseqid qstart qed stitle sstart send evalue bitscore length pident gaps"
-
-```
-
 ### Sample-dist Heatmap {-}
 We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples
 ```{r sample-dist}
@@ -210,16 +200,19 @@ resultsNames(ddsMF_FL_exp)
 ### M-F Liver Comparisson {-}
 ```{r m-f-liver}
 ##Pulling out the liver M-F results
-liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"))
+liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"), alpha = 0.05)
 head(liver_con_res)
 
 ```
 
-There are many criteria that have been employed previously to denote sex bias. For this study we are classifying sex-biased genes as **genes with a p-value < 0.05 AND a logFC >= |2|**. With that criteria in the liver there are `r sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes.
+There are many criteria that have been employed previously to denote sex bias. For this study we are classifying sex-biased genes as **genes with a p-value < 0.05 AND a logFC $\ge$ |2|**. With that criteria in the liver there are `r sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(liver_con_res$padj < 0.05 & liver_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes.
 
 ```{r top50-liver}
+#Pulling out rows where padj is not NA and is less than out alpha of 0.05
+liver_con_res_p05 <- liver_con_res[!is.na(liver_con_res$padj) & liver_con_res$padj <= 0.05,]
+
 #Pulling the top 50 diff expressed genes in Males
-top50_MLiver <- cbind(rownames(head(liver_con_res[order(liver_con_res$log2FoldChange, decreasing = TRUE),], n=50)))
+top50_MLiver <- cbind(rownames(head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 write.table(top50_MLiver,
             'FL_maleL_top50TRgenes.txt', 
             sep = "", 
@@ -228,7 +221,7 @@ write.table(top50_MLiver,
             col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
-top50_Fliver <- cbind(rownames(head(liver_con_res[order(liver_con_res$log2FoldChange, decreasing = FALSE),], n=50)))
+top50_Fliver <- cbind(rownames(head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
 write.table(top50_Fliver,
             'FL_femL_top50TRgenes.txt', 
             sep = "", 
@@ -238,26 +231,26 @@ write.table(top50_Fliver,
 ```
 
 ```{r MA-plot-liver}
-liver_con_res05 <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"), alpha = 0.05)
-
 par(mfrow=c(1,1))
-plotMA(liver_con_res05)
-
+plotMA(liver_con_res, ylim = c(-10, 10))
 ```
 
 ### M-F Gill Comparisson {-}
 ```{r m-f-gill}
 ##Pulling out the gill M-F results
-gill_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGill", "FGill"))
+gill_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGill", "FGill"), alpha = 0.5)
 head(gill_con_res)
 
 ```
 
-In the gills there were `r sum(gill_con_res$padj < 0.05 & gill_con_res$log2FoldChange > 0, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gill_con_res$padj < 0.05 & gill_con_res$log2FoldChange < 0, na.rm = TRUE)` female-biased genes based on p-values of < 0.05. However, because of the number of comparisons that have to be made in order to generate these p-values we have less confidence in them. Instead we can use a **log-fold-change cut off of 2** to denote male versus female biased. With this cutoff, there are `r sum(gill_con_res$log2FoldChange > 2)` male-biased genes in the liver and `r sum(gill_con_res$log2FoldChange < -2)` female-biased genes.
+In the gills there were `r sum(gill_con_res$padj < 0.05 & gill_con_res$log2FoldChange >= 2, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gill_con_res$padj < 0.05 & gill_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes based on our criteria for sex-bias.
 
 ```{r top50-gill}
+#Pulling out rows where padj is not NA and is less than out alpha of 0.05
+gill_con_res_p05 <- gill_con_res[!is.na(gill_con_res$padj) & gill_con_res$padj <= 0.05,]
+
 #Pulling the top 50 diff expressed genes in Males
-top50_MGill <- cbind(rownames(head(gill_con_res[order(gill_con_res$log2FoldChange, decreasing = TRUE),], n=50)))
+top50_MGill <- cbind(rownames(head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 write.table(top50_MGill,
             'FL_maleG_top50TRgenes.txt', 
             sep = "", 
@@ -265,30 +258,37 @@ write.table(top50_MGill,
             row.names = FALSE, 
             col.names = FALSE)
 
-#Pulling the top 50 diff expressed genes in Females
-top50_FGill <- cbind(rownames(head(gill_con_res[order(gill_con_res$log2FoldChange, decreasing = FALSE),], n=50)))
-write.table(top50_FGill,
-            'FL_femG_top50TRgenes.txt', 
+#Pulling the top 21 diff expressed genes in Females - Only 21 female-biased genes in the gills
+top21_FGill <- cbind(rownames(head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=21)))
+write.table(top21_FGill,
+            'FL_femG_top21TRgenes.txt', 
             sep = "", 
             quote=FALSE, 
             row.names = FALSE, 
             col.names = FALSE)
 ```
 
+```{r MA-plot-gill}
+par(mfrow=c(1,1))
+plotMA(gill_con_res, ylim = c(-10, 10))
+```
 
 ### M-F Gonad Comparisson {-}
 ```{r m-f-gonads}
 ##Pulling out the gonad M-F results
-gonad_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGonad", "FGonad"))
+gonad_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGonad", "FGonad"), alpha = 0.05)
 head(gonad_con_res)
 
 ```
 
-Between the ovaries and testis (gonads) there were `r sum(gonad_con_res$padj < 0.05 & gonad_con_res$log2FoldChange > 0, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gonad_con_res$padj < 0.05 & gonad_con_res$log2FoldChange < 0, na.rm = TRUE)` female-biased genes based on p-values of < 0.05. However, because of the number of comparisons that have to be made in order to generate these p-values we have less confidence in them. Instead we can use a **log-fold-change cut off of 2** to denote male versus female biased. With this cutoff, there are `r sum(gonad_con_res$log2FoldChange > 2)` male-biased genes in the liver and `r sum(gonad_con_res$log2FoldChange < -2)` female-biased genes.
+Between the ovaries and testis (gonads) there were `r sum(gonad_con_res$padj < 0.05 & gonad_con_res$log2FoldChange >= 2, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gonad_con_res$padj < 0.05 & gonad_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes based on our criteria for sex-bias.
 
 ```{r top50-gonad}
+#Pulling out rows where padj is not NA and is less than out alpha of 0.05
+gonad_con_res_p05 <- gonad_con_res[!is.na(gonad_con_res$padj) & gonad_con_res$padj <= 0.05,]
+
 #Pulling the top 50 diff expressed genes in Males
-top50_MGonad <- cbind(rownames(head(gonad_con_res[order(gonad_con_res$log2FoldChange, decreasing = TRUE),], n=50)))
+top50_MGonad <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 write.table(top50_MGonad,
             'FL_maleGon_top50TRgenes.txt', 
             sep = "", 
@@ -297,7 +297,7 @@ write.table(top50_MGonad,
             col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
-top50_FGonad <- cbind(rownames(head(gonad_con_res[order(gonad_con_res$log2FoldChange, decreasing = FALSE),], n=50)))
+top50_FGonad <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
 write.table(top50_FGonad,
             'FL_femGon_top50TRgenes.txt', 
             sep = "", 
@@ -306,11 +306,45 @@ write.table(top50_FGonad,
             col.names = FALSE)
 ```
 
-# Categorizing sex-specific genes
-## Liver
+```{r MA-plot-gonad}
+par(mfrow=c(1,1))
+plotMA(gonad_con_res, ylim = c(-10, 10), 
+       colSig = "salmon")
+abline(h = c(2, -2), col = 'black', lwd = 3, lty = 2)
+```
 
-## Gills
+## Categorizing sex-specific genes
+### Liver
+
+### Gills
 ```{r create gill-dataset}
+assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & rowSums(assay(dds_FL)[,dds_FL$Sex == "M"]) >= 10,
+              dds_FL$Organ == "Gill"]
+
+assay(dds_FL)[, dds_FL$Organ == "Gill" & dds_FL$Sex == "M"]
+```
+
+
+```{r create gill-dataset-sarah}
+# the one to try - for individual thresholds
+fem0_gill<-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 ,dds_FL$Organ == "Gill"]
+malLots_gill<-which(rowSums(t(apply(assay(dds_FL)[,dds_FL$Sex == "M" & dds_FL$Organ == "Gill"],1,function(x) x>=3)))==ncol(assay(dds_FL)[,dds_FL$Sex == "M" & dds_FL$Organ == "Gill"]))
+fem0_malLots_gill<-fem0_gill[rownames(fem0_gill) %in% names(malLots_gill),]
+
+# based on median
+fem0_gill<-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 ,dds_FL$Organ == "Gill"]
+malLots_gill<-apply(assay(dds_FL)[,dds_FL$Sex == "M" & dds_FL$Organ == "Gill"],1,function(x) median(x) >=3)
+fem0_malLots_gill<-fem0_gill[rownames(fem0_gill) %in% names(malLots_gill[malLots_gill==TRUE]),]
+
+```
+
+
+```{r create gill-dataset}
+assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & assay(dds_FL)[,dds_FL$Sex == "M"] >= 10,
+              dds_FL$Organ == "Gill"]
+assay(dds_FL)[assay(dds_FL)[,dds_FL$Sex == "M"] >= 10,]
+
+assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & assay(dds_FL)[,dds_FL$Organ == "Gill" & dds_FL$Sex == "M"] >= 10, ]
 #Putting the counts into an object
 fl_cnts <- counts(dds_FL)
 
@@ -332,4 +366,133 @@ head(fem_spp_gill)
 
 ```
 
-## Gonads
+### Gonads
+
+## Gene Ontology Analysis
+We wanted to figure out two things: 1) What are the genes that are sex-biased within each tissue type and 2) What are the GO terms for those genes. 
+
+To accomplish this I first had to pull out the sequences that corresponded to the Trinity gene IDS pulled out above. Once those sequences were fetched they were blasted against the _Syngnathus scovelli_ genome. This was completed with the following bash script on the RCC. 
+
+### Using BLAST in command line
+```{bash blastn, eval = FALSE}
+#Create a BLAST database - Used Syngnathus scovelli for our BLAST database
+makeblastdb -in ../ncbi_dataset/data/GCF_024217435.1/GCF_024217435.1_RoL_Ssco_1.1_genomic.fna -out s_scov_genome -dbtype nucl
+
+```
+
+```{bash blast_pipeline, file = 'bash/blast_pipeline.sh', eval = FALSE}
+
+
+```
+
+This script was run as `bash bash_scripts/blast_pipeline.sh floridae_high_exp_genes/high_expTG_names other_scripts/subset_fasta_file trinity_supertran_floridae.fasta ../genomes/s_scov/s_scov_genome floridae_high_exp_genes/high_exp_results/`
+
+
+Once the BLAST results were obtained in the RCC I read them into R for further filtering (keeping only one hit per gene)
+```{r readin_blast_results}
+#Specify the directory where BLAST results are located
+blast_path <- "data/floridae_BLAST/"
+
+#Create a list of the files I want
+FL_blast_files <- list.files(blast_path)
+
+#Create an empty list to store my datasets in
+FL_blast_list <- list()
+
+#Create a loop to read in all of the blast results
+for(file_name in FL_blast_files){
+  # Read the file and store it in a new object
+  file_data <- read.delim(file.path(blast_path, file_name), stringsAsFactors = FALSE, quote = "", sep = "\t", header = FALSE)
+  
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "scov_gene_info", "scov_gene_start", "scov_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  
+  # Create a new object with a name based on the file name
+  blast_name <- sub(".txt$", "", file_name) #Removes the file extension
+  FL_blast_list[[blast_name]] <- file_data
+}
+
+```
+
+Because of the way BLAST was run in the RCC, we can have multiple hits for one gene, I want to filter that out so that there is only one hit kept for each gene.
+```{r filter-BLAST}
+
+blast_output_test<-lapply(FL_blast_list, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Pull out the unique gene names
+  unique_gene <- unique(data_frame[4])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "scov_gene_info", "scov_gene_start", "scov_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value, highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Subset data_frame based on the unique gene names
+    #uni_gene_subset <- subset(this_trin_gene, scov_gene_info == unique_gene[i,])
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid<-unique(uni_gene_subset_lowe_highpid)
+   
+    
+    # check that there is a single gene ID in scovelli
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",uni_gene_subset_lowe_highpid$scov_gene_info))>1){
+    #   browser()
+    # } else{
+      uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+
+
+#Create an empty list to store my FILTERED datasets in
+FL_filtered_blast_list <- list()
+
+#Create a for loop to filter out all of the datasets
+for(data_frame in FL_blast_list){
+  
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Pull out the unique gene names
+  unique_gene <- unique(data_frame[4])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "scov_gene_info", "scov_gene_start", "scov_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value, highest % identity for each gene
+  for(i in 1:nrow(unique_gene)){
+    
+    #Subset data_frame based on the unique gene names
+    uni_gene_subset <- subset(data_frame, scov_gene_info == unique_gene[i,])
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- uni_gene_subset[which(uni_gene_subset$evalue == min(uni_gene_subset$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  #Create a new object with a name based on the dataframe
+  blast_name <- paste0(deparse(substitute(data_frame)), '_filtered')
+  FL_filtered_blast_list[[blast_name]] <- output
+  
+}
+
+```
