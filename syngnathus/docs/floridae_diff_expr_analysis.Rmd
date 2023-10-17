@@ -16,6 +16,7 @@ library(DESeq2)
 library(pheatmap)
 library(RColorBrewer)
 library(PCAtools)
+library(ggpubr)
 ```
 
 ``` {r functions}
@@ -230,11 +231,6 @@ write.table(top50_Fliver,
             col.names = FALSE)
 ```
 
-```{r MA-plot-liver}
-par(mfrow=c(1,1))
-plotMA(liver_con_res, ylim = c(-10, 10))
-```
-
 ### M-F Gill Comparisson {-}
 ```{r m-f-gill}
 ##Pulling out the gill M-F results
@@ -266,11 +262,6 @@ write.table(top21_FGill,
             quote=FALSE, 
             row.names = FALSE, 
             col.names = FALSE)
-```
-
-```{r MA-plot-gill}
-par(mfrow=c(1,1))
-plotMA(gill_con_res, ylim = c(-10, 10))
 ```
 
 ### M-F Gonad Comparisson {-}
@@ -306,22 +297,99 @@ write.table(top50_FGonad,
             col.names = FALSE)
 ```
 
-```{r MA-plot-gonad}
-par(mfrow=c(1,1))
-plotMA(gonad_con_res, ylim = c(-10, 10), 
-       colSig = "salmon")
-abline(h = c(2, -2), col = 'black', lwd = 3, lty = 2)
+### MA Plots {-}
+```{r MA-plot-MF}
+liver_MA <- ggmaplot(liver_con_res,
+         fdr = 0.05, fc = 2,
+         size = 1.4,
+         top = 20,
+         main = expression("Male Liver" %->% "Female Liver"),
+         font.label = c("bold", 11), label.rectangle = TRUE,
+         palette = c("orange2", "yellowgreen", "darkgray"),
+         select.top.method = c("padj", "fc"),
+         ggtheme = ggplot2::theme_minimal()
+         )
+
+gill_MA <- ggmaplot(gill_con_res,
+         fdr = 0.05, fc = 2,
+         size = 1.4,
+         top = 20,
+         main = expression("Male Gill" %->% "Female Gill"),
+         font.label = c("bold", 11), label.rectangle = TRUE,
+         palette = c("orange2", "yellowgreen", "darkgray"),
+         select.top.method = c("padj", "fc"),
+         ggtheme = ggplot2::theme_minimal()
+         )
+
+gonad_MA <- ggmaplot(gonad_con_res,
+         fdr = 0.05, fc = 2,
+         size = 1.4,
+         top = 20,
+         main = expression("Testis" %->% "Ovaries"),
+         font.label = c("bold", 11), label.rectangle = TRUE,
+         palette = c("orange2", "yellowgreen", "darkgray"),
+         select.top.method = c("padj", "fc"),
+         ggtheme = ggplot2::theme_minimal()
+         )
+
+#Merge all the plots into one
+merged_MA <- plot_grid(liver_MA, gill_MA, gonad_MA,
+          ncol = 1,
+          nrow = 3,
+          labels = c('A', 'B', 'C'),
+          label_fontfamily = 'sans',
+          label_fontface = 'bold',
+          label_size = 18)
+
+plot_grid(merged_MA)
 ```
 
 ## Categorizing sex-specific genes
-### Liver
 
-### Gills
-```{r create gill-dataset}
-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & rowSums(assay(dds_FL)[,dds_FL$Sex == "M"]) >= 10,
-              dds_FL$Organ == "Gill"]
+```{r sex-specific-forloop}
+#Create a vector with the different organ types
+organs <- levels(colData(dds_FL)$Organ)
 
-assay(dds_FL)[, dds_FL$Organ == "Gill" & dds_FL$Sex == "M"]
+#Create an empty list to store my datasets in
+FL_sex_specific_genes <- list()
+
+#Generate the for loop to identify MSpecific and FSpecific genes in each organ
+for(organ in organs){
+  
+  #Male-Specific Genes
+  ##Pull out all of the rows where fem count = 0
+  fem0_organ <- assay(dds_FL)[rowSums(assay(dds_FL)[, dds_FL$Sex == "F"]) < 1, dds_FL$Organ == organ]
+  
+  ##Pull out rows where median of male count >=10 for that organ
+  mal10_organ <- apply(assay(dds_FL)[, dds_FL$Sex == "M" & dds_FL$Organ == organ],
+                       1,
+                       function(x) median(x) >=10)
+  
+  ##Keep only the rows where fem=0 and the Male median>=10
+  fem0_mal10_organ <- fem0_organ[rownames(fem0_organ) %in% names(mal10_organ[mal10_organ == TRUE]),]
+  
+  ##Create a new object with a name based on the organ type
+  organ_malsp <- sub("$", "_male_specific", organ)
+  FL_sex_specific_genes[[organ_malsp]] <- fem0_mal10_organ
+  
+  
+  
+  #Female-Specific Genes
+  ##Pull out all of the rows where male count = 0
+  mal0_organ <- assay(dds_FL)[rowSums(assay(dds_FL)[, dds_FL$Sex == "M"]) < 1, dds_FL$Organ == organ]
+  
+  ##Pull out rows where median of female count >=10 for that organ
+  fem10_organ <- apply(assay(dds_FL)[, dds_FL$Sex == "F" & dds_FL$Organ == organ],
+                       1,
+                       function(x) median(x) >=10)
+  
+  #Keep only the rows where male=0 and the fem median>=10
+  mal0_fem10_organ <- mal0_organ[rownames(mal0_organ) %in% names(fem10_organ[fem10_organ == TRUE]),]
+  
+  # Create a new object with a name based on the organ type
+  organ_femsp <- sub("$", "_female_specific", organ)
+  FL_sex_specific_genes[[organ_femsp]] <- mal0_fem10_organ
+} 
 ```
 
 
@@ -338,35 +406,6 @@ fem0_malLots_gill<-fem0_gill[rownames(fem0_gill) %in% names(malLots_gill[malLots
 
 ```
 
-
-```{r create gill-dataset}
-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & assay(dds_FL)[,dds_FL$Sex == "M"] >= 10,
-              dds_FL$Organ == "Gill"]
-assay(dds_FL)[assay(dds_FL)[,dds_FL$Sex == "M"] >= 10,]
-
-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 & assay(dds_FL)[,dds_FL$Organ == "Gill" & dds_FL$Sex == "M"] >= 10, ]
-#Putting the counts into an object
-fl_cnts <- counts(dds_FL)
-
-#Pulling out the Gill samples from the counts
-fl_gill<-fl_cnts[,colnames(fl_cnts)%in%samples$ID[ samples$Organ=="Gill"]]
-head(fl_gill)
-
-#Grabbing the IDs that correspond to the females and males
-fem_gills_ids<-samples$ID[samples$Sex=="F" & samples$Organ=="Gill"]
-fem_gills_ids
-
-mal_gills_ids<-samples$ID[samples$Sex=="M" & samples$Organ=="Gill"]
-mal_gills_ids
-
-male_spp_gill<-fl_gill[rowSums(fl_gill[,fem_gills_ids]) <1 & rowSums(fl_gill[,mal_gills_ids])>=10,]
-
-fem_spp_gill<-fl_gill[rowSums(fl_gill[,fem_gills_ids]) >=10 & rowSums(fl_gill[,mal_gills_ids])<1,]
-head(fem_spp_gill)
-
-```
-
-### Gonads
 
 ## Gene Ontology Analysis
 We wanted to figure out two things: 1) What are the genes that are sex-biased within each tissue type and 2) What are the GO terms for those genes. 
@@ -416,40 +455,35 @@ for(file_name in FL_blast_files){
 
 Because of the way BLAST was run in the RCC, we can have multiple hits for one gene, I want to filter that out so that there is only one hit kept for each gene.
 ```{r filter-BLAST}
-
-blast_output_test<-lapply(FL_blast_list, function(data_frame){
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
  
   #Pull out the Unique Trinity gene IDs
   uniqueID <- unique(data_frame[1])
-  
-  #Pull out the unique gene names
-  unique_gene <- unique(data_frame[4])
   
   #Create an empty dataframe to store intermediate results in
   output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
   colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "scov_gene_info", "scov_gene_start", "scov_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
   
-  #Generate a for loop that pulls out the lowest e-value, highest % identity for each gene
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
   for(gene in uniqueID$trin_geneid){
     
+    #Subset the dataset for each Trinity gene
     this_trin_gene<- subset(data_frame, trin_geneid==gene)
-    #Subset data_frame based on the unique gene names
-    #uni_gene_subset <- subset(this_trin_gene, scov_gene_info == unique_gene[i,])
     #Pull out gene with smallest e-value
     uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
     #In case mult. genes have same e-value, pull out gene with highest % identity
     uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
-    # keep only one of multiple identical rows
-    uni_gene_subset_lowe_highpid<-unique(uni_gene_subset_lowe_highpid)
-   
     
-    # check that there is a single gene ID in scovelli
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+   
+    # check that there is a single gene ID in scovelli, if not, only first row is kept
     if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",uni_gene_subset_lowe_highpid$scov_gene_info))>1){
     #   browser()
     # } else{
       uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
     }
-    
     
     #Add the final gene into the empty dataframe from above
     output <- rbind(output, uni_gene_subset_lowe_highpid)
@@ -457,42 +491,5 @@ blast_output_test<-lapply(FL_blast_list, function(data_frame){
   
   return(output)
 })
-
-
-#Create an empty list to store my FILTERED datasets in
-FL_filtered_blast_list <- list()
-
-#Create a for loop to filter out all of the datasets
-for(data_frame in FL_blast_list){
-  
-  #Pull out the Unique Trinity gene IDs
-  uniqueID <- unique(data_frame[1])
-  
-  #Pull out the unique gene names
-  unique_gene <- unique(data_frame[4])
-  
-  #Create an empty dataframe to store intermediate results in
-  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
-  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "scov_gene_info", "scov_gene_start", "scov_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
-  
-  #Generate a for loop that pulls out the lowest e-value, highest % identity for each gene
-  for(i in 1:nrow(unique_gene)){
-    
-    #Subset data_frame based on the unique gene names
-    uni_gene_subset <- subset(data_frame, scov_gene_info == unique_gene[i,])
-    #Pull out gene with smallest e-value
-    uni_gene_subset_lowe <- uni_gene_subset[which(uni_gene_subset$evalue == min(uni_gene_subset$evalue)),]
-    #In case mult. genes have same e-value, pull out gene with highest % identity
-    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
-    
-    #Add the final gene into the empty dataframe from above
-    output <- rbind(output, uni_gene_subset_lowe_highpid)
-  }
-  
-  #Create a new object with a name based on the dataframe
-  blast_name <- paste0(deparse(substitute(data_frame)), '_filtered')
-  FL_filtered_blast_list[[blast_name]] <- output
-  
-}
 
 ```
