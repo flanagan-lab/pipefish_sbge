@@ -266,9 +266,27 @@ The lineage chosen for _S. scovelli_ was `actinopterygii_odb10` since it is the 
 
 #### Short Summary {-}
 ```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_out_dir_scovelli_Oct2023.Trinity.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:95.1%[S:7.2%,D:87.9%],F:1.9%,M:3.0%,n:3640
+        3460    Complete BUSCOs (C)
+        261     Complete and single-copy BUSCOs (S)
+        3199    Complete and duplicated BUSCOs (D)
+        69      Fragmented BUSCOs (F)
+        111     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
 
 ```
-
+Very similar result to the other two _Syngnathus_ assemblies prior to any thinning, good completeness but lots of duplication.
 
 #### Plot {-}
 <p float="center">
@@ -327,6 +345,74 @@ Stats based on ALL transcript contigs:
 
 Based on the longest isoform we can see that 50% of the assembled bases are found in transcript contigs that are at least 1154 bases in length. This is high than the 979 N50 from _Syngnathus fuscus_ but lower than the 1307 N50 from _Syngnathus floridae_.
 
+## Trinity transcriptome contig Ex90N50 Statistic and gene count {-}
+
+#### Create an Abundance Matrix {-}
+```
+#Get a list of the salmon quant.sf files so you don't have to list them individually
+find . -maxdepth 2 -name "*quant.sf" | tee FUsalmon.quant_files.txt
+```
+
+```{bash trinity_matrix, file='bash/trinity_abund_est.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta.gene_trans_map `pwd`/fuscus_salmon_quant/FUsalmon.quant_files.txt fuscus_salmon > trin_abund.log 2>&1 &`. The shell wrapper (`/bin/sh -c`) was added to the script to ensure the ouput files were sent to the right place.
+
+#### Calculate the Ex90N50 stat {-}
+```{bash ex90, file='bash/exn50.sh', eval=FALSE}
+
+```
+This script was run as ` bash bash_scripts/exn50.sh `pwd`/fuscus_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_exN50.stats`
+
+| Ex      | ExN50   | num_genes |
+|:--------|:--------|:----------|
+|    2    |   281   |     1     |
+|    4    |  2370   |     2     |
+|    6    |  2370   |     3     |
+|    7    |  1570   |     4     |
+|   ...   |   ...   |    ...    |
+|   90    |  2981   |  25899    |
+|   99    |  2431   |  492686   |
+|   100   |  2414   |  534363   |
+
+We can then plot the Ex value (first column) against the ExN50 values:
+
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/floridae_exN50.stats"`
+
+the Ex90N50 for _S. fuscus_ (2981) is slightly higher but very similar to the Ex90N50 for _S. floridae_ (2918).
+
+# Alignment and abundance estimations {.tabset}
+Salmon was installed locally on the RCC. It must be run as `/usr/local/bin/salmon`. `Salmon v 1.10.1` was used.
+
+## Generate the index {-}
+`salmon index` was used for this step. The index is built only **once** per transcriptome.
+
+```{bash salmon-build-index, file='bash/salmon_txome_indicies.sh', eval = FALSE}
+
+```
+
+The script was run as ` nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_scovelli_Oct2023.Trinity.fasta scovelli_salmon_index 31 > salmon_index.log 2>&1 &`. A kmer length of 31 was used upon recommendation from the Salmon website.
+
+## Quantify the samples {-}
+After building the index this is run on every individual read pair.
+
+```{bash salmon-quant, file='bash/salmon_quant.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/salmon_quant.sh fuscus_kmer_corrected/ fuscus_salmon_index/ fuscus_salmon_quant/ > salmon_quant.log 2>&1 &`.
+
+The `quant.sf` and `.log` files were moved out of their nested location to a shared folder and renamed to include the sample name.
+```{bash rename-salmon-files, file='bash/rename_salmon.sh', eval = FALSE}
+
+```
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > FUmap.txt` and the results are below. Generally, we want to see a mapping rate of at least 80% for our samples.
+```
+
+```
+
 # Assembly thinning and redundancy reduction - SuperTranscripts
 SuperTranscripts were generated to reduce redundancy while still retaining all of the sequence information. These were generated with the tool installed with Trinity.
 
@@ -334,6 +420,40 @@ SuperTranscripts were generated to reduce redundancy while still retaining all o
 
 ```
 
-This script was run in a screen session as `bash bash_scripts/trin_super_transcripts.sh trinity_out_dir_scovelli_Oct2023.Trinity.fasta`. It took about 11 minutes to run.
+This script was run in a screen session as `bash bash_scripts/trin_super_transcripts.sh trinity_out_dir_scovelli_Oct2023.Trinity.fasta`.
+
+## Re-evaluating the quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short summary {-}
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_supertran_scovelli.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:92.6%[S:88.8%,D:3.8%],F:3.0%,M:4.4%,n:3640
+        3371    Complete BUSCOs (C)
+        3233    Complete and single-copy BUSCOs (S)
+        138     Complete and duplicated BUSCOs (D)
+        108     Fragmented BUSCOs (F)
+        161     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+
+```
+
+#### Graphing results {-}
+
+<p float="center">
+
+<img src="../imgs/busco_scovelli_super.png" style="width:650px;"/> 
+
+</p>
+
 
 # References
