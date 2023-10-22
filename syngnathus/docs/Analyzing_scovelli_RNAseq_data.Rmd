@@ -157,7 +157,7 @@ The trimming and filtering for these reads will follow the pipeline that was lai
 ## Initial FastQC on raw reads {-}
 I wanted to check the quality of all of the reads to begin with as they were obtained from many different studies and were sequenced in various ways.
 
-```{bash run_fastqc, file='bash/fastqc_script.sh', eval=FALSE}
+```{bash run_fastqc_raw, file='bash/fastqc_script.sh', eval=FALSE}
 
 ```
 
@@ -247,6 +247,15 @@ From the General stats reported in the MultiQC report we can see that at the ver
 
 # De novo transcriptome assembly
 To generate comparative results across the three _Syngnathus_ species Trinity was used once again for the _de novo_ assembly.
+
+The `samples file` needed to run trinity across multiple paired reads was created as:
+```
+#Gather the names for the samples that started with C*
+ls scovelli_kmer_corrected/*L*R1.fq.gz | perl -pe 's/^(.*\/)(C\d)(\w+)L_(.*)_(L\d+)_R1.fq.gz$/\3L\t\2\3L_\5\t\1\2\3L_\4_\5_R1.fq.gz\t\1\2\3L_\4_\5_R2.fq.gz/g' > ss_trinity_samples.txt
+
+#Gather the names for the rest of the samples that start with SS* and attach them at the end of the previous file
+ls scovelli_kmer_corrected/*SS*R1.fq.gz | perl -pe 's/^(.*\/)(SS)(\w+)(\d)_R1.fq.gz$/\3\4\t\2\3\4\t\1\2\3\4_R1.fq.gz\t\1\2\3\4_R2.fq.gz/g' >> ss_trinity_samples.txt
+```
 
 ```{bash trinity_script, file='bash/trinity.sh', eval = FALSE}
 
@@ -350,37 +359,37 @@ Based on the longest isoform we can see that 50% of the assembled bases are foun
 #### Create an Abundance Matrix {-}
 ```
 #Get a list of the salmon quant.sf files so you don't have to list them individually
-find . -maxdepth 2 -name "*quant.sf" | tee FUsalmon.quant_files.txt
+find . -maxdepth 2 -name "*quant.sf" | tee SSsalmon.quant_files.txt
 ```
 
 ```{bash trinity_matrix, file='bash/trinity_abund_est.sh', eval=FALSE}
 
 ```
 
-This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta.gene_trans_map `pwd`/fuscus_salmon_quant/FUsalmon.quant_files.txt fuscus_salmon > trin_abund.log 2>&1 &`. The shell wrapper (`/bin/sh -c`) was added to the script to ensure the ouput files were sent to the right place.
+This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_scovelli_Oct2023.Trinity.fasta.gene_trans_map `pwd`/scovelli_salmon_quant/SSsalmon.quant_files.txt scovelli_salmon > trin_abund.log 2>&1 &`. The shell wrapper (`/bin/sh -c`) was added to the script to ensure the output files were sent to the right place.
 
 #### Calculate the Ex90N50 stat {-}
 ```{bash ex90, file='bash/exn50.sh', eval=FALSE}
 
 ```
-This script was run as ` bash bash_scripts/exn50.sh `pwd`/fuscus_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_exN50.stats`
+This script was run as ` bash bash_scripts/exn50.sh `pwd`/scovelli_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_scovelli_Oct2023.Trinity.fasta scovelli_exN50.stats`
 
 | Ex      | ExN50   | num_genes |
 |:--------|:--------|:----------|
-|    2    |   281   |     1     |
-|    4    |  2370   |     2     |
-|    6    |  2370   |     3     |
-|    7    |  1570   |     4     |
+|    3    |   227   |     1     |
+|    5    |  3418   |     2     |
+|    7    |  3418   |     3     |
+|    8    |  3418   |     4     |
 |   ...   |   ...   |    ...    |
-|   90    |  2981   |  25899    |
-|   99    |  2431   |  492686   |
-|   100   |  2414   |  534363   |
+|   90    |  2703   |  29389    |
+|   99    |  2562   |  464874   |
+|   100   |  2523   |  505799   |
 
 We can then plot the Ex value (first column) against the ExN50 values:
 
-`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/floridae_exN50.stats"`
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/scovelli_exN50.stats"`
 
-the Ex90N50 for _S. fuscus_ (2981) is slightly higher but very similar to the Ex90N50 for _S. floridae_ (2918).
+the Ex90N50 for _S. scovelli_ (2703) is slightly lower than both _S. fuscus_ (2981) and _S. floridae_ (2918).
 
 # Alignment and abundance estimations {.tabset}
 Salmon was installed locally on the RCC. It must be run as `/usr/local/bin/salmon`. `Salmon v 1.10.1` was used.
@@ -397,21 +406,63 @@ The script was run as ` nohup bash bash_scripts/salmon_txome_indicies.sh trinity
 ## Quantify the samples {-}
 After building the index this is run on every individual read pair.
 
-```{bash salmon-quant, file='bash/salmon_quant.sh', eval=FALSE}
+```{bash salmon-quant, file='bash/salmon_scov_quant.sh', eval=FALSE}
 
 ```
 
-This script was run as `nohup bash bash_scripts/salmon_quant.sh fuscus_kmer_corrected/ fuscus_salmon_index/ fuscus_salmon_quant/ > salmon_quant.log 2>&1 &`.
+This script was run as `nohup bash bash_scripts/salmon_scov_quant.sh scovelli_kmer_corrected/ scovelli_salmon_index/ scovelli_salmon_quant/ > salmon_quant.log 2>&1 &`.
 
 The `quant.sf` and `.log` files were moved out of their nested location to a shared folder and renamed to include the sample name.
 ```{bash rename-salmon-files, file='bash/rename_salmon.sh', eval = FALSE}
 
 ```
 
-The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > FUmap.txt` and the results are below. Generally, we want to see a mapping rate of at least 80% for our samples.
-```
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > SSmap.txt` and the results are below. Generally, we want to see a mapping rate of at least 80% for our samples.
 
 ```
+C4FL_GATCAG_salmon_quant.log:[2023-10-18 16:18:54.069] [jointLog] [info] Mapping rate = 99.9134%
+C4PL_TAGCTT_salmon_quant.log:[2023-10-18 16:20:51.509] [jointLog] [info] Mapping rate = 99.9117%
+C6FL_GAGTGG_salmon_quant.log:[2023-10-18 16:23:41.392] [jointLog] [info] Mapping rate = 99.9135%
+C6PL_ACTGAT_salmon_quant.log:[2023-10-18 16:26:01.542] [jointLog] [info] Mapping rate = 99.9156%
+C7FL_GCCAAT_salmon_quant.log:[2023-10-18 16:27:07.486] [jointLog] [info] Mapping rate = 99.9156%
+C7PL_CAGATC_salmon_quant.log:[2023-10-18 16:29:12.668] [jointLog] [info] Mapping rate = 99.9188%
+C8FL_AGTCAA_salmon_quant.log:[2023-10-18 16:31:28.805] [jointLog] [info] Mapping rate = 99.8997%
+C8PL_AGTTCC_salmon_quant.log:[2023-10-18 16:35:03.440] [jointLog] [info] Mapping rate = 99.916%
+C9FL_ATCACG_salmon_quant.log:[2023-10-18 16:37:55.484] [jointLog] [info] Mapping rate = 99.9062%
+C9PL_TTAGGC_salmon_quant.log:[2023-10-18 16:40:18.148] [jointLog] [info] Mapping rate = 99.9015%
+SSBF1_salmon_quant.log:[2023-10-18 16:43:57.972] [jointLog] [info] Mapping rate = 99.2225%
+SSBF2_salmon_quant.log:[2023-10-18 16:56:36.491] [jointLog] [info] Mapping rate = 99.3306%
+SSBF3_salmon_quant.log:[2023-10-18 17:07:14.785] [jointLog] [info] Mapping rate = 99.3432%
+SSBM1_salmon_quant.log:[2023-10-18 17:22:10.198] [jointLog] [info] Mapping rate = 99.3029%
+SSBM2_salmon_quant.log:[2023-10-18 17:31:35.348] [jointLog] [info] Mapping rate = 99.2411%
+SSBM3_salmon_quant.log:[2023-10-18 17:41:56.319] [jointLog] [info] Mapping rate = 99.2806%
+SSBM4_salmon_quant.log:[2023-10-18 17:51:43.652] [jointLog] [info] Mapping rate = 99.2519%
+SSOF1_salmon_quant.log:[2023-10-18 18:03:29.059] [jointLog] [info] Mapping rate = 99.9255%
+SSOF2_salmon_quant.log:[2023-10-18 18:09:42.000] [jointLog] [info] Mapping rate = 99.9147%
+SSOF3_salmon_quant.log:[2023-10-18 18:14:41.880] [jointLog] [info] Mapping rate = 99.9348%
+SSOF4_salmon_quant.log:[2023-10-18 18:20:08.100] [jointLog] [info] Mapping rate = 99.9232%
+SSOF5_salmon_quant.log:[2023-10-18 18:26:34.296] [jointLog] [info] Mapping rate = 99.93%
+SSPBPM1_salmon_quant.log:[2023-10-18 18:30:23.961] [jointLog] [info] Mapping rate = 99.8718%
+SSPBPM2_salmon_quant.log:[2023-10-18 18:35:27.277] [jointLog] [info] Mapping rate = 99.872%
+SSPBPM3_salmon_quant.log:[2023-10-18 18:42:24.715] [jointLog] [info] Mapping rate = 99.8636%
+SSPBPM4_salmon_quant.log:[2023-10-18 18:45:04.671] [jointLog] [info] Mapping rate = 99.858%
+SSPTM1_salmon_quant.log:[2023-10-18 18:48:44.746] [jointLog] [info] Mapping rate = 81.4678%
+SSPTM2_salmon_quant.log:[2023-10-18 18:53:51.755] [jointLog] [info] Mapping rate = 99.8504%
+SSPTM3_salmon_quant.log:[2023-10-18 18:58:48.570] [jointLog] [info] Mapping rate = 99.8804%
+SSPTM4_salmon_quant.log:[2023-10-18 19:03:57.758] [jointLog] [info] Mapping rate = 89.9412%
+SSPTM5_salmon_quant.log:[2023-10-18 19:08:56.100] [jointLog] [info] Mapping rate = 99.8759%
+SSSF1_salmon_quant.log:[2023-10-18 19:16:17.015] [jointLog] [info] Mapping rate = 99.8614%
+SSSF2_salmon_quant.log:[2023-10-18 19:25:11.912] [jointLog] [info] Mapping rate = 99.8924%
+SSSF3_salmon_quant.log:[2023-10-18 19:32:29.264] [jointLog] [info] Mapping rate = 99.8766%
+SSSF4_salmon_quant.log:[2023-10-18 19:39:20.557] [jointLog] [info] Mapping rate = 99.8943%
+SSSF5_salmon_quant.log:[2023-10-18 19:46:45.300] [jointLog] [info] Mapping rate = 99.8955%
+SSSM1_salmon_quant.log:[2023-10-18 19:56:13.838] [jointLog] [info] Mapping rate = 99.9429%
+SSSM2_salmon_quant.log:[2023-10-18 20:02:44.146] [jointLog] [info] Mapping rate = 99.9475%
+SSSM3_salmon_quant.log:[2023-10-18 20:08:24.682] [jointLog] [info] Mapping rate = 99.9332%
+SSSM4_salmon_quant.log:[2023-10-18 20:15:16.221] [jointLog] [info] Mapping rate = 99.9463%
+SSSM5_salmon_quant.log:[2023-10-18 20:22:56.106] [jointLog] [info] Mapping rate = 99.945%
+```
+A very high mapping rate can be seen for all of the samples, overall very happy with this.
 
 # Assembly thinning and redundancy reduction - SuperTranscripts
 SuperTranscripts were generated to reduce redundancy while still retaining all of the sequence information. These were generated with the tool installed with Trinity.
@@ -455,5 +506,144 @@ Dependencies and versions:
 
 </p>
 
+### Nx Statistics {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  304903
+Total trinity transcripts:      304903
+Percent GC: 43.42
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 8243
+        Contig N20: 5383
+        Contig N30: 3532
+        Contig N40: 2269
+        Contig N50: 1440
+
+        Median contig length: 379
+        Average contig: 799.07
+        Total assembled bases: 243639268
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 8243
+        Contig N20: 5383
+        Contig N30: 3532
+        Contig N40: 2269
+        Contig N50: 1440
+
+        Median contig length: 379
+        Average contig: 799.07
+        Total assembled bases: 243639268
+```
+After assembly thinning the N50 changed from 1154 to 1440, but still quite similar.
+
+### Examining RNA-Seq read representation (via Salmon) {-}
+#### Mapping Rate {-}
+|   Sample   |  Trinity Assembly  | SuperTranscript Assembly |
+|:----------:|:------------------:|:------------------------:|
+|    C4FL    |       99.9134%     |         92.0042%         |
+|    C4PL    |       99.9117%     |         91.9309%         |
+|    C6FL    |       99.9135%     |         88.6251%         |
+|    C6PL    |       99.9156%     |         92.6808%         |
+|    C7FL    |       99.9156%     |         91.9981%         |
+|    C7PL    |       99.9188%     |         93.3568%         |
+|    C8FL    |       99.8997%     |         90.5525%         |
+|    C8PL    |       99.916%      |         92.9497%         |
+|    C9FL    |       99.9062%     |         91.1898%         |
+|    C9PL    |       99.9015%     |         93.0269%         |
+|    SSBF1   |       99.2225%     |         97.7904%         |
+|    SSBF2   |       99.3306%     |         97.9157%         |
+|    SSBF3   |       99.3432%     |         97.9281%         |
+|    SSBM1   |       99.3029%     |         97.8685%         |
+|    SSBM2   |       99.2411%     |         97.7767%         |
+|    SSBM3   |       99.2806%     |         97.8398%         |
+|    SSBM4   |       99.2519%     |         97.858%          |
+|    SSOF1   |       99.9255%     |         96.7713%         |
+|    SSOF2   |       99.9147%     |         96.6299%         |
+|    SSOF3   |       99.9348%     |         97.0684%         |
+|    SSOF4   |       99.9232%     |         96.4791%         |
+|    SSOF5   |        99.93%      |         96.8494%         |
+|   SSPBPM1  |       99.8718%     |         94.6105%         |
+|   SSPBPM2  |       99.872%      |         94.9595%         |
+|   SSPBPM3  |       99.8636%     |         95.2792%         |
+|   SSPBPM4  |       99.858%      |         95.0526%         |
+|   SSPTM1   |       81.4678%     |         97.3118%         |
+|   SSPTM2   |       99.8504%     |         96.0057%         |
+|   SSPTM3   |       99.8804%     |         96.4046%         |
+|   SSPTM4   |       89.9412%     |         96.9876%         |
+|   SSPTM5   |       99.8759%     |         96.5152%         |
+|    SSSF1   |       99.8614%     |         95.4004%         |
+|    SSSF2   |       99.8924%     |         95.7075%         |
+|    SSSF3   |       99.8766%     |         95.4898%         |
+|    SSSF4   |       99.8943%     |         95.6005%         |
+|    SSSF5   |       99.8955%     |         95.9521%         |
+|    SSSM1   |       99.9429%     |         96.0868%         |
+|    SSSM2   |       99.9475%     |         96.0976%         |
+|    SSSM3   |       99.9332%     |         95.8301%         |
+|    SSSM4   |       99.9463%     |         96.2143%         |
+|    SSSM5   |       99.945%      |         97.7344%         |
+
+The mapping rate decreased overall across the samples after the aseembly thinning, but still is well above the 80% benchmark so I am happy with it
+
+# Prepping for differential expression analysis
+## Importing transcript abundance with tximport
+```{r create-sample-file}
+##Create a file containing information about the samples
+ID <- c("SSLF4", "SSLM4", "SSLF6", "SSLM6", "SSLF7", "SSLM7", "SSLF8", "SSLM8", "SSLF9", "SSLM9",
+        "SSBF1", "SSBF2", "SSBF3", "SSBM1", "SSBM2", "SSBM3", "SSBM4",
+        "SSOF1", "SSOF2", "SSOF3", "SSOF4", "SSOF5",
+        "SSPBPM1", "SSPBPM2", "SSPBPM3", "SSPBPM4", 
+        "SSPTM1", "SSPTM2", "SSPTM3", "SSPTM4", "SSPTM5",
+        "SSSF1", "SSSF2", "SSSF3", "SSSF4", "SSSF5", "SSSM1", "SSSM2", "SSSM3", "SSSM4", "SSSM5")
+Sex <- c("F", "M", "F", "M", "F", "M", "F", "M", "F", "M",
+         rep(c("F", "M", "F", "M", "F", "M"), 
+             times = c(3, 4, 5, 9, 5, 5)))
+Organ <- rep(c("Liver", "Brain", "Gonad", "BP", "Gonad", "Skin"), 
+             times = c(10, 7, 5, 4, 5, 10))
+samples <- cbind(ID, Sex, Organ)
+samples <- as.data.frame(samples)
+write.table(samples, file = "SS_samples.txt", quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Load required package
+library(tximport)
+
+#Read in sample file
+samples <- read.table("SS_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("/home/rccuser/shared/coley_files/scovelli_super_salmon_quant/expression_files", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- read.table("trinity_supertran_scovelli.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 10)] #Using the gene_id twice since there are no longer isoforms in the SuperTranscript assembly
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.SS <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.SS$counts)
+saveRDS(txi.salmon.SS, "txi.salmon_SS.RDS") #Move the file off the RCC to continue the Differential expression analysis in R
+
+```
 
 # References
