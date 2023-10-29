@@ -1,0 +1,26 @@
+---
+title: "Genetic diversity and Intersexual Fst in _Syngnathus floridae_"
+author: "Coley Tosto"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Generating SAM files
+## Installing samtools
+```
+conda create -n samtools
+conda activate samtools
+conda install samtools
+
+#Check that installation worked
+samtools --version
+  samtools 1.18
+  
+```
+
+## Indexing the Transcriptome
+Before aligning my RNA-seq data I made sure that the de novo transcriptome assembly was properly indexed using `samtools faidx`. Doing this enables efficient access to arbitrary regions within my reference sequences (the transcriptome assembly).
+
+The index was created as: `samtools faidx trinity_supertran_floridae.fasta`.
+
+## Mapping the reads back
