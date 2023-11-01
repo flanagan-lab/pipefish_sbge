@@ -204,22 +204,41 @@ pairsplot(pcaFL,
 ```
 
 ```{r pca_scaled, echo=FALSE}
-pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE)
+pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE, ntop = nrow(dds_FL))
 pcaData$mate_success <- samples$mate_success
 pcaData$repo_fit <- samples$rep_fittness
 
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
-my_colors <- c("Gill" = "darkolivegreen4", "Gonad" = "goldenrod2", "Liver" = "salmon2")
-my_shapes <- c(21, 24)
+my_colors <- c("Gill" = "#6E8B3D75", "Gonad" = "#EEB42275", "Liver" = "#EE826275")
+my_shapes <- c(16, 17)
 
+par(mfrow=c(1,2))
 ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
   scale_color_manual(values = my_colors) +
   scale_shape_manual(values = my_shapes) +
   geom_point(aes(size = mate_success)) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
-  coord_fixed()
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
+my_shapes2 <- c(16, 17, 15)
+ggplot(pcaData, aes(x=PC1, y=PC2, color = Sex, shape = Organ)) +
+  scale_color_manual(values = my_colors2) +
+  scale_shape_manual(values = my_shapes2) +
+  geom_point(aes(size = mate_success)) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
 
 ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
   scale_color_manual(values = my_colors) +
@@ -266,7 +285,6 @@ liver_con_res$trin_geneid <- rownames(liver_con_res)
 head(liver_con_res)
 
 summary(liver_con_res)
-metadata(liver_con_res)$filterThreshol
 ```
 
 There are many criteria that have been employed previously to denote sex bias. For this study we are classifying sex-biased genes as **genes with a p-value < 0.05 AND a logFC $\ge$ |2|**. With that criteria in the liver there are `r sum(liver_con_res$padj <= 0.05 & liver_con_res$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(liver_con_res$padj <= 0.05 & liver_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes. 
@@ -426,7 +444,7 @@ liver_MA <- ggmaplot(liver_con_res,
          top = 0,
          main = expression("Male Liver" %->% "Female Liver"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("orange2", "yellowgreen", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "darkgray"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -437,7 +455,7 @@ gill_MA <- ggmaplot(gill_con_res,
          top = 0,
          main = expression("Male Gill" %->% "Female Gill"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("orange2", "yellowgreen", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "darkgray"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -448,7 +466,7 @@ gonad_MA <- ggmaplot(gonad_con_res,
          top = 0,
          main = expression("Testis" %->% "Ovaries"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("orange2", "yellowgreen", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "darkgray"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -497,7 +515,9 @@ listInputall <- list("Testis" = rownames(gonad_mal_biased),
 upset(fromList(listInputall),
       mainbar.y.label = "Number of Shared Sex-Biased Genes",
       sets.x.label = "Total Number of Sex-Biased Genes",
-      point.size = 3)
+      point.size = 3,
+      nsets = 6,
+      nintersects = NA)
 ```
 
 ## Variation in FC across sex-bias and tissue type
@@ -594,13 +614,33 @@ ggplot(logFC_long,
   #geom_jitter(color="black", size=0.4, alpha=0.9)
 ```
 
-### Looking more into the patterns of the sex-biased genes
-```{r}
-test <- assay(ddsMF_FL)[rownames(assay(ddsMF_FL)) %in% rownames(gill_fem_biased), ddsMF_FL$Organ == "Gill"]
-test[apply(test, 1, function(x) median(x) == 0),]
-gill_fem_biased
-rownames(gill_fem_biased)
+There appears to be differences in the logFC across both the organs and the sex-bias groups (male-biased, fem-biased, and non-biased). Let's explore some analyses to see if we can put some statistical power behind those differences.
+```{r FC-var-stats, warning=FALSE}
+#Looking at some summary statistics for logFC between the different groups
+tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), mean)
+tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
 
+par(mfrow=c(1,1))
+interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
+
+logFC_long$tissue <- as.factor(logFC_long$tissue)
+logFC_long$bias <- as.factor(logFC_long$bias)
+
+fc_var_aov <- aov(abs(logFC_long$logFC) ~ logFC_long$bias*logFC_long$tissue)
+anova(fc_var_aov)
+
+par(mfrow = c(2,2))
+plot(fc_var_aov)
+
+library(car)
+leveneTest(fc_var_aov)
+par(mfrow=c(1,1))
+hist(resid(fc_var_aov))
+#shapiro.test(resid(fc_var_aov)) 
+
+plot(TukeyHSD(fc_var_aov))
+library(multcompView)
+multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
 ```
 
 
@@ -711,6 +751,53 @@ for(gene in gill_fem_biased_geneIDS){
   
 }
 ```
+
+## Creating categories and binning the sex-biased genes based on degree of logFC
+This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:  \
+
+    1. Low - biased = LFC 2 - 3
+    2. Medium - biased = LFC 3 - 5
+    3. High - biased = LFC 5 - 10
+    4. Extreme sex bias = LFC > 10
+
+Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
+
+```{r bin-sex-bias}
+#Create  subset of our long dataset that does not include the non-biased genes
+logFC_long_noNB <- logFC_long[logFC_long$bias != "NB",]
+
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_noNB$bias_cat <- ifelse(abs(logFC_long_noNB$logFC) >= 2 & abs(logFC_long_noNB$logFC) < 3, biased_bins[1],
+                                   ifelse(abs(logFC_long_noNB$logFC) >= 3 & abs(logFC_long_noNB$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long_noNB$logFC) >= 5 & abs(logFC_long_noNB$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Make a table to count the number of genes in each category for each organ
+bias_cat_table <- table(logFC_long_noNB$bias, logFC_long_noNB$bias_cat, logFC_long_noNB$tissue)
+
+#Add the counts of sex-specific genes to the table
+bias_cat_gill <- cbind(bias_cat_table[,, "Gill"], "sex-specific" = c(nrow(FL_sex_specific_genes$Gill_female_specific), nrow(FL_sex_specific_genes$Gill_male_specific)))
+bias_cat_gonad <- cbind(bias_cat_table[,, "Gonad"], "sex-specific" = c(nrow(FL_sex_specific_genes$Gonad_female_specific), nrow(FL_sex_specific_genes$Gonad_male_specific)))
+bias_cat_liver <- cbind(bias_cat_table[,, "Liver"], "sex-specific" = c(nrow(FL_sex_specific_genes$Liver_female_specific), nrow(FL_sex_specific_genes$Liver_male_specific)))
+
+#Plot the counts for each tissue type
+par(mfrow=c(1, 3))
+barplot(bias_cat_gill[,biased_bins], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Gill")
+barplot(bias_cat_gonad[,biased_bins], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Gonad")
+barplot(bias_cat_liver[,biased_bins], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Liver")
+legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
+```
+
 
 ## Gene Ontology Analysis
 We wanted to figure out two things: \  
@@ -847,4 +934,50 @@ blast_output_filtered$FL_maleGon_top50TRgenes_blast <- merge(top50_MGonad_df, bl
 blast_output_filtered$FL_maleL_top50TRgenes_blast <- merge(top50_MLiver_df, blast_output_filtered$FL_maleL_top50TRgenes_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 ```
 
+### Blasting against the Zebrafish genome
+In order for us to be able to do the GO analysis, we need to BLAST the sequences against one of the PANTHER organisms. The zebrafish, _Danio reiro_ was the only fish in that list.
+
+A BLAST database was generated with the _D. reiro_ genome as:
+`makeblastdb -in ../ncbi_dataset/data/GCF_000002035.6/GCF_000002035.6_GRCz11_genomic.fna -out d_rerio_genome -dbtyp nucl`
+
+
+The trinity gene IDs that correspond to ALL of the female- or male-biased genes wer pulled out and saved to `.txt` files.
+```{r biased-trin-ids, eval=FALSE}
+write.table(cbind(rownames(gill_fem_biased)),
+            'FL_femG_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gill_mal_biased)),
+            'FL_malG_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gonad_fem_biased)),
+            'FL_femGon_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gonad_mal_biased)),
+            'FL_malGon_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(liver_fem_biased)),
+            'FL_femL_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(liver_mal_biased)),
+            'FL_malL_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```
 
