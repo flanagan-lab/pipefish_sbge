@@ -5,22 +5,18 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-# Generating SAM files
-## Installing samtools
-```
-conda create -n samtools
-conda activate samtools
-conda install samtools
-
-#Check that installation worked
-samtools --version
-  samtools 1.18
-  
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 ```
 
-## Indexing the Transcriptome
-Before aligning my RNA-seq data I made sure that the de novo transcriptome assembly was properly indexed using `samtools faidx`. Doing this enables efficient access to arbitrary regions within my reference sequences (the transcriptome assembly).
+# Generating BAM files
+`Bowtie2` was used to map the processed reads back to the reference transcriptome, generating SAM files that will be converted to BAM files and coordinate sorted with `SAMtools` and then used by ANGSD to calculate measurements of Tajima's D and intersexual Fst.
 
-The index was created as: `samtools faidx trinity_supertran_floridae.fasta`.
+`Bowtie2` was installed inside of a conda environment on the RCC named `trinity`. Bowtie2 v2.5.0 was used. `SAMtools` was installed in the same conda environment, v1.18 was used. The following script was then used to generate the index, map the reads back to it to create the SAM files, then convert those SAM files to BAM files, and finally coordinate sort the BAM files.
 
-## Mapping the reads back
+```{bash, eval = FALSE, file="bash/bowtie2_alignment.sh"}
+
+```
+
+The script was run as `nohup bash bash_scripts/bowtie2_alignment.sh trinity_supertran_floridae.fasta bowtie2_index/floridae floridae_kmer_corrected/ floridae_SAM/ floridae_BAM/ > bt2.log 2>&1 &`.
+
