@@ -11,7 +11,7 @@
 
 <meta name="author" content="Coley Tosto" />
 
-<meta name="date" content="2023-10-31" />
+<meta name="date" content="2023-11-02" />
 
 <title>Genetic diversity and Intersexual Fst in Syngnathus floridae</title>
 
@@ -353,7 +353,7 @@ display: none;
 <h1 class="title toc-ignore">Genetic diversity and Intersexual Fst in
 <em>Syngnathus floridae</em></h1>
 <h4 class="author">Coley Tosto</h4>
-<h4 class="date">2023-10-31</h4>
+<h4 class="date">2023-11-02</h4>
 
 </div>
 
@@ -362,12 +362,12 @@ display: none;
 <h1>Generating BAM files</h1>
 <p><code>Bowtie2</code> was used to map the processed reads back to the
 reference transcriptome, generating SAM files that will be converted to
-BAM files and coordinate sorted with <code>samtools</code> and then used
+BAM files and coordinate sorted with <code>SAMtools</code> and then used
 by ANGSD to calculate measurements of Tajima’s D and intersexual
 Fst.</p>
 <p><code>Bowtie2</code> was installed inside of a conda environment on
 the RCC named <code>trinity</code>. Bowtie2 v2.5.0 was used.
-<code>samtools</code> was installed in the same conda environment, v1.18
+<code>SAMtools</code> was installed in the same conda environment, v1.18
 was used. The following script was then used to generate the index, map
 the reads back to it to create the SAM files, then convert those SAM
 files to BAM files, and finally coordinate sort the BAM files.</p>
@@ -411,6 +411,101 @@ for fq in $read_dir*_R1.fq.gz
 done</code></pre>
 <p>The script was run as
 <code>nohup bash bash_scripts/bowtie2_alignment.sh trinity_supertran_floridae.fasta bowtie2_index/floridae floridae_kmer_corrected/ floridae_SAM/ floridae_BAM/ &gt; bt2.log 2&gt;&amp;1 &amp;</code>.</p>
+</div>
+<div id="running-angsd" class="section level1">
+<h1>Running ANGSD</h1>
+<p>ANGSD will be used for the calculation of both Tajima’s D and also
+Intersexual Fst. It was installed in the <code>shared/</code> folder on
+the RCC following the instructions given on their <a href="http://www.popgen.dk/angsd/index.php/Installation">website</a>
+as:</p>
+<pre><code>wget http://popgen.dk/software/download/angsd/angsd0.940.tar.gz
+tar xf angsd0.940.tar.gz
+
+cd htslib;make;cd ..
+
+cd angsd
+make HTSSRC=../htslib
+cd ..</code></pre>
+<p>ANGSD version 0.940-dirty was used for the analysis.</p>
+<p>The following script was then used to filter the BAM files, estimate
+site frequency spectrum (SFS), calculate the thetas and the calculate
+Tajima’s D.</p>
+<pre class="bash"><code>#!/bin/bash
+
+#Creating arguments
+bam_dir=$1 #Folder where all of the desired BAM files are stored
+angsd_dir=$2 #Path to the angsd executable
+ref_trans=$3 #Reference transcriptome file (.fasta)
+sfs_all_out=$4 #Desired name for the output SFS across all samples
+theta_out=$5 #Desired name for the output of the Theta calculation
+
+#Create the list of all SORTED bam files, just the female bam files and just the male bam files
+ls ${bam_dir}*_sorted* &gt; all_bams.txt
+ls ${bam_dir}*M*_sorted* &gt; male_bams.txt
+ls ${bam_dir}FL*F*_sorted* &gt; fem_bams.txt
+
+#Estimate the allele frequencies from the BAM files
+echo &quot;Estimating the site frequency spectrum across ALL samples&quot;
+${angsd_dir}angsd -b all_bams.txt \
+        -doSaf 1 \
+        -anc ${ref_trans} \
+        -minMapQ 20 -remove_bads 1 -uniqueOnly 1 -only_proper_pairs 1 \
+        -minQ 13 -minInd 4 \
+        -GL 1 -P 16 -out ${sfs_all_out}
+
+${angsd_dir}misc/realSFS ${sfs_all_out}.saf.idx -fold 1 -maxIter 100 -P 16 &gt; ${sfs_all_out}.sfs
+
+#Calculating Thetas
+echo &quot;Calculating thetas ...&quot;
+${angsd_dir}misc/realSFS saf2theta ${sfs_all_out}.saf.idx \
+        -sfs ${sfs_all_out}.sfs \
+        -outname ${theta_out}
+
+#Calculating Tajima&#39;s D
+echo &quot;Calculating Tajima&#39;s D...&quot;
+${angsd_dir}misc/thetaStat do_stat ${theta_out}.thetas.idx
+</code></pre>
+<p>Following the <a href="angsd/index.php/Thetas,Tajima,Neutrality_tests">ANGSD website</a>
+we can see the first step is to <strong>filter and estimate
+SFS</strong>:</p>
+<ul>
+<li>To get the estimates of SFS you first generate a <code>.saf</code>
+file (site allele frequency likelihood) followed by an optimization of
+the <code>.saf</code> file which will then estimate the site frequency
+spectrum.
+<ul>
+<li><code>doSaf 1</code> was used to calculate saf based on individual
+genotype likelihoods assuming HWE.</li>
+<li><code>GL 1</code> was used since SAMtools was used to generate the
+BAM files.</li>
+<li>Because we don’t have the ancestral state, we estimated the folded
+SFS by giving <code>-anc</code> the reference transcriptome and applying
+<code>-fold 1</code> to <code>realSFS</code>.</li>
+</ul></li>
+<li>For filtering, many options were used:
+<ul>
+<li><code>minMapQ</code>: set the minimum mapping quality (20 was used
+here)</li>
+<li><code>remove_bads</code>: removes reads with a flag above 255 (set
+to 1 for remove)</li>
+<li><code>uniqueOnly</code>: when set to 1, removes reads that have
+multiple best hits</li>
+<li><code>only_proper_pairs</code>: when set to 1, includes only pairs
+of reads where both mates mapped correctly</li>
+<li><code>minQ</code>: Minimum base quality score (set to 13 here)</li>
+<li><code>minInd</code>: Remove if there was data in less than X
+individuals (4 here).</li>
+</ul></li>
+</ul>
+<p>The second step is to then <strong>calculate the thetas for each
+site</strong>:</p>
+<ul>
+<li>This is done using the <code>.sfa.idx</code> and the
+<code>.sfs</code> files from the step before</li>
+</ul>
+<p>Lastly, with the output from the thetas calculation
+(<code>.thetas.idx</code>) we can <strong>estimate Tajima’s
+D</strong>.</p>
 </div>
 
 

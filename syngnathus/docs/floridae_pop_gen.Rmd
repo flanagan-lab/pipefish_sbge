@@ -20,3 +20,47 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 
 The script was run as `nohup bash bash_scripts/bowtie2_alignment.sh trinity_supertran_floridae.fasta bowtie2_index/floridae floridae_kmer_corrected/ floridae_SAM/ floridae_BAM/ > bt2.log 2>&1 &`.
 
+# Running ANGSD
+ANGSD will be used for the calculation of both Tajima's D and also Intersexual Fst. It was installed in the `shared/` folder on the RCC following the instructions given on their [website](http://www.popgen.dk/angsd/index.php/Installation) as:
+
+```
+wget http://popgen.dk/software/download/angsd/angsd0.940.tar.gz
+tar xf angsd0.940.tar.gz
+
+cd htslib;make;cd ..
+
+cd angsd
+make HTSSRC=../htslib
+cd ..
+```
+
+ANGSD version 0.940-dirty was used for the analysis.
+
+The following script was then used to filter the BAM files, estimate site frequency spectrum (SFS), calculate the thetas and the calculate Tajima's D.
+
+```{bash, eval=FALSE, file='bash/angsd.sh'}
+
+
+```
+
+Following the [ANGSD website](angsd/index.php/Thetas,Tajima,Neutrality_tests) we can see the first step is to **filter and estimate SFS**:
+
+  - To get the estimates of SFS you first generate a `.saf` file (site allele frequency likelihood) followed by an optimization of the `.saf` file which will then estimate the site frequency spectrum.
+    - `doSaf 1` was used to calculate saf based on individual genotype likelihoods assuming HWE.
+    - `GL 1` was used since SAMtools was used to generate the BAM files.
+    - Because we don't have the ancestral state, we estimated the folded SFS by giving `-anc` the reference transcriptome and applying `-fold 1` to `realSFS`.
+    
+  - For filtering, many options were used:
+    - `minMapQ`: set the minimum mapping quality (20 was used here)
+    - `remove_bads`: removes reads with a flag above 255 (set to 1 for remove)
+    - `uniqueOnly`: when set to 1, removes reads that have multiple best hits
+    - `only_proper_pairs`: when set to 1, includes only pairs of reads where both mates mapped correctly
+    - `minQ`: Minimum base quality score (set to 13 here)
+    - `minInd`: Remove if there was data in less than X individuals (4 here).
+    
+The second step is to then **calculate the thetas for each site**:
+  
+  - This is done using the `.sfa.idx` and the `.sfs` files from the step before
+  
+Lastly, with the output from the thetas calculation (`.thetas.idx`) we can **estimate Tajima's D**.
+
