@@ -140,12 +140,13 @@ From the heatmap we can pull out the names of the Trinity genes that are showing
 ```{r heatmap_genes}
 #Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
 heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
-write.table(heatmap_TG,
-            'heatmap_trinitygenes.txt',
-            sep = "",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(heatmap_TG,
+  #          'heatmap_trinitygenes.txt',
+  #          sep = "",
+  #          quote=FALSE,
+  #          row.names = FALSE,
+  #          col.names = FALSE)
 ```
 
 ### Sample-dist Heatmap {-}
@@ -204,17 +205,25 @@ pairsplot(pcaFL,
 ```
 
 ```{r pca_scaled, echo=FALSE}
-pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE, ntop = nrow(dds_FL))
+
+pca <- prcomp(t(assay(vsd)))
+pca_plotting_data<-as.data.frame(pca$x)
+pca_plotting_data$mate_success <- samples$mate_success
+pca_plotting_data$repo_fit <- samples$rep_fittness
+pca_plotting_data$Organ <- samples$Organ
+pca_plotting_data$Sex <- samples$Sex
+
+pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE, ntop = nrow(dds_FL),pcsToUse=1:3)
 pcaData$mate_success <- samples$mate_success
 pcaData$repo_fit <- samples$rep_fittness
 
-percentVar <- round(100 * attr(pcaData, "percentVar"))
+percentVar <- round(100 * attr(pcaData, "percentVar")) # adjust this too
 
 my_colors <- c("Gill" = "#6E8B3D75", "Gonad" = "#EEB42275", "Liver" = "#EE826275")
 my_shapes <- c(16, 17)
 
 par(mfrow=c(1,2))
-ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
+ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
   scale_color_manual(values = my_colors) +
   scale_shape_manual(values = my_shapes) +
   geom_point(aes(size = mate_success)) +
@@ -228,12 +237,24 @@ ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
 
 my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
 my_shapes2 <- c(16, 17, 15)
-ggplot(pcaData, aes(x=PC1, y=PC2, color = Sex, shape = Organ)) +
+ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = Sex, shape = Organ)) +
   scale_color_manual(values = my_colors2) +
   scale_shape_manual(values = my_shapes2) +
   geom_point(aes(size = mate_success)) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = Sex, shape = Organ)) +
+  scale_color_manual(values = my_colors2) +
+  scale_shape_manual(values = my_shapes2) +
+  geom_point(aes(size = mate_success)) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC3: 10% variance")) + 
   coord_fixed() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
@@ -314,21 +335,23 @@ liver_con_res_p05 <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05, ]
 
 #Pulling the top 50 diff expressed genes in Males
 top50_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
-write.table(top50_MLiver_trin_genes,
-            'FL_maleL_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top50_MLiver_trin_genes,
+ #           'FL_maleL_top50TRgenes.txt', 
+ #            sep = "", 
+ #            quote=FALSE, 
+ #            row.names = FALSE, 
+ #            col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
-write.table(top50_Fliver_trin_genes,
-            'FL_femL_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top50_Fliver_trin_genes,
+ #           'FL_femL_top50TRgenes.txt', 
+ #           sep = "", 
+ #           quote=FALSE, 
+ #           row.names = FALSE, 
+ #           col.names = FALSE)
 ```
 
 
@@ -368,21 +391,23 @@ gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
 
 #Pulling the top 50 diff expressed genes in Males
 top50_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
-write.table(top50_MGill_trin_genes,
-            'FL_maleG_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top50_MGill_trin_genes,
+ #           'FL_maleG_top50TRgenes.txt', 
+ #           sep = "", 
+ #           quote=FALSE, 
+ #           row.names = FALSE, 
+ #           col.names = FALSE)
 
 #Pulling the top 21 diff expressed genes in Females - Only 21 female-biased genes in the gills
 top21_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=21)))
-write.table(top21_FGill_trin_genes,
-            'FL_femG_top21TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top21_FGill_trin_genes,
+ #           'FL_femG_top21TRgenes.txt', 
+ #           sep = "", 
+ #           quote=FALSE, 
+ #           row.names = FALSE, 
+ #           col.names = FALSE)
 ```
 
 ### M-F Gonad Comparisson {-}
@@ -419,21 +444,23 @@ gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
 
 #Pulling the top 50 diff expressed genes in Males
 top50_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
-write.table(top50_MGonad_trin_genes,
-            'FL_maleGon_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top50_MGonad_trin_genes,
+ #           'FL_maleGon_top50TRgenes.txt', 
+ #           sep = "", 
+ #           quote=FALSE, 
+ #           row.names = FALSE, 
+ #           col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
-write.table(top50_FGonad_trin_genes,
-            'FL_femGon_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#Run once to create the file and then commented out
+#write.table(top50_FGonad_trin_genes,
+ #           'FL_femGon_top50TRgenes.txt', 
+ #           sep = "", 
+ #           quote=FALSE, 
+ #           row.names = FALSE, 
+ #           col.names = FALSE)
 ```
 
 ### MA Plots {-}
@@ -444,7 +471,7 @@ liver_MA <- ggmaplot(liver_con_res,
          top = 0,
          main = expression("Male Liver" %->% "Female Liver"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("#beaed4", "#7fc97f", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "gray27"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -455,7 +482,7 @@ gill_MA <- ggmaplot(gill_con_res,
          top = 0,
          main = expression("Male Gill" %->% "Female Gill"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("#beaed4", "#7fc97f", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "gray27"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -466,7 +493,7 @@ gonad_MA <- ggmaplot(gonad_con_res,
          top = 0,
          main = expression("Testis" %->% "Ovaries"),
          font.label = c("bold", 11), label.rectangle = TRUE,
-         palette = c("#beaed4", "#7fc97f", "darkgray"),
+         palette = c("#beaed4", "#7fc97f", "gray27"),
          select.top.method = c("padj", "fc"),
          ggtheme = ggplot2::theme_minimal()
          )
@@ -597,7 +624,7 @@ With the dataset in the proper format now, we can generate the plot
   #geom_jitter(color="black", size=0.4, alpha=0.9) +
   #theme_minimal()
 
-my_colors <- c("FB" = "darkolivegreen4", "MB" = "goldenrod2", "NB" = "salmon2")
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "NB" = "darkgray")
 
 ggplot(logFC_long,
        aes(x = bias, y = abs(logFC), fill = bias)) +
