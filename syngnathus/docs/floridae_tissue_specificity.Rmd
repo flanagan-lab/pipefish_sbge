@@ -20,21 +20,18 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 ``` {r library, include = FALSE}
 #This is a cohesive list of all the libraries used in this document
 library(DESeq2)
+library(ggplot2)
 ```
 
-``` {r functions}
+``` {r functions, include = FALSE}
 ```
 
-``` {r read-data}
+``` {r read-data, include = FALSE}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.salmon <- readRDS("data/txi.salmon.floride.RDS")
 
 #The samples file generated for tximport
 samples <- read.table("FL_samples.txt", header = TRUE)
-
-#Make sure the conditions are in the samples file as a factor
-samples$Sex <- as.factor(samples$Sex)
-samples$Organ <- as.factor(samples$Organ)
 
 samples$group <- factor(paste0(samples$Sex, samples$Organ))
 
@@ -46,6 +43,9 @@ samples$Organ <- ifelse(samples$Sex == "F" & samples$Organ =="Gonad",
                                paste0(samples$Organ))
                         )
 
+#Make sure the conditions are in the samples file as a factor
+samples$Sex <- as.factor(samples$Sex)
+samples$Organ <- as.factor(samples$Organ)
 
 #Format colData to be used in the function
 colData <- as.data.frame(samples)
@@ -63,7 +63,10 @@ dds_FL <- DESeqDataSetFromTximport(txi.salmon,
 keep <- rowSums(counts(dds_FL)) >= 10
 dds_FL <- dds_FL[keep, ]
 
+#Generate the expression values
+dds_FL_exp <- DESeq(dds_FL)
 ```
+
 To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
 ```
 Name | Length | EffectiveLength | TPM | NumReads
@@ -83,9 +86,24 @@ tpms <- do.call(cbind, lapply(files, function(file){
   
   return(tpm)
 }))
+```
 
+Once all the TPMs were gathered for the different samples I filtered some of the rows out based on results from DESeq2. It should be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
+
+```{r filterTPMs}
 #Only keeping the rows that weren't filtered out due to low counts
 tpms <- tpms[rownames(tpms) %in% rownames(dds_FL), ]
+
+#Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
+#Calculating the Cooks threshold that would have been used
+np <- length(resultsNames(dds_FL_exp))
+nsamp <- ncol(dds_FL_exp)
+cooks_thresh <- qf(0.99, df1 = np, df2 = 29-np)
+
+out_ids <- names(mcols(dds_FL_exp)$maxCooks[mcols(dds_FL_exp)$maxCooks > cooks_thresh])
+
+#Removing the rows in the tpm dataset that were deemed "outliers" by DESeq2
+tpms <- tpms[!(rownames(tpms) %in% out_ids), ]
 
 ```
 
@@ -96,45 +114,35 @@ $$
 $$
 where $TPM_{max}$ is the maximum average TPM for a given tissue type, and $TPM_i$ is the average TPM for tissue $i$. If $\tau = 0$, that gene is evenly expressed across tissues; if $\tau=1$, the gene is expressed in an entirely tissue-specific fashion. Because TPM values approach 0 are impacted by sampling stochasticity, any tissues that had an average expression of 0 for a given gene were set to $TPM=2$. 
 
-```{r est_tau_avgsFXN, echo=TRUE}
-est_tau_avgs<-function(geneDat,colDat){
-  
-  tissue_dat<-data.frame(cbind(colDat,
-                               geneDat))
-  tissue_dat$geneDat[round(tissue_dat$geneDat)==0]<-2
-  
-  
-  tpmMax<-max(tissue_dat$geneDat)
-  tissue_avgs<-tapply(tissue_dat$geneDat,tissue_dat$Organ,mean)
-  
-  tau<-sum(1-(log(tissue_avgs)/log(max(tissue_avgs))))/(length(tissue_avgs)-1)
-
-  return(tau)
-}
-
-```
-
-
 ```{r est_tauFXN}
 est_tau<-function(geneDat,colDat){
   
   tissue_dat<-data.frame(cbind(colDat,
                                geneDat))
-  tissue_dat$geneDat[round(tissue_dat$geneDat)==0]<-2
+  #browser()
+  tissue_dat$geneDat[tissue_dat$geneDat<1]<-2
   
   
-  tpmMax<-max(tissue_dat$geneDat)
+  #tpmMax<-max(tissue_dat$geneDat)
   tissue_avgs<-tapply(tissue_dat$geneDat,tissue_dat$Organ,mean)
+  tpmMax <- max(tissue_avgs)
+    
+  #tissue_avgs[tissue_avgs<1]<-2
+  if(length(unique(tissue_dat$Organ)) == 3){
+    tau <- sum(1-(log(tissue_avgs[unique(tissue_dat$Organ)])/log(tpmMax)))/(length(unique(tissue_dat$Organ))-1)
+    
+    return(tau)
+  }
   
-  tau<-sum(1-(log(tissue_dat$geneDat)/log(tpmMax)))/(length(tissue_dat$geneDat)-1)
-
+  tau<-sum(1-(log(tissue_avgs)/log(tpmMax)))/(length(unique(tissue_dat$Organ))-1)
+  
   return(tau)
 }
 
 ```
 
 ```{r calcTau}
-tau <- apply(tpms, 1, est_tau_avgs, colDat=colData)
+tau <- apply(tpms, 1, est_tau, colDat=colData)
 
 
 tau_fem<-apply(tpms[,which(colData$Sex=="F")], 1, est_tau,
@@ -145,7 +153,7 @@ tau_mal<-apply(tpms[,which(colData$Sex=="M")], 1, est_tau,
 
 ```
 
-```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples versus the male samples and the female samples (right)."}
+```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
 par(mfrow=c(1,3))
 hist(tau_mal,
      col="grey",
@@ -167,23 +175,210 @@ hist(tau,
 ```
 
 Let's now investigate some of the plot counts for the genes with a high tissue specificity index.
-```{r ts-plot-counts, eval = FALSE}
+```{r ts-plot-counts, echo=FALSE, fig.height=20, fig.width=10, fig.cap="Plots of the counts from the DESeq2 Dataset for all of the genes that had a tau greater than 1"}
+#Getting list of genes with a Tau greater than 1
 tau[which(tau >= 1)]
-tpms[rownames(tpms)=="TRINITY_DN316_c5_g1",]
-plotCounts(dds_FL, gene="TRINITY_DN316_c5_g1", intgroup="Organ")
-tpms[rownames(tpms)=="TRINITY_DN1996_c0_g1",]
-plotCounts(dds_FL, gene="TRINITY_DN1996_c0_g1", intgroup="Organ")
-tpms[rownames(tpms)=="TRINITY_DN1167_c0_g2",]
-plotCounts(dds_FL, gene="TRINITY_DN1167_c0_g2", intgroup="Organ")
-tpms[rownames(tpms)=="TRINITY_DN157392_c0_g1",]
-plotCounts(dds_FL, gene="TRINITY_DN157392_c0_g1", intgroup="Organ")
-tpms[rownames(tpms)=="TRINITY_DN37396_c0_g3",]
-plotCounts(dds_FL, gene="TRINITY_DN37396_c0_g3", intgroup="Organ")
+tau[which(tau == max(tau))]
 
-tpms[rownames(tpms)=="TRINITY_DN714_c0_g1",]
-tpms[rownames(tpms)=="TRINITY_DN29102_c0_g1",]
-tpms[rownames(tpms)=="TRINITY_DN316_c5_g1",]
-tpms[rownames(tpms)=="TRINITY_DN316_c5_g1",]
+par(mfrow=c(4, 3))
+#Randomyl choosing some of those to investigate
+tpms[rownames(tpms)=="TRINITY_DN79971_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN79971_c0_g1", intgroup="Organ")
 
-plotCounts(ddsMF_FL, gene="TRINITY_DN102386_c0_g3", intgroup="Organ")
+tpms[rownames(tpms)=="TRINITY_DN33844_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN33844_c0_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN32505_c0_g2",]
+plotCounts(dds_FL, gene="TRINITY_DN32505_c0_g2", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN17266_c0_g2",]
+plotCounts(dds_FL, gene="TRINITY_DN17266_c0_g2", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN71047_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN71047_c0_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN927_c6_g2",]
+plotCounts(dds_FL, gene="TRINITY_DN927_c6_g2", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN37495_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN37495_c0_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN2652_c2_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN2652_c2_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN29035_c1_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN29035_c1_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN138910_c0_g2",]
+plotCounts(dds_FL, gene="TRINITY_DN138910_c0_g2", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN123871_c1_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN123871_c1_g1", intgroup="Organ")
+
+#New ones
+head(sort(tau, decreasing = TRUE))
+tpms[rownames(tpms)=="TRINITY_DN4937_c1_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN4937_c1_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN3390_c5_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN3390_c5_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN168500_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN168500_c0_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN125448_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN125448_c0_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN2737_c10_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN2737_c10_g1", intgroup="Organ")
+
+tpms[rownames(tpms)=="TRINITY_DN150289_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN150289_c0_g1", intgroup="Organ")
+
+#other randomly selected ones
+tpms[rownames(tpms)=="TRINITY_DN3_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN3_c0_g1", intgroup="Organ")
+ 
+tpms[rownames(tpms)=="TRINITY_DN105340_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN105340_c0_g1", intgroup="Organ")  
+
+tpms[rownames(tpms)=="TRINITY_DN30747_c0_g1",]
+plotCounts(dds_FL, gene="TRINITY_DN30747_c0_g1", intgroup="Organ")
+ 
 ```
+
+# Sex Bias and Tissue Specificity
+From the DESeq2 analysis we can pull out the FC information for all of the sex biased genes and plot that against the $\tau$ calculations.
+
+```{r tau-v-bias, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and gills."}
+#Liver
+liver_con_res <- results(dds_FL_exp, contrast = c("group", "MLiver", "FLiver"), alpha = 0.05)
+liver_con_res_noNA <- liver_con_res[!is.na(liver_con_res$padj),]
+
+liver_biased <- liver_con_res_noNA[which(abs(liver_con_res_noNA$log2FoldChange) >= 2 & liver_con_res_noNA$padj <= 0.05),]
+
+liver_bias_tau <- merge(as.data.frame(liver_biased), as.data.frame(tau), by = "row.names")
+
+#Gonads
+gonad_con_res <- results(dds_FL_exp, contrast = c("group", "MGonad", "FGonad"), alpha = 0.05)
+gonad_con_res_noNA <- gonad_con_res[!is.na(gonad_con_res$padj),]
+
+gonad_biased <- gonad_con_res_noNA[which(abs(gonad_con_res_noNA$log2FoldChange) >= 2 & gonad_con_res_noNA$padj <= 0.05),]
+
+gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "row.names")
+
+#Gills
+gill_con_res <- results(dds_FL_exp, contrast = c("group", "MGill", "FGill"), alpha = 0.05)
+gill_con_res_noNA <- gill_con_res[!is.na(gill_con_res$padj),]
+
+gill_biased <- gill_con_res_noNA[which(abs(gill_con_res_noNA$log2FoldChange) >= 2 & gill_con_res_noNA$padj <= 0.05),]
+
+gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
+
+
+plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
+     gonad_bias_tau$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="sex bias (log2 fold change)",
+     ylab=expression(tau["TPM"]))
+points(sqrt(abs(liver_bias_tau$log2FoldChange)),
+     liver_bias_tau$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau$log2FoldChange)),
+     gill_bias_tau$tau,
+     pch=19,
+     col = "#6E8B3D75")
+
+abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
+
+cor.test(gonad_bias_tau$tau, abs(gonad_bias_tau$log2FoldChange), method = "spearman")
+cor.test(liver_bias_tau$tau, abs(liver_bias_tau$log2FoldChange), method = "spearman")
+cor.test(gill_bias_tau$tau, abs(gill_bias_tau$log2FoldChange), method = "spearman")
+```
+
+From this plot if looks like there is not a clear relationship between tissue specificity and sex bias in _S. floridae_, which contrasts what other papers have found.
+
+To further investigate this I categorized the sex biased genes based on a series of logFC thresholds to see if we can get a better idea about what relationship may lie between sex bias and $\tau$. After that I can plot $\tau$ against the bias level.
+
+```{r bias-bin-cats, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau)),
+           rep("Gonad", nrow(gonad_bias_tau)),
+           rep("Liver", nrow(liver_bias_tau))
+         ),
+  logFC=c(gill_bias_tau$log2FoldChange,
+          gonad_bias_tau$log2FoldChange,
+          liver_bias_tau$log2FoldChange
+          ),
+  geneID=c(gill_bias_tau$Row.names,
+           gonad_bias_tau$Row.names,
+           liver_bias_tau$Row.names
+           ),
+  tau=c(gill_bias_tau$tau,
+        gonad_bias_tau$tau,
+        liver_bias_tau$tau
+        )
+  
+)
+
+#Add a column to denote female-biased or male biased
+logFC_long$bias <- ifelse(logFC_long$logFC < 0, paste0("FB"), paste0("MB"))
+
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3, biased_bins[1],
+                                   ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Making sure the ordering stays correct
+logFC_long$bias_cat <- factor(logFC_long$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+```
+
+```{r tau-v-biascat-plot, echo=FALSE, fig.width=10, fig.cap="Tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
+
+ggplot(logFC_long,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(axis.line = element_blank(),
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()) +
+  #theme_minimal() +
+  geom_point(data=logFC_long, aes(x=bias_cat, y=tau),
+             size=0.4, 
+             position = position_jitter(width = 0.15)) + 
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+```
+
+```{r}
+plot(sqrt(abs(logFC_long$logFC)),
+     logFC_long$tau,
+     pch=19,
+     col = "#20B2AA75",
+     xlab="sex bias (log2 fold change)",
+     ylab=expression(tau["TPM"]))
+abline(lm(logFC_long$tau ~ sqrt(abs(logFC_long$logFC))), lwd = 2.5, lty = 2)
+
+cor.test(logFC_long$tau, sqrt(abs(logFC_long$logFC)), method = "spearman")
+```
+
