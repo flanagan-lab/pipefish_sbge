@@ -2,8 +2,17 @@
 title: "Genetic diversity and Intersexual Fst in _Syngnathus floridae_"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
-output: html_document
-editor_options: 
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: no
+    toc: false
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
   chunk_output_type: console
 ---
 
@@ -12,7 +21,7 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 ```
 
 # Generating BAM files
-`Bowtie2` was used to map the processed reads back to the reference transcriptome, generating SAM files that will be converted to BAM files and coordinate sorted with `SAMtools` and then used by ANGSD to calculate measurements of Tajima's $D$ and intersexual Fst.
+`Bowtie2` was used to map the processed reads back to the reference transcriptome, generating SAM files that will be converted to BAM files and coordinate sorted with `SAMtools` and then used by ANGSD to calculate measurements of Tajima's $D$ and intersexual $F_{st}$.
 
 `Bowtie2` was installed inside of a conda environment on the RCC named `trinity`. Bowtie2 v2.5.0 was used. `SAMtools` was installed in the same conda environment, v1.18 was used. The following script was then used to generate the index, map the reads back to it to create the SAM files, then convert those SAM files to BAM files, and finally coordinate sort the BAM files.
 
@@ -23,7 +32,7 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 The script was run as `nohup bash bash_scripts/bowtie2_alignment.sh trinity_supertran_floridae.fasta bowtie2_index/floridae floridae_kmer_corrected/ floridae_SAM/ floridae_BAM/ > bt2.log 2>&1 &`.
 
 # Running ANGSD
-ANGSD will be used for the calculation of both Tajima's $D$ and also Intersexual Fst. It was installed in the `shared/` folder on the RCC following the instructions given on their [website](http://www.popgen.dk/angsd/index.php/Installation) as:
+ANGSD will be used for the calculation of both Tajima's $D$ and also Intersexual $F_{st}$. It was installed in the `shared/` folder on the RCC following the instructions given on their [website](http://www.popgen.dk/angsd/index.php/Installation) as:
 
 ```
 wget http://popgen.dk/software/download/angsd/angsd0.940.tar.gz
@@ -38,14 +47,15 @@ cd ..
 
 ANGSD version 0.940-dirty was used for the analysis.
 
-The following script was then used to filter the BAM files, estimate site frequency spectrum (SFS), calculate the thetas and the calculate Tajima's $D$.
+The following script was then used to filter the BAM files, estimate site frequency spectrum (SFS), calculate the thetas and the calculate Tajima's $D$ when `$ALLSFS=true and $THETAS=true`. It was then also used to filter BAM files and estimate SFS **separately** for males and females to all for a calculate of intersexual $F_{st}$ when `$INDSFS=true and $MFFST=true`.
 
 ```{bash, eval=FALSE, file='bash/angsd.sh'}
 
 
 ```
 
-Following the [ANGSD website](angsd/index.php/Thetas,Tajima,Neutrality_tests) we can see the first step is to **filter and estimate SFS**:
+#### When $ALLSFS=true and $THETAS=true {-}
+Following the [ANGSD website](angsd/index.php/Thetas,Tajima,Neutrality_tests) we can see the first step for calculate Tajima's $D$ is to **filter and estimate SFS**:
 
   - To get the estimates of SFS you first generate a `.saf` file (site allele frequency likelihood) followed by an optimization of the `.saf` file which will then estimate the site frequency spectrum.
     - `doSaf 1` was used to calculate saf based on individual genotype likelihoods assuming HWE.
@@ -65,6 +75,16 @@ The second step is to then **calculate the thetas for each site**:
   - This is done using the `.sfa.idx` and the `.sfs` files from the step before
   
 Lastly, with the output from the thetas calculation (`.thetas.idx`) we can **estimate Tajima's $D$**.
+
+#### When $INDSFS=true and $MFFST=true {-}
+Following the [ANGSD website](http://popgen.dk/angsd/index.php/Fst) we can see the first step for calculating $F_{st}$ is similar to Tajima's $D$, we have to **filter and estimate SFS**. The difference here is that we calculate the SAF **SEPARATELY** for the different populations and then put them together with the `realSFS` function. Because we want to look at differences between males and females our different "populations" are the two sexes.
+
+  - `-fold 1` was given to `realSFS` again because we do not have the ancestral state.
+  
+  - The same filtering that was used for Tajima's $D$ was applied here, however this time the RNA-seq data was filtered to only included bases where we had data in more than half of the individuals for male and females separately.
+    - This was done by setting `minInd` to 7
+    
+After getting the male-female SFSs and combining them, intersexual $F_{st}$ can be calculated with `realSFS fst`.
 
 # Tajima's D
 After running ANGSD we can start to look through some of the results.
@@ -88,7 +108,4 @@ barplot(sfs, names=1:length(sfs),
 
 ```
 
-Question: Why does it go all the way to 57 when after 29 the proportions all come back as 0? What is on the x-axis since a transcriptome was used as a reference?
-  - Here is what I have found:
-    - Each bar in the barplot corresponds to a specific allele frequency category, and the height of the bar represents the count of sites or alleles falling into that frequency category.
-    - How does this translate to the type of data that I am using?
+

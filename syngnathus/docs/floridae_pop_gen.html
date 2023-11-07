@@ -11,7 +11,7 @@
 
 <meta name="author" content="Coley Tosto" />
 
-<meta name="date" content="2023-11-02" />
+<meta name="date" content="2023-11-07" />
 
 <title>Genetic diversity and Intersexual Fst in Syngnathus floridae</title>
 
@@ -353,7 +353,7 @@ display: none;
 <h1 class="title toc-ignore">Genetic diversity and Intersexual Fst in
 <em>Syngnathus floridae</em></h1>
 <h4 class="author">Coley Tosto</h4>
-<h4 class="date">2023-11-02</h4>
+<h4 class="date">2023-11-07</h4>
 
 </div>
 
@@ -363,8 +363,7 @@ display: none;
 <p><code>Bowtie2</code> was used to map the processed reads back to the
 reference transcriptome, generating SAM files that will be converted to
 BAM files and coordinate sorted with <code>SAMtools</code> and then used
-by ANGSD to calculate measurements of Tajima’s D and intersexual
-Fst.</p>
+by ANGSD to calculate measurements of Tajima’s <span class="math inline">\(D\)</span> and intersexual <span class="math inline">\(F_{st}\)</span>.</p>
 <p><code>Bowtie2</code> was installed inside of a conda environment on
 the RCC named <code>trinity</code>. Bowtie2 v2.5.0 was used.
 <code>SAMtools</code> was installed in the same conda environment, v1.18
@@ -414,9 +413,9 @@ done</code></pre>
 </div>
 <div id="running-angsd" class="section level1">
 <h1>Running ANGSD</h1>
-<p>ANGSD will be used for the calculation of both Tajima’s D and also
-Intersexual Fst. It was installed in the <code>shared/</code> folder on
-the RCC following the instructions given on their <a href="http://www.popgen.dk/angsd/index.php/Installation">website</a>
+<p>ANGSD will be used for the calculation of both Tajima’s <span class="math inline">\(D\)</span> and also Intersexual <span class="math inline">\(F_{st}\)</span>. It was installed in the
+<code>shared/</code> folder on the RCC following the instructions given
+on their <a href="http://www.popgen.dk/angsd/index.php/Installation">website</a>
 as:</p>
 <pre><code>wget http://popgen.dk/software/download/angsd/angsd0.940.tar.gz
 tar xf angsd0.940.tar.gz
@@ -429,44 +428,95 @@ cd ..</code></pre>
 <p>ANGSD version 0.940-dirty was used for the analysis.</p>
 <p>The following script was then used to filter the BAM files, estimate
 site frequency spectrum (SFS), calculate the thetas and the calculate
-Tajima’s D.</p>
+Tajima’s <span class="math inline">\(D\)</span> when
+<code>$ALLSFS=true and $THETAS=true</code>. It was then also used to
+filter BAM files and estimate SFS <strong>separately</strong> for males
+and females to all for a calculate of intersexual <span class="math inline">\(F_{st}\)</span> when
+<code>$INDSFS=true and $MFFST=true</code>.</p>
 <pre class="bash"><code>#!/bin/bash
+
+#Choose what to run
+ALLSFS=false
+THETAS=false
+INDSFS=true
+MFFST=true
 
 #Creating arguments
 bam_dir=$1 #Folder where all of the desired BAM files are stored
 angsd_dir=$2 #Path to the angsd executable
 ref_trans=$3 #Reference transcriptome file (.fasta)
 sfs_all_out=$4 #Desired name for the output SFS across all samples
-theta_out=$5 #Desired name for the output of the Theta calculation
+stat_out=$5 #Desired name for the output of the Theta and/or Fst calculation
 
 #Create the list of all SORTED bam files, just the female bam files and just the male bam files
 ls ${bam_dir}*_sorted* &gt; all_bams.txt
 ls ${bam_dir}*M*_sorted* &gt; male_bams.txt
 ls ${bam_dir}FL*F*_sorted* &gt; fem_bams.txt
 
-#Estimate the allele frequencies from the BAM files
-echo &quot;Estimating the site frequency spectrum across ALL samples&quot;
-${angsd_dir}angsd -b all_bams.txt \
-        -doSaf 1 \
-        -anc ${ref_trans} \
-        -minMapQ 20 -remove_bads 1 -uniqueOnly 1 -only_proper_pairs 1 \
-        -minQ 13 -minInd 4 \
-        -GL 1 -P 16 -out ${sfs_all_out}
+if [ $ALLSFS = true ]; then
+    #Estimate the allele frequencies from the BAM files
+    echo &quot;Estimating the site frequency spectrum across ALL samples&quot;
+    ${angsd_dir}angsd -b all_bams.txt \
+            -doSaf 1 \
+            -anc ${ref_trans} \
+            -minMapQ 20 -remove_bads 1 -uniqueOnly 1 -only_proper_pairs 1 \
+            -minQ 13 -minInd 4 \
+            -GL 1 -P 16 -out ${sfs_all_out}
 
-${angsd_dir}misc/realSFS ${sfs_all_out}.saf.idx -fold 1 -maxIter 100 -P 16 &gt; ${sfs_all_out}.sfs
+    ${angsd_dir}misc/realSFS ${sfs_all_out}.saf.idx -fold 1 -maxIter 100 -P 16 &gt; ${sfs_all_out}.sfs
 
-#Calculating Thetas
-echo &quot;Calculating thetas ...&quot;
-${angsd_dir}misc/realSFS saf2theta ${sfs_all_out}.saf.idx \
-        -sfs ${sfs_all_out}.sfs \
-        -outname ${theta_out}
+fi
 
-#Calculating Tajima&#39;s D
-echo &quot;Calculating Tajima&#39;s D...&quot;
-${angsd_dir}misc/thetaStat do_stat ${theta_out}.thetas.idx
-</code></pre>
+
+if [ $THETAS = true ]; then
+    #Calculating Thetas
+    echo &quot;Calculating thetas ...&quot;
+    ${angsd_dir}misc/realSFS saf2theta ${sfs_all_out}.saf.idx \
+            -sfs ${sfs_all_out}.sfs \
+            -outname ${theta_out}
+
+    #Calculating Tajima&#39;s D
+    echo &quot;Calculating Tajima&#39;s D...&quot;
+    ${angsd_dir}misc/thetaStat do_stat ${stat_out}.thetas.idx
+
+fi
+
+
+if [ $INDSFS = true ]; then
+    #Calculate the site frequency spectrum for males and females seperately
+    echo &quot;Estimating seperate SFS...&quot;
+
+    #First calculate per pop saf for each population (in our cases the different sexes)
+    ${angsd_dir}angsd -b fem_bams.txt -doSaf 1 -anc ${ref_trans} \
+            -minMapQ 20 -remove_bads 1 -uniqueOnly 1 -only_proper_pairs 1 \
+            -minQ 13 -minInd 7 \
+            -GL 1 -P 12 -out ${sfs_all_out}_fem
+
+    ${angsd_dir}angsd -b male_bams.txt -doSaf 1 -anc ${ref_trans} \
+            -minMapQ 20 -remove_bads 1 -uniqueOnly 1 -only_proper_pairs 1 \
+            -minQ 13 -minInd 7 \
+            -GL 1 -P 12 -out ${sfs_all_out}_mal
+
+    #Calculate the 2dsfs prior
+    ${angsd_dir}misc/realSFS ${sfs_all_out}_fem.saf.idx ${sfs_all_out}_mal.saf.idx -fold 1 &gt; fem.mal.ml
+
+fi
+
+if [ $MFFST = true ]; then
+    #Calculate M-F Fsts
+    echo &quot;Calculating male-female Fsts...&quot;
+
+    #Prepare the Fst for easy window analysis etc.
+    ${angsd_dir}misc/realSFS fst index ${sfs_all_out}_fem.saf.idx ${sfs_all_out}_mal.saf.idx -sfs fem.mal.ml -fstout ${stat_out}_fm_fst
+
+    #Get the global estimate
+    ${angsd_dir}misc/realSFS fst stats ${stat_out}_fm_fst.fst.idx
+
+fi</code></pre>
+<div id="when-allsfstrue-and-thetastrue" class="section level4 unnumbered">
+<h4 class="unnumbered">When $ALLSFS=true and $THETAS=true</h4>
 <p>Following the <a href="angsd/index.php/Thetas,Tajima,Neutrality_tests">ANGSD website</a>
-we can see the first step is to <strong>filter and estimate
+we can see the first step for calculate Tajima’s <span class="math inline">\(D\)</span> is to <strong>filter and estimate
 SFS</strong>:</p>
 <ul>
 <li>To get the estimates of SFS you first generate a <code>.saf</code>
@@ -504,8 +554,57 @@ site</strong>:</p>
 <code>.sfs</code> files from the step before</li>
 </ul>
 <p>Lastly, with the output from the thetas calculation
-(<code>.thetas.idx</code>) we can <strong>estimate Tajima’s
-D</strong>.</p>
+(<code>.thetas.idx</code>) we can <strong>estimate Tajima’s <span class="math inline">\(D\)</span></strong>.</p>
+</div>
+<div id="when-indsfstrue-and-mffsttrue" class="section level4 unnumbered">
+<h4 class="unnumbered">When $INDSFS=true and $MFFST=true</h4>
+<p>Following the <a href="http://popgen.dk/angsd/index.php/Fst">ANGSD
+website</a> we can see the first step for calculating <span class="math inline">\(F_{st}\)</span> is similar to Tajima’s <span class="math inline">\(D\)</span>, we have to <strong>filter and estimate
+SFS</strong>. The difference here is that we calculate the SAF
+<strong>SEPARATELY</strong> for the different populations and then put
+them together with the <code>realSFS</code> function. Because we want to
+look at differences between males and females our different
+“populations” are the two sexes.</p>
+<ul>
+<li><p><code>-fold 1</code> was given to <code>realSFS</code> again
+because we do not have the ancestral state.</p></li>
+<li><p>The same filtering that was used for Tajima’s <span class="math inline">\(D\)</span> was applied here, however this time the
+RNA-seq data was filtered to only included bases where we had data in
+more than half of the individuals for male and females separately.</p>
+<ul>
+<li>This was done by setting <code>minInd</code> to 7</li>
+</ul></li>
+</ul>
+<p>After getting the male-female SFSs and combining them, intersexual
+<span class="math inline">\(F_{st}\)</span> can be calculated with
+<code>realSFS fst</code>.</p>
+</div>
+</div>
+<div id="tajimas-d" class="section level1">
+<h1>Tajima’s D</h1>
+<p>After running ANGSD we can start to look through some of the
+results.</p>
+<pre class="r"><code>##Read in the data
+sfs &lt;- scan(&#39;data/floridaeFolded.sfs&#39;)
+
+#The variable categories of the sfs
+sfs &lt;- sfs[-c(1,length(sfs))]
+sfs &lt;- sfs/sum(sfs)
+
+#The variability as a percentile
+pvar &lt;- (1 - sfs[1] - sfs[length(sfs)])*100
+
+#Plot it
+barplot(sfs, names=1:length(sfs),
+        legend=paste(&quot;Variability:= &quot;,round(pvar,3),&quot;%&quot;),
+        main=&#39;SFS&#39;, ylab = &quot;Proportions&quot;,
+        col = &#39;indianred4&#39;)</code></pre>
+<div class="figure">
+<img src="data:image/png;base64,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" alt="Site frequency spectrum calculated by ANGSD." width="672" />
+<p class="caption">
+Site frequency spectrum calculated by ANGSD.
+</p>
+</div>
 </div>
 
 
