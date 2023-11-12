@@ -461,9 +461,9 @@ logFC_long$bias_cat <- factor(logFC_long$bias_cat,
 ```{r tau-v-biascat-plot, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
 
-ggplot(logFC_long,
+plotdat<-ggplot(logFC_long,
        aes(x = bias_cat, y = tau, fill = bias)) +
-  geom_boxplot() +
+  geom_violin() +
   scale_fill_manual(values = my_colors) +
   facet_grid(. ~ tissue) +
   theme(axis.line = element_blank(),
@@ -472,14 +472,25 @@ ggplot(logFC_long,
     panel.grid.minor = element_blank(),
     panel.border = element_blank()) +
   #theme_minimal() +
-  #geom_point(data = logFC_long[logFC_long$bias == "MB",], aes(x=bias_cat, y=tau),
+  #geom_point(data=logFC_long, aes(x=bias_cat, y=tau),
    #          size=0.4, 
-   #          position = position_jitter(width = 0.15)) +
-  geom_point(data=logFC_long, aes(x=bias_cat, y=tau),
-             size=0.4, 
-             position = position_jitter(width = 0.15)) + 
+    #         position = position_jitter(width = 0.15)) + 
   labs(x="Bias Category", y=expression(tau["TPM"])) +
   guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long[logFC_long$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          )+ 
+geom_point(data = logFC_long[logFC_long$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          )
 
 ```
 
