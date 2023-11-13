@@ -1009,7 +1009,7 @@ write.table(cbind(rownames(liver_mal_biased)),
 
 The `blast_pipeline.sh` script was then used like above to pull out all of the corresponding sequences for each Trinity gene and then to get the BLAST results. The big difference here was that `blastx` was used instead of `blastn` because we are searching nucleotides against a protein database. Once we have the BLAST results we can read and filter them into R as we did before.
 
-```{r readin_blast_results_dreiro}
+```{r readin_blast_results_dreiro, echo=FALSE}
 #Specify the directory where BLAST results are located
 blast_path <- "data/floridae_BLAST/"
 
@@ -1028,7 +1028,7 @@ for(file_name in FL_blast_files){
   file_data <- file_data[,c(1:4,8,10:16)]
   
   #Add column names to the dataset
-  colnames(file_data) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "reiro_prot_info", "reiro_prot_name", "reiro_prot_start", "reiro_prot_end", "evalue", "bit_score", "length", "pident", "gaps")
+  colnames(file_data) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "reiro_prot_info", "prot_id", "reiro_prot_start", "reiro_prot_end", "evalue", "bit_score", "length", "pident", "gaps")
   
   # Create a new object with a name based on the file name
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
@@ -1037,7 +1037,7 @@ for(file_name in FL_blast_files){
 
 ```
 
-```{r filter-BLAST-dreiro}
+```{r filter-BLAST-dreiro, echo=FALSE}
 #Use lapply to apply the function to each dataset stored in the list created above
 blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
  
@@ -1046,7 +1046,7 @@ blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
   
   #Create an empty dataframe to store intermediate results in
   output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
-  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "reiro_prot_info", "reiro_prot_name", "reiro_prot_start", "reiro_prot_end", "evalue", "bit_score", "length", "pident", "gaps")
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "reiro_prot_info", "prot_id", "reiro_prot_start", "reiro_prot_end", "evalue", "bit_score", "length", "pident", "gaps")
   
   #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
   for(gene in uniqueID$trin_geneid){
@@ -1077,7 +1077,9 @@ blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
 
 ```
 
-```{r}
+In order to run PANTHER we need IDs that follow one of their supported formats. From NCBI, the gene name works (e.g. rpl27). That information is not automatically supplied with the BLAST output, but we can use the .gff file from NCBI to pull out the gene names that correspond to the proteinID (e.g. NP_956018.1).
+
+```{r gff-gene-names}
 #Read in the GFF file for zebrafish that has info about the geneID
 reiro_gff <- read.delim("data/d_reiro_genomic.gff",
                         header = FALSE,
@@ -1088,15 +1090,28 @@ reiro_gff <- reiro_gff[,c(1:5,9)]
 colnames(reiro_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
 
 #Subset the dataset to only include the rows we're interested in
-genes <- reiro_gff[reiro_gff$source == "BestRefSeq" & reiro_gff$feature == "CDS",]
+genes <- reiro_gff[reiro_gff$feature == "CDS",]
 
 #Pull out the gene name that corresponds to each protein ID
 genes$gene_name <- gsub("^(.*;)(gene=)(\\w+);(.*$)", "\\3", genes$gene_info)
 genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", genes$gene_info)
 
-lapply(blast_output_filtered, function(dataframe){
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
   
+   output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
   
-  
+   return(output)
 })
+
+```
+
+
+```{r, eval=FALSE}
+write.table(c(blast_output_merged$FL_femG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femL_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malL_biased_TRgenes_blast$gene_name),
+           'FL_GOnames.txt', 
+            sep = " ", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 ```
