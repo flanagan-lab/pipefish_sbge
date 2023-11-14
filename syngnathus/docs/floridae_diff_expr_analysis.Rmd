@@ -1099,9 +1099,19 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
 ```
 
-```{r}
+I am now going to make sure the sex bias information is included with the BLAST results so we can perform statistical overrepresentation and enrichment tests with PANTHER.
+```{r merge-blast-logfc}
 blast_output_merged$FL_femG_biased_TRgenes_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$FL_femG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
 blast_output_merged$FL_femGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$FL_femGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$FL_femL_biased_TRgenes_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$FL_femL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$FL_malG_biased_TRgenes_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$FL_malG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$FL_malGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$FL_malGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$FL_malL_biased_TRgenes_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$FL_malL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
 ```
 
 
@@ -1114,8 +1124,12 @@ write.table(c(blast_output_merged$FL_femG_biased_TRgenes_blast$gene_name, blast_
             col.names = FALSE)
 
 write.table(rbind(blast_output_merged$FL_femG_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$FL_femGon_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")]),
-            'test.txt',
+              blast_output_merged$FL_femGon_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
+              blast_output_merged$FL_femL_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
+              blast_output_merged$FL_malG_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
+              blast_output_merged$FL_malGon_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
+              blast_output_merged$FL_malL_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")]),
+            'FL_GOnames_FC.txt',
             sep = "\t",
             quote = FALSE,
             row.names = FALSE,
