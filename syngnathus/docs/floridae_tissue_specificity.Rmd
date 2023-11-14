@@ -301,6 +301,7 @@ gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "r
 gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
      gonad_bias_tau$tau,
      pch=19,
@@ -322,21 +323,25 @@ abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = 
 abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
 
 #Add a legend
-legend("bottomright", c("Gonads","Liver",
+par(xpd=TRUE)
+legend("topright", inset = c(-0.4, 0),
+       legend = c("Gonads","Liver",
                     "Gills"), 
        lty=c(1,2,3), 
        col=c("#EEB422","#EE8262","#6E8B3D"), 
        bty='o',
        lwd=3)
-legend('bottomright', c("","",""), 
+legend("topright", inset = c(-0.4, 0),
+       c("","",""), 
        pch=c(21,21,21),
        pt.bg = c("#EEB42275","#EE826275","#6E8B3D75"),
        pt.lwd = 1,
        pt.cex = 1.5,
        col=c("#EEB422","#EE8262","#6E8B3D"), bty='n',
-       text.width = 0.55,
+       text.width = 1.1,
        cex=1.0
        )
+
 ```
 
 The absolute value of the log2 fold change was square root transformed. There appears to only be a relationship between sex bias and tissue specificity in the gonads and not as much in the gills and the liver (Fig. \@ref(fig:tau-v-bias)). We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
@@ -361,12 +366,15 @@ gonad_bias_tau_all <- merge(as.data.frame(gonad_con_res_noNA), as.data.frame(tau
 gill_bias_tau_all <- merge(as.data.frame(gill_con_res_noNA), as.data.frame(tau), by = "row.names")
 
 #Plot logFC against Tau for all of the organs
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau_all$log2FoldChange)),
      gonad_bias_tau_all$tau,
      pch=19,
      col = "#EEB42275",
      xlab="sex bias (|log2 fold change|)",
-     ylab=expression(tau["TPM"]))
+     ylab=expression(tau["TPM"]),
+     xlim = c(0, 7),
+     ylim = c(0, 1))
 points(sqrt(abs(liver_bias_tau_all$log2FoldChange)),
      liver_bias_tau_all$tau,
      pch=19,
@@ -382,20 +390,22 @@ abline(lm(liver_bias_tau_all$tau ~ sqrt(abs(liver_bias_tau_all$log2FoldChange)))
 abline(lm(gill_bias_tau_all$tau ~ sqrt(abs(gill_bias_tau_all$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
 
 #Add a legend
-legend("bottomright", c("Gonads","Liver",
+par(xpd=TRUE)
+legend("topright", inset = c(-0.4, 0),
+       legend = c("Gonads","Liver",
                     "Gills"), 
        lty=c(1,2,3), 
        col=c("#EEB422","#EE8262","#6E8B3D"), 
        bty='o',
        lwd=3)
-
-legend('bottomright', c("","",""), 
+legend("topright", inset = c(-0.4, 0),
+       c("","",""), 
        pch=c(21,21,21),
        pt.bg = c("#EEB42275","#EE826275","#6E8B3D75"),
        pt.lwd = 1,
        pt.cex = 1.5,
        col=c("#EEB422","#EE8262","#6E8B3D"), bty='n',
-       text.width = 0.55,
+       text.width = 1.5,
        cex=1.0
        )
 ```
