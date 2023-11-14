@@ -720,13 +720,6 @@ for(organ in organs){
 } 
 ```
 
-```{r create gill-dataset-sarah}
-# the one to try - for individual thresholds
-#fem0_gill<-assay(dds_FL)[rowSums(assay(dds_FL)[,dds_FL$Sex == "F"]) < 1 ,dds_FL$Organ == "Gill"]
-#malLots_gill<-which(rowSums(t(apply(assay(dds_FL)[,dds_FL$Sex == "M" & dds_FL$Organ == "Gill"],1,function(x) x>=3)))==ncol(assay(dds_FL)[,dds_FL$Sex == "M" & dds_FL$Organ == "Gill"]))
-#fem0_malLots_gill<-fem0_gill[rownames(fem0_gill) %in% names(malLots_gill),]
-```
-
 ### Investigating the results of the sex-specific subsetting
 Let's now take a look at how many sex-specific genes we have in each tissue type:
 ```{r sex-specific-counts, echo=FALSE, message=FALSE, warning=FALSE}
@@ -1093,7 +1086,7 @@ colnames(reiro_gff) <- c("seqname", "source", "feature", "start", "end", "gene_i
 genes <- reiro_gff[reiro_gff$feature == "CDS",]
 
 #Pull out the gene name that corresponds to each protein ID
-genes$gene_name <- gsub("^(.*;)(gene=)(\\w+);(.*$)", "\\3", genes$gene_info)
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", genes$gene_info)
 genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", genes$gene_info)
 
 #Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
@@ -1106,6 +1099,11 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
 ```
 
+```{r}
+blast_output_merged$FL_femG_biased_TRgenes_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$FL_femG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$FL_femGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$FL_femGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+```
+
 
 ```{r, eval=FALSE}
 write.table(c(blast_output_merged$FL_femG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femL_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malL_biased_TRgenes_blast$gene_name),
@@ -1113,5 +1111,13 @@ write.table(c(blast_output_merged$FL_femG_biased_TRgenes_blast$gene_name, blast_
             sep = " ", 
             quote=FALSE, 
             row.names = FALSE, 
+            col.names = FALSE)
+
+write.table(rbind(blast_output_merged$FL_femG_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")],
+              blast_output_merged$FL_femGon_biased_TRgenes_blast[,c("gene_name", "log2FoldChange")]),
+            'test.txt',
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE,
             col.names = FALSE)
 ```
