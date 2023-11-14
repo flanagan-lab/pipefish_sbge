@@ -213,7 +213,7 @@ pca_plotting_data$repo_fit <- samples$rep_fittness
 pca_plotting_data$Organ <- samples$Organ
 pca_plotting_data$Sex <- samples$Sex
 
-pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE, ntop = nrow(dds_FL),pcsToUse=1:3)
+pcaData <- plotPCA(vsd, intgroup = c("Organ", "Sex"), returnData = TRUE, ntop = nrow(dds_FL))
 pcaData$mate_success <- samples$mate_success
 pcaData$repo_fit <- samples$rep_fittness
 
@@ -261,13 +261,13 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = Sex, shape = Organ)) +
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
-  scale_color_manual(values = my_colors) +
-  scale_shape_manual(values = my_shapes) +
-  geom_point(aes(size = repo_fit)) +
-  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
-  coord_fixed()
+#ggplot(pcaData, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
+#  scale_color_manual(values = my_colors) +
+#  scale_shape_manual(values = my_shapes) +
+#  geom_point(aes(size = repo_fit)) +
+#  xlab(paste0("PC1: ",percentVar[1],"% #variance")) +
+#  ylab(paste0("PC2: ",percentVar[2],"% #variance")) + 
+#  coord_fixed()
 ```
 
 
