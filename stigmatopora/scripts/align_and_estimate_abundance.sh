@@ -11,13 +11,7 @@ STEP=$1
 
 if [[ "$STEP" == 1 ]]; then
 ####### Prepare the reference ########
-        echo "docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq \
-            /usr/local/bin/util/align_and_estimate_abundance.pl \ 
-            --transcripts trinity_nigra_gonads.Trinity.fasta \ 
-            --est_method RSEM \ 
-            --aln_method bowtie2 \ 
-            --trinity_mode \ 
-            --prep_reference"
+        docker run -v/home/rccuser/:/home/rccuser trinityrnaseq/trinityrnaseq /usr/local/bin/util/align_and_estimate_abundance.pl --transcripts trinity_nigra_gonads.Trinity.fasta --est_method RSEM --aln_method bowtie2 --trinity_mode --prep_reference
 fi
 
 
