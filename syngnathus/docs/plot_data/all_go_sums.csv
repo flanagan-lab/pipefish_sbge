@@ -1,0 +1,296 @@
+"Freq","prot_class","tissue","prop"
+2,"chaperone(PC00072)","Gill",0.0465116279069767
+1,"dehydratase(PC00091)","Gill",0.0232558139534884
+1,"DNA metabolism protein(PC00009)","Gill",0.0232558139534884
+3,"G-protein coupled receptor(PC00021)","Gill",0.0697674418604651
+1,"globin(PC00107)","Gill",0.0232558139534884
+1,"Hsp70 family chaperone(PC00027)","Gill",0.0232558139534884
+1,"hydrolase(PC00121)","Gill",0.0232558139534884
+1,"immunoglobulin receptor superfamily(PC00124)","Gill",0.0232558139534884
+1,"immunoglobulin superfamily cell adhesion molecule(PC00125)","Gill",0.0232558139534884
+1,"ion channel(PC00133)","Gill",0.0232558139534884
+1,"major histocompatibility complex protein(PC00149)","Gill",0.0232558139534884
+2,"methyltransferase(PC00155)","Gill",0.0465116279069767
+1,"myelin protein(PC00161)","Gill",0.0232558139534884
+1,"non-receptor tyrosine protein kinase(PC00168)","Gill",0.0232558139534884
+1,"oxygenase(PC00177)","Gill",0.0232558139534884
+1,"protease inhibitor(PC00191)","Gill",0.0232558139534884
+1,"protease(PC00190)","Gill",0.0232558139534884
+1,"ribosomal protein(PC00202)","Gill",0.0232558139534884
+1,"RNA helicase(PC00032)","Gill",0.0232558139534884
+1,"RNA metabolism protein(PC00031)","Gill",0.0232558139534884
+1,"scaffold/adaptor protein(PC00226)","Gill",0.0232558139534884
+1,"secondary carrier transporter(PC00258)","Gill",0.0232558139534884
+2,"small GTPase(PC00208)","Gill",0.0465116279069767
+1,"tight junction(PC00214)","Gill",0.0232558139534884
+1,"tubulin(PC00228)","Gill",0.0232558139534884
+1,"ubiquitin-protein ligase(PC00234)","Gill",0.0232558139534884
+10,"Unclassified","Gill",0.232558139534884
+1,"vesicle coat protein(PC00235)","Gill",0.0232558139534884
+1,"viral or transposable element protein(PC00237)","Gill",0.0232558139534884
+4,"acetyltransferase(PC00038)","Gonad",0.000960845544078789
+4,"actin and actin related protein(PC00039)","Gonad",0.000960845544078789
+14,"actin binding motor protein(PC00040)","Gonad",0.00336295940427576
+45,"actin or actin-binding cytoskeletal protein(PC00041)","Gonad",0.0108095123708864
+12,"acyltransferase(PC00042)","Gonad",0.00288253663223637
+7,"adenylate cyclase(PC00043)","Gonad",0.00168147970213788
+3,"amino acid kinase(PC00045)","Gonad",0.000720634158059092
+11,"amino acid transporter(PC00046)","Gonad",0.00264232524621667
+10,"aminoacyl-tRNA synthetase(PC00047)","Gonad",0.00240211386019697
+1,"amylase(PC00048)","Gonad",0.000240211386019697
+1,"antimicrobial response protein(PC00051)","Gonad",0.000240211386019697
+33,"apolipoprotein(PC00052)","Gonad",0.00792697573865001
+2,"aspartic protease(PC00053)","Gonad",0.000480422772039395
+11,"ATP-binding cassette (ABC) transporter(PC00003)","Gonad",0.00264232524621667
+7,"ATP synthase(PC00002)","Gonad",0.00168147970213788
+24,"basic helix-loop-helix transcription factor(PC00055)","Gonad",0.00576507326447274
+10,"basic leucine zipper transcription factor(PC00056)","Gonad",0.00240211386019697
+157,"C2H2 zinc finger transcription factor(PC00248)","Gonad",0.0377131876050925
+15,"C4 zinc finger nuclear receptor(PC00169)","Gonad",0.00360317079029546
+27,"cadherin(PC00057)","Gonad",0.00648570742253183
+7,"calcium-binding protein(PC00060)","Gonad",0.00168147970213788
+7,"calmodulin-related(PC00061)","Gonad",0.00168147970213788
+1,"carbohydrate kinase(PC00065)","Gonad",0.000240211386019697
+1,"carbohydrate phosphatase(PC00066)","Gonad",0.000240211386019697
+38,"cell adhesion molecule(PC00069)","Gonad",0.0091280326687485
+1,"cell junction protein(PC00070)","Gonad",0.000240211386019697
+1,"centromere DNA-binding protein(PC00071)","Gonad",0.000240211386019697
+15,"chaperone(PC00072)","Gonad",0.00360317079029546
+4,"chemokine(PC00074)","Gonad",0.000960845544078789
+35,"chromatin/chromatin-binding, or -regulatory protein(PC00077)","Gonad",0.00840739851068941
+2,"complement component(PC00078)","Gonad",0.000480422772039395
+28,"cysteine protease(PC00081)","Gonad",0.00672591880855153
+2,"cytokine(PC00083)","Gonad",0.000480422772039395
+10,"cytoskeletal protein(PC00085)","Gonad",0.00240211386019697
+7,"damaged DNA-binding protein(PC00086)","Gonad",0.00168147970213788
+1,"deacetylase(PC00087)","Gonad",0.000240211386019697
+2,"deaminase(PC00088)","Gonad",0.000480422772039395
+5,"decarboxylase(PC00089)","Gonad",0.00120105693009849
+3,"defense/immunity protein(PC00090)","Gonad",0.000720634158059092
+11,"dehydratase(PC00091)","Gonad",0.00264232524621667
+28,"dehydrogenase(PC00092)","Gonad",0.00672591880855153
+41,"DNA-binding transcription factor(PC00218)","Gonad",0.00984866682680759
+3,"DNA-directed DNA polymerase(PC00018)","Gonad",0.000720634158059092
+3,"DNA-directed RNA polymerase(PC00019)","Gonad",0.000720634158059092
+2,"DNA glycosylase(PC00010)","Gonad",0.000480422772039395
+6,"DNA helicase(PC00011)","Gonad",0.00144126831611818
+2,"DNA ligase(PC00012)","Gonad",0.000480422772039395
+48,"DNA metabolism protein(PC00009)","Gonad",0.0115301465289455
+1,"DNA methyltransferase(PC00013)","Gonad",0.000240211386019697
+1,"DNA photolyase(PC00014)","Gonad",0.000240211386019697
+1,"DNA topoisomerase(PC00017)","Gonad",0.000240211386019697
+1,"endodeoxyribonuclease(PC00093)","Gonad",0.000240211386019697
+6,"endoribonuclease(PC00094)","Gonad",0.00144126831611818
+1,"epimerase/racemase(PC00096)","Gonad",0.000240211386019697
+7,"esterase(PC00097)","Gonad",0.00168147970213788
+1,"exodeoxyribonuclease(PC00098)","Gonad",0.000240211386019697
+4,"exoribonuclease(PC00099)","Gonad",0.000960845544078789
+21,"extracellular matrix glycoprotein(PC00100)","Gonad",0.00504443910641364
+25,"extracellular matrix protein(PC00102)","Gonad",0.00600528465049243
+15,"extracellular matrix structural protein(PC00103)","Gonad",0.00360317079029546
+89,"G-protein coupled receptor(PC00021)","Gonad",0.0213788133557531
+1,"G-protein modulator(PC00022)","Gonad",0.000240211386019697
+2,"G-protein(PC00020)","Gonad",0.000480422772039395
+7,"gap junction(PC00105)","Gonad",0.00168147970213788
+16,"general transcription factor(PC00259)","Gonad",0.00384338217631516
+1,"globin(PC00107)","Gonad",0.000240211386019697
+2,"glycosidase(PC00110)","Gonad",0.000480422772039395
+23,"glycosyltransferase(PC00111)","Gonad",0.00552486187845304
+18,"growth factor(PC00112)","Gonad",0.00432380494835455
+41,"GTPase-activating protein(PC00257)","Gonad",0.00984866682680759
+46,"guanyl-nucleotide exchange factor(PC00113)","Gonad",0.0110497237569061
+5,"guanylate cyclase(PC00114)","Gonad",0.00120105693009849
+8,"heterotrimeric G-protein(PC00117)","Gonad",0.00192169108815758
+19,"histone modifying enzyme(PC00261)","Gonad",0.00456401633437425
+7,"HMG box transcription factor(PC00024)","Gonad",0.00168147970213788
+57,"homeodomain transcription factor(PC00119)","Gonad",0.0136920490031227
+2,"Hsp70 family chaperone(PC00027)","Gonad",0.000480422772039395
+2,"hydratase(PC00120)","Gonad",0.000480422772039395
+19,"hydrolase(PC00121)","Gonad",0.00456401633437425
+18,"immunoglobulin receptor superfamily(PC00124)","Gonad",0.00432380494835455
+19,"immunoglobulin superfamily cell adhesion molecule(PC00125)","Gonad",0.00456401633437425
+5,"immunoglobulin(PC00123)","Gonad",0.00120105693009849
+3,"integrin(PC00126)","Gonad",0.000720634158059092
+36,"intercellular signal molecule(PC00207)","Gonad",0.0086476098967091
+2,"interleukin superfamily(PC00128)","Gonad",0.000480422772039395
+13,"intermediate filament binding protein(PC00130)","Gonad",0.00312274801825607
+5,"intermediate filament(PC00129)","Gonad",0.00120105693009849
+51,"ion channel(PC00133)","Gonad",0.0122507806870046
+1,"isomerase(PC00135)","Gonad",0.000240211386019697
+8,"kinase activator(PC00138)","Gonad",0.00192169108815758
+2,"kinase inhibitor(PC00139)","Gonad",0.000480422772039395
+4,"kinase modulator(PC00140)","Gonad",0.000960845544078789
+16,"kinase(PC00137)","Gonad",0.00384338217631516
+3,"Lambda repressor-like transcription factor(PC00245)","Gonad",0.000720634158059092
+21,"ligand-gated ion channel(PC00141)","Gonad",0.00504443910641364
+19,"ligase(PC00142)","Gonad",0.00456401633437425
+4,"lipase(PC00143)","Gonad",0.000960845544078789
+2,"lyase(PC00144)","Gonad",0.000480422772039395
+5,"MADS box transcription factor(PC00250)","Gonad",0.00120105693009849
+4,"major histocompatibility complex protein(PC00149)","Gonad",0.000960845544078789
+13,"membrane-bound signaling molecule(PC00152)","Gonad",0.00312274801825607
+39,"membrane traffic protein(PC00150)","Gonad",0.0093682440547682
+224,"membrane trafficking regulatory protein(PC00151)","Gonad",0.0538073504684122
+33,"metalloprotease(PC00153)","Gonad",0.00792697573865001
+18,"methyltransferase(PC00155)","Gonad",0.00432380494835455
+24,"microtubule binding motor protein(PC00156)","Gonad",0.00576507326447274
+22,"microtubule or microtubule-binding cytoskeletal protein(PC00157)","Gonad",0.00528465049243334
+6,"mitochondrial carrier protein(PC00158)","Gonad",0.00144126831611818
+5,"mRNA polyadenylation factor(PC00146)","Gonad",0.00120105693009849
+1,"mutase(PC00160)","Gonad",0.000240211386019697
+1,"myelin protein(PC00161)","Gonad",0.000240211386019697
+4,"neurotrophic factor(PC00163)","Gonad",0.000960845544078789
+25,"non-motor actin binding protein(PC00165)","Gonad",0.00600528465049243
+25,"non-motor microtubule binding protein(PC00166)","Gonad",0.00600528465049243
+88,"non-receptor serine/threonine protein kinase(PC00167)","Gonad",0.0211386019697334
+10,"non-receptor tyrosine protein kinase(PC00168)","Gonad",0.00240211386019697
+14,"nucleotide kinase(PC00172)","Gonad",0.00336295940427576
+1,"nucleotide phosphatase(PC00173)","Gonad",0.000240211386019697
+2,"nucleotidyltransferase(PC00174)","Gonad",0.000480422772039395
+16,"oxidase(PC00175)","Gonad",0.00384338217631516
+17,"oxidoreductase(PC00176)","Gonad",0.00408359356233485
+18,"oxygenase(PC00177)","Gonad",0.00432380494835455
+1,"P53-like transcription factor(PC00253)","Gonad",0.000240211386019697
+6,"peptide hormone(PC00179)","Gonad",0.00144126831611818
+3,"peroxidase(PC00180)","Gonad",0.000720634158059092
+10,"phosphatase modulator(PC00184)","Gonad",0.00240211386019697
+28,"phosphatase(PC00181)","Gonad",0.00672591880855153
+17,"phosphodiesterase(PC00185)","Gonad",0.00408359356233485
+16,"phospholipase(PC00186)","Gonad",0.00384338217631516
+36,"primary active transporter(PC00068)","Gonad",0.0086476098967091
+15,"protease inhibitor(PC00191)","Gonad",0.00360317079029546
+11,"protease(PC00190)","Gonad",0.00264232524621667
+13,"protein-binding activity modulator(PC00095)","Gonad",0.00312274801825607
+30,"protein modifying enzyme(PC00260)","Gonad",0.00720634158059092
+32,"protein phosphatase(PC00195)","Gonad",0.00768676435263031
+11,"reductase(PC00198)","Gonad",0.00264232524621667
+15,"Rel homology transcription factor(PC00252)","Gonad",0.00360317079029546
+13,"ribosomal protein(PC00202)","Gonad",0.00312274801825607
+7,"RNA helicase(PC00032)","Gonad",0.00168147970213788
+30,"RNA metabolism protein(PC00031)","Gonad",0.00720634158059092
+6,"RNA methyltransferase(PC00033)","Gonad",0.00144126831611818
+7,"RNA processing factor(PC00147)","Gonad",0.00168147970213788
+12,"RNA splicing factor(PC00148)","Gonad",0.00288253663223637
+1,"Runt transcription factor(PC00254)","Gonad",0.000240211386019697
+171,"scaffold/adaptor protein(PC00226)","Gonad",0.0410761470093682
+52,"secondary carrier transporter(PC00258)","Gonad",0.0124909920730243
+30,"serine protease(PC00203)","Gonad",0.00720634158059092
+3,"serine/threonine protein kinase receptor(PC00205)","Gonad",0.000720634158059092
+18,"small GTPase(PC00208)","Gonad",0.00432380494835455
+6,"SNARE protein(PC00034)","Gonad",0.00144126831611818
+1,"storage protein(PC00210)","Gonad",0.000240211386019697
+26,"structural protein(PC00211)","Gonad",0.00624549603651213
+10,"tight junction(PC00214)","Gonad",0.00240211386019697
+1,"transaminase(PC00216)","Gonad",0.000240211386019697
+17,"transcription cofactor(PC00217)","Gonad",0.00408359356233485
+20,"transfer/carrier protein(PC00219)","Gonad",0.00480422772039395
+34,"transferase(PC00220)","Gonad",0.00816718712466971
+2,"translation elongation factor(PC00222)","Gonad",0.000480422772039395
+7,"translation initiation factor(PC00224)","Gonad",0.00168147970213788
+79,"transmembrane signal receptor(PC00197)","Gonad",0.0189766994955561
+64,"transporter(PC00227)","Gonad",0.0153735287052606
+13,"tubulin(PC00228)","Gonad",0.00312274801825607
+2,"tyrosine protein kinase receptor(PC00233)","Gonad",0.000480422772039395
+49,"ubiquitin-protein ligase(PC00234)","Gonad",0.0117703579149652
+1064,"Unclassified","Gonad",0.255584914724958
+9,"vesicle coat protein(PC00235)","Gonad",0.00216190247417728
+57,"viral or transposable element protein(PC00237)","Gonad",0.0136920490031227
+57,"voltage-gated ion channel(PC00241)","Gonad",0.0136920490031227
+33,"winged helix/forkhead transcription factor(PC00246)","Gonad",0.00792697573865001
+10,"zinc finger transcription factor(PC00244)","Gonad",0.00240211386019697
+5,"actin binding motor protein(PC00040)","Liver",0.0139275766016713
+12,"actin or actin-binding cytoskeletal protein(PC00041)","Liver",0.0334261838440111
+1,"acyltransferase(PC00042)","Liver",0.00278551532033426
+1,"basic helix-loop-helix transcription factor(PC00055)","Liver",0.00278551532033426
+9,"C2H2 zinc finger transcription factor(PC00248)","Liver",0.0250696378830084
+2,"C4 zinc finger nuclear receptor(PC00169)","Liver",0.00557103064066852
+4,"cadherin(PC00057)","Liver",0.011142061281337
+1,"calcium-binding protein(PC00060)","Liver",0.00278551532033426
+1,"calmodulin-related(PC00061)","Liver",0.00278551532033426
+8,"cell adhesion molecule(PC00069)","Liver",0.0222841225626741
+2,"chaperone(PC00072)","Liver",0.00557103064066852
+1,"chemokine(PC00074)","Liver",0.00278551532033426
+2,"chromatin/chromatin-binding, or -regulatory protein(PC00077)","Liver",0.00557103064066852
+1,"cysteine protease(PC00081)","Liver",0.00278551532033426
+1,"damaged DNA-binding protein(PC00086)","Liver",0.00278551532033426
+1,"deacetylase(PC00087)","Liver",0.00278551532033426
+1,"deaminase(PC00088)","Liver",0.00278551532033426
+2,"defense/immunity protein(PC00090)","Liver",0.00557103064066852
+1,"dehydratase(PC00091)","Liver",0.00278551532033426
+2,"dehydrogenase(PC00092)","Liver",0.00557103064066852
+3,"DNA-binding transcription factor(PC00218)","Liver",0.00835654596100279
+2,"DNA helicase(PC00011)","Liver",0.00557103064066852
+3,"DNA metabolism protein(PC00009)","Liver",0.00835654596100279
+2,"esterase(PC00097)","Liver",0.00557103064066852
+1,"extracellular matrix glycoprotein(PC00100)","Liver",0.00278551532033426
+4,"extracellular matrix protein(PC00102)","Liver",0.011142061281337
+4,"extracellular matrix structural protein(PC00103)","Liver",0.011142061281337
+7,"G-protein coupled receptor(PC00021)","Liver",0.0194986072423398
+2,"general transcription factor(PC00259)","Liver",0.00557103064066852
+1,"glucosidase(PC00108)","Liver",0.00278551532033426
+1,"glycosidase(PC00110)","Liver",0.00278551532033426
+3,"glycosyltransferase(PC00111)","Liver",0.00835654596100279
+1,"growth factor(PC00112)","Liver",0.00278551532033426
+1,"GTPase-activating protein(PC00257)","Liver",0.00278551532033426
+3,"guanyl-nucleotide exchange factor(PC00113)","Liver",0.00835654596100279
+2,"HMG box transcription factor(PC00024)","Liver",0.00557103064066852
+2,"homeodomain transcription factor(PC00119)","Liver",0.00557103064066852
+1,"hydrolase(PC00121)","Liver",0.00278551532033426
+3,"immunoglobulin receptor superfamily(PC00124)","Liver",0.00835654596100279
+1,"immunoglobulin superfamily cell adhesion molecule(PC00125)","Liver",0.00278551532033426
+2,"immunoglobulin(PC00123)","Liver",0.00557103064066852
+2,"intercellular signal molecule(PC00207)","Liver",0.00557103064066852
+1,"intermediate filament binding protein(PC00130)","Liver",0.00278551532033426
+2,"intermediate filament(PC00129)","Liver",0.00557103064066852
+9,"ion channel(PC00133)","Liver",0.0250696378830084
+3,"kinase(PC00137)","Liver",0.00835654596100279
+1,"Lambda repressor-like transcription factor(PC00245)","Liver",0.00278551532033426
+4,"ligand-gated ion channel(PC00141)","Liver",0.011142061281337
+1,"ligase(PC00142)","Liver",0.00278551532033426
+1,"major histocompatibility complex protein(PC00149)","Liver",0.00278551532033426
+1,"membrane-bound signaling molecule(PC00152)","Liver",0.00278551532033426
+1,"membrane traffic protein(PC00150)","Liver",0.00278551532033426
+11,"membrane trafficking regulatory protein(PC00151)","Liver",0.0306406685236769
+4,"metalloprotease(PC00153)","Liver",0.011142061281337
+1,"microtubule binding motor protein(PC00156)","Liver",0.00278551532033426
+3,"non-motor actin binding protein(PC00165)","Liver",0.00835654596100279
+2,"non-motor microtubule binding protein(PC00166)","Liver",0.00557103064066852
+8,"non-receptor serine/threonine protein kinase(PC00167)","Liver",0.0222841225626741
+1,"oxidase(PC00175)","Liver",0.00278551532033426
+1,"oxygenase(PC00177)","Liver",0.00278551532033426
+2,"peroxidase(PC00180)","Liver",0.00557103064066852
+1,"phosphatase modulator(PC00184)","Liver",0.00278551532033426
+2,"phosphatase(PC00181)","Liver",0.00557103064066852
+2,"phospholipase(PC00186)","Liver",0.00557103064066852
+3,"primary active transporter(PC00068)","Liver",0.00835654596100279
+1,"protease inhibitor(PC00191)","Liver",0.00278551532033426
+2,"protease(PC00190)","Liver",0.00557103064066852
+1,"protein modifying enzyme(PC00260)","Liver",0.00278551532033426
+2,"protein phosphatase(PC00195)","Liver",0.00557103064066852
+4,"reductase(PC00198)","Liver",0.011142061281337
+1,"ribosomal protein(PC00202)","Liver",0.00278551532033426
+1,"RNA helicase(PC00032)","Liver",0.00278551532033426
+3,"RNA metabolism protein(PC00031)","Liver",0.00835654596100279
+1,"RNA processing factor(PC00147)","Liver",0.00278551532033426
+1,"Runt transcription factor(PC00254)","Liver",0.00278551532033426
+15,"scaffold/adaptor protein(PC00226)","Liver",0.0417827298050139
+6,"secondary carrier transporter(PC00258)","Liver",0.0167130919220056
+9,"serine protease(PC00203)","Liver",0.0250696378830084
+2,"small GTPase(PC00208)","Liver",0.00557103064066852
+1,"SNARE protein(PC00034)","Liver",0.00278551532033426
+5,"storage protein(PC00210)","Liver",0.0139275766016713
+4,"structural protein(PC00211)","Liver",0.011142061281337
+1,"tight junction(PC00214)","Liver",0.00278551532033426
+1,"transaminase(PC00216)","Liver",0.00278551532033426
+3,"transcription cofactor(PC00217)","Liver",0.00835654596100279
+3,"transfer/carrier protein(PC00219)","Liver",0.00835654596100279
+3,"transferase(PC00220)","Liver",0.00835654596100279
+1,"translation initiation factor(PC00224)","Liver",0.00278551532033426
+7,"transmembrane signal receptor(PC00197)","Liver",0.0194986072423398
+7,"transporter(PC00227)","Liver",0.0194986072423398
+8,"ubiquitin-protein ligase(PC00234)","Liver",0.0222841225626741
+71,"Unclassified","Liver",0.197771587743733
+3,"vesicle coat protein(PC00235)","Liver",0.00835654596100279
+3,"viral or transposable element protein(PC00237)","Liver",0.00835654596100279
+10,"voltage-gated ion channel(PC00241)","Liver",0.0278551532033426
+5,"winged helix/forkhead transcription factor(PC00246)","Liver",0.0139275766016713
