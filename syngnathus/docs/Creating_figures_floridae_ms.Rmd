@@ -56,9 +56,141 @@ samples$Organ <- as.factor(samples$Organ)
 
 ```
 
+
 ## Figure 1
 
-```{r fig1DataPrep, eval=FALSE}
+```{r fig1Data}
+fem_succ<-read.csv("plot_data/fem_matings.csv")
+mal_succ<-read.csv("plot_data/mal_matings.csv")
+
+# get proportion of eggs surviving
+mal_succ$prop_surviving <- ifelse(mal_succ$totalEggs == 0, 0,
+                                  mal_succ$NumDeveloped_Calc/mal_succ$totalEggs)
+fem_succ$prop_surviving <- ifelse(fem_succ$totalEggs == 0, 0,
+                                  fem_succ$NumDeveloped/fem_succ$totalEggs)
+```
+
+### Fig. 1A 
+
+```{r fig1Bateman}
+#Generating Bateman's gradient
+#Define the model
+fem_model <- lm(fem_succ$relative_fit ~ fem_succ$MatingSuccess)
+mal_model <- lm(mal_succ$relative_fit ~ mal_succ$MatingSuccess)
+
+#define weights to use
+wt_fem <- 1 / lm(abs(fem_model$residuals) ~ fem_model$fitted.values)$fitted.values^2
+wt_mal <- 1 / lm(abs(mal_model$residuals) ~ mal_model$fitted.values)$fitted.values^2
+
+#perform weighted least squares regression
+wls_model_fem <- lm(fem_succ$relative_fit ~ fem_succ$MatingSuccess, weights=wt_fem)
+wls_model_mal <- lm(mal_succ$relative_fit ~ mal_succ$MatingSuccess, weights=wt_mal)
+```
+
+```{r fig1c, message=FALSE}
+bateman <- ggplot(data = fem_succ, aes(x = MatingSuccess, y = relative_fit)) +
+  geom_point(color = paste0(sex_cols["F"],"75"),
+             size = 3) +
+  geom_point(data = mal_succ,
+             color = paste0(sex_cols["M"],"75"),
+             size = 3,
+             aes(x=as.numeric(MatingSuccess)+0.05, y=relative_fit)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=16)) +
+  geom_smooth(method = "lm", 
+              mapping = aes(weight = wt_fem, color = "Female"), 
+              se = FALSE, lty = 2) +
+  geom_smooth(data = mal_succ, method = "lm", 
+              mapping = aes(weight = wt_mal, color = "Male"), 
+              fullrange = TRUE, se = FALSE, lty = 2) +
+  labs(x="Number of mates",
+       y="Relative num. eggs") +
+  scale_color_manual(name='',
+                     breaks=c('Female', 'Male'),
+                     values=c('Female'=sex_cols[["F"]], 'Male'=sex_cols[["M"]])) +
+  theme(legend.key=element_blank(),
+        legend.position = "top")
+
+
+```
+
+### Fig. 1d
+
+```{r fig1b, message=FALSE}
+prop_offspring_no0 <- ggplot(fem_succ[fem_succ$totalEggs != 0,], 
+                             aes(x = MatingSuccess, y = prop_surviving)) +
+  geom_point(color = paste0(sex_cols["F"],"75"), 
+             size = 3) +
+  geom_point(data = mal_succ[mal_succ$totalEggs != 0,], 
+             color = paste0(sex_cols["M"],"75"), 
+             size = 3,
+             aes(x=as.numeric(MatingSuccess)+0.05, y=prop_surviving)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=16)) +
+  geom_smooth(method = "lm", 
+              aes(color = "Female"), 
+              se = FALSE, lty = 2, 
+              fullrange=TRUE, show.legend = FALSE) +
+  geom_smooth(data = mal_succ[mal_succ$totalEggs != 0,], 
+              method = "lm", 
+              aes(color = "Male"), 
+              se = FALSE, lty = 2, 
+              fullrange = TRUE, show.legend = FALSE) +
+  labs(x="Number of mates", 
+       y="Prop. surviving offpring") +
+  scale_color_manual(name='',
+                     breaks=c('Female', 'Male'),
+                     values=c('Female'=sex_cols[["F"]], 'Male'=sex_cols[["M"]]))
+
+```
+
+### Fig. 1 Assembly
+
+```{r fig1, message=FALSE}
+fig1a <- image_ggplot(image_read('figs/female_cropped.png'),interpolate = TRUE)
+fig1a <- fig1a + labs(title="Female")
+
+fig1b <- image_ggplot(image_read('figs/male_cropped.png'),interpolate = TRUE)
+fig1b <- fig1b + labs(title="Male")
+
+fig1<-wrap_plots(
+  fig1a,
+  fig1b,
+  bateman, 
+  prop_offspring_no0,
+  nrow = 2
+)
+fig1<-fig1 + plot_annotation(tag_levels = 'A') + 
+  plot_layout(guides = 'collect',
+              widths = 1,
+              heights = c(1,2))  &
+  theme(legend.position='bottom',
+        legend.text=element_text(size=16),
+        plot.tag = element_text(size = 16))
+
+fig1
+
+ggsave("figs/Fig1.pdf",fig1,height = 6, width=8)
+ggsave("figs/Fig1.png",fig1,height = 6, width=8)
+
+```
+
+```{r showAssembledFig1, eval=TRUE}
+knitr::include_graphics("figs/Fig1.png")
+```
+
+
+## Figure 2
+
+For the PCA plots we will NOT remove the one gill outlier, although it was removed for downstream analyses. 
+
+```{r fig2DataPrep, eval=FALSE}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.salmon <- readRDS("plot_data/txi.salmon.floride.RDS")
 
@@ -109,11 +241,11 @@ percents<-unlist(read.delim("plot_data/PCA_percents.txt"))
 ```
 
 
-### Fig. 1 Panels A and B - PCA
+### Fig. 2 Panels A and B - PCA
 
-```{r fig1a}
+```{r fig2a}
 
-pdf("figs/Fig1A_PCA.pdf",height = 6,width=6)
+pdf("figs/Fig2A_PCA.pdf",height = 6,width=6)
 par(mar=c(4,5,4,1), oma=c(2,2,2,2))
 plot(pca_plotting_data$PC1,
      pca_plotting_data$PC2,
@@ -162,7 +294,7 @@ outer_legend("top",
 dev.off()
 ```
 
-### Fig. 1 Panels C and D - heatmaps
+### Fig. 2 Panels C, D, and E - heatmaps
 
 ```{r heatmapData}
 #Pull out the top 20 rows with the most expression
@@ -205,10 +337,8 @@ save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
 
 ```
 
-```{r fig1c}
-#Run the heat map with the function pheatmap
-
-p20<-pheatmap(vsd_assay[select,col_order], 
+```{r fig2c}
+pc1<-pheatmap(vsd_assay[which(abs(pca_rotation[,1]) >= 0.02),col_order], 
               cluster_rows = FALSE, 
               show_rownames = FALSE, 
               cluster_cols = FALSE, 
@@ -250,44 +380,56 @@ save_pheatmap_pdf(porgans, "figs/Fig1D_top20_organs_heatmap.pdf",width=6,height=
 
 ```
 
-### Fig. 1 Assembly
 
-```{r assembleFig1, message=FALSE}
-fig1a <- image_ggplot(image_read_pdf('figs/Fig1A_PCA.pdf'),interpolate = TRUE)
-fig1b <- image_ggplot(image_read_pdf('figs/Fig1B_PCA.pdf'),interpolate = TRUE)
-fig1c <- image_ggplot(image_read_pdf('figs/Fig1C_top20_heatmap.pdf'),interpolate = TRUE)
-fig1d <- image_ggplot(image_read_pdf('figs/Fig1D_top20_organs_heatmap.pdf'),interpolate = TRUE)
+### Fig. 2 Assembly
 
-fig1<-wrap_plots(
-  fig1a,
-  fig1b,
-  fig1c,
-  fig1d,
-  byrow = TRUE
+```{r assembleFig2, message=FALSE}
+fig2a <- image_ggplot(image_read_pdf('figs/Fig2A_PCA.pdf'),interpolate = TRUE)
+fig2b <- image_ggplot(image_read_pdf('figs/Fig2B_PCA.pdf'),interpolate = TRUE)
+fig2c <- image_ggplot(image_read_pdf('figs/Fig2C_pc1_heatmap.pdf'),interpolate = TRUE)
+fig2d <- image_ggplot(image_read_pdf('figs/Fig2D_pc2_heatmap.pdf'),interpolate = TRUE)
+fig2e <- image_ggplot(image_read_pdf('figs/Fig2E_pc3_heatmap.pdf'),interpolate = TRUE)
+
+fig2<-wrap_plots(
+  fig2a,
+  fig2b,
+  fig2c,
+  fig2d,
+  fig2e,
+  design="AB#
+  CDE"
 )
-fig1<-fig1 + plot_annotation(tag_levels = 'A')
+fig2<-fig2 + plot_annotation(tag_levels = 'A') + 
+  plot_layout(widths = c(1.5, 1.5,0.5,1,1,1))
 
-ggsave("figs/Fig1.pdf",fig1, height=5, width=5)
-ggsave("figs/Fig1.png",fig1, height=5, width=5) # also save as a png
+# make two patchworks
+pcas<-fig2a + fig2b
+hms <- fig2c + fig2d + fig2e
+
+# put the patchworks together
+fig2<- wrap_plots(pcas,hms,ncol=1)  + plot_annotation(tag_levels = 'A') 
+
+ggsave("figs/Fig2.pdf",fig2, height=4, width=5)
+ggsave("figs/Fig2.png",fig2, height=4, width=5) # also save as a png
 ```
 
-```{r showAssembledFig1, eval=TRUE}
-knitr::include_graphics("figs/Fig1.png")
+```{r showAssembledFig2, eval=TRUE}
+knitr::include_graphics("figs/Fig2.png")
 ```
 
 
-## Figure 2
+## Figure 3
 
-```{r fig2aData}
+```{r fig3aData}
 logFC_long <- read.csv("plot_data/logFC_long_sexbias.csv")
 organs<-levels(as.factor(logFC_long$tissue))
 ymax<-max(abs(logFC_long$logFC))+5
 ```
 
-### Fig. 2A
+### Fig. 3A
 
-```{r fig2a}
-pdf("figs/Fig2A_logFC_boxplots.pdf",width = 8, height=3.5)
+```{r fig3a}
+pdf("figs/Fig3A_logFC_boxplots.pdf",width = 8, height=3.5)
 par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(1,1,1,0))
 
 for(organ in organs){
@@ -346,9 +488,9 @@ spfTools::outer_legend("right",
 dev.off()
 ```
 
-### Fig. 2B
+### Fig. 3B
 
-```{r fig2bData}
+```{r fig3bData}
 bias_cat_gill <- as.matrix(read.table("plot_data/bias_cat_gills.txt", 
                             header = TRUE, row.names = 1))
 bias_cat_gonad <- as.matrix(read.table("plot_data/bias_cat_gonad.txt", 
@@ -358,8 +500,8 @@ bias_cat_liver <- as.matrix(read.table("plot_data/bias_cat_liver.txt",
 
 ```
 
-```{r fig2b}
-pdf("figs/Fig2B_biasCat_counts.pdf",width = 8, height=3.5)
+```{r fig3b}
+pdf("figs/Fig3B_biasCat_counts.pdf",width = 8, height=3.5)
 ymax<-max(c(unlist(bias_cat_gill),
             unlist(bias_cat_gonad),
             unlist(bias_cat_liver)))+500
@@ -419,9 +561,9 @@ outer_legend("right",
 dev.off()
 ```
 
-### Fig. 2C
+### Fig. 3C
 
-```{r fig2cData}
+```{r fig3cData}
 gonad_mal_biased <- read.table("plot_data/gonad_mal_biased.txt", row.names = 1)
 gonad_fem_biased <- read.table("plot_data/gonad_fem_biased.txt", row.names = 1)
 gill_mal_biased <- read.table("plot_data/gill_mal_biased.txt", row.names = 1)
@@ -438,9 +580,9 @@ listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
 
 ```
 
-```{r fig2c, eval=FALSE}
+```{r fig3c, eval=FALSE}
 # color added via illustrator
-pdf("figs/Fig2C_sexbias_upset.pdf",width = 8, height=5)
+pdf("figs/Fig3C_sexbias_upset.pdf",width = 8, height=5)
 upset(fromList(listInputall),
       mainbar.y.label = "# Shared Sex-Biased Genes",
       sets.x.label = "# Sex-Biased Genes",
@@ -453,9 +595,9 @@ dev.off()
 
 ```
 
-### Fig. 2D
+### Fig. 3D
 
-```{r fig2dData}
+```{r fig3dData}
 all_go_sums<- read.csv("plot_data/all_go_sums.csv")
 
 for(class in unique(all_go_sums$prot_class)){
@@ -469,8 +611,8 @@ for(class in unique(all_go_sums$prot_class)){
 all_go_sums$prot_class[all_go_sums$prot_class=="Unclassified"]<- " unclassified"
 ```
 
-```{r fig2D}
-pdf("figs/Fig2D_GO_barplot.pdf",height=14, width=12)
+```{r fig3D}
+pdf("figs/Fig3D_GO_barplot.pdf",height=14, width=12)
 ggplot(all_go_sums, 
        aes(fct_rev(prot_class), prop, fill = tissue)) +   
   geom_bar(position = "dodge", stat="identity") +
@@ -490,50 +632,50 @@ dev.off()
 
 ```
 
-### Fig. 2 Assembly
+### Fig. 3 Assembly
 
-```{r fig2, message=FALSE}
+```{r fig3, message=FALSE}
 
-fig2a <- image_ggplot(image_read_pdf('figs/Fig2A_logFC_boxplots.pdf'),interpolate = TRUE)
-fig2b <- image_ggplot(image_read_pdf('figs/Fig2B_biasCat_counts.pdf'),interpolate = TRUE)
-fig2c <- image_ggplot(image_read_pdf('figs/Fig2C_sexbias_upset_color.pdf'),interpolate = TRUE)
-fig2d <- image_ggplot(image_read_pdf('figs/Fig2D_GO_barplot.pdf'),interpolate = TRUE)
+fig3a <- image_ggplot(image_read_pdf('figs/Fig3A_logFC_boxplots.pdf'),interpolate = TRUE)
+fig3b <- image_ggplot(image_read_pdf('figs/Fig3B_biasCat_counts.pdf'),interpolate = TRUE)
+fig3c <- image_ggplot(image_read_pdf('figs/Fig3C_sexbias_upset_color.pdf'),interpolate = TRUE)
+fig3d <- image_ggplot(image_read_pdf('figs/Fig3D_GO_barplot.pdf'),interpolate = TRUE)
 
 design="AD
         BD
         CD
 "
-fig2<-wrap_plots(
-  fig2a,
-  fig2b,
-  fig2c,
-  fig2d,
+fig3<-wrap_plots(
+  fig3a,
+  fig3b,
+  fig3c,
+  fig3d,
   design=design
 )
-fig2<-fig2 + plot_annotation(tag_levels = 'A')
-fig2
-ggsave("figs/Fig2.pdf",fig2, height=6, width=8)
-ggsave("figs/Fig2.png",fig2, height=6, width=8)
+fig3<-fig3 + plot_annotation(tag_levels = 'A')
+fig3
+ggsave("figs/Fig3.pdf",fig3, height=6, width=8)
+ggsave("figs/Fig3.png",fig3, height=6, width=8)
 
 ```
 
-```{r showAssembledFig2, eval=TRUE}
-knitr::include_graphics("figs/Fig2.png")
+```{r showAssembledFig3, eval=TRUE}
+knitr::include_graphics("figs/Fig3.png")
 ```
 
-## Figure 3
+## Figure 4
 
-```{r fig3Data}
+```{r fig4Data}
 logFC_long_all <- read.csv("plot_data/logFC_long_taubias.csv")
 logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
                                 levels = c("Gonad", "Liver", "Gill"), 
                                 ordered = TRUE)
 ```
 
-### Fig. 3A
+### Fig. 4A
 
-```{r}
-pdf("figs/Fig3A_tau_sexbias_v2.pdf",width = 8, height=5)
+```{r fig4a}
+pdf("figs/Fig4A_tau_sexbias_v2.pdf",width = 8, height=5)
 par(oma=c(2,2,1,2),
     mar=c(2,2,1,2),
     xpd=FALSE)
@@ -592,13 +734,13 @@ mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
 dev.off()
 ```
 
-### Fig. 3B
+### Fig. 4B
 
-```{r fig3Bsetup}
+```{r fig4Bsetup}
 bias_labs<-c("U","L", "M", "H", "E", "S")
 bias_bins<-c("Unbiased",biased_bins)
 ```
-```{r fig3BData}
+```{r fig4BData}
 logFC_long_all_ss <- read.csv("plot_data/logFC_long_taubias_SS.csv")
 
 logFC_long_all_ss$bias_cat <- factor(logFC_long_all_ss$bias_cat,
@@ -607,9 +749,9 @@ logFC_long_all_ss$bias_cat <- factor(logFC_long_all_ss$bias_cat,
 ```
 
 
-```{r fig3b}
+```{r fig4b}
 
-pdf("figs/Fig3B_tau_biascat_violins.pdf",width = 12, height=3.75)
+pdf("figs/Fig4B_tau_biascat_violins.pdf",width = 12, height=3.75)
 logFC_long_all_ss %>%
   ggplot(aes(x = bias_cat, y = tau, fill = bias)) +
   geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
@@ -649,140 +791,23 @@ logFC_long_all_ss %>%
 dev.off()
 ```
 
-### Fig. 3 Assembly
-
-```{r fig3, message=FALSE}
-fig3a <- image_ggplot(image_read_pdf('figs/Fig3A_tau_sexbias_v2.pdf'),interpolate = TRUE)
-fig3b <- image_ggplot(image_read_pdf('figs/Fig3B_tau_biascat_violins.pdf'),interpolate = TRUE)
-
-
-fig3<-wrap_plots(
-  fig3a,
-  fig3b,
-  ncol=2
-)
-fig3<-fig3 + plot_annotation(tag_levels = 'A')
-fig3
-
-ggsave("figs/Fig3.pdf",fig3,height = 4, width=16)
-ggsave("figs/Fig3.png",fig3,height = 4, width=16)
-
-```
-
-```{r showAssembledFig3, eval=TRUE}
-knitr::include_graphics("figs/Fig3.png")
-```
-
-
-## Figure 4
-
-```{r fig4Data}
-fem_succ<-read.csv("plot_data/fem_matings.csv")
-mal_succ<-read.csv("plot_data/mal_matings.csv")
-
-# get proportion of eggs surviving
-mal_succ$prop_surviving <- ifelse(mal_succ$totalEggs == 0, 0,
-                                  mal_succ$NumDeveloped_Calc/mal_succ$totalEggs)
-fem_succ$prop_surviving <- ifelse(fem_succ$totalEggs == 0, 0,
-                                  fem_succ$NumDeveloped/fem_succ$totalEggs)
-```
-
-### Fig. 4A 
-
-```{r fig4Bateman}
-#Generating Bateman's gradient
-#Define the model
-fem_model <- lm(fem_succ$relative_fit ~ fem_succ$MatingSuccess)
-mal_model <- lm(mal_succ$relative_fit ~ mal_succ$MatingSuccess)
-
-#define weights to use
-wt_fem <- 1 / lm(abs(fem_model$residuals) ~ fem_model$fitted.values)$fitted.values^2
-wt_mal <- 1 / lm(abs(mal_model$residuals) ~ mal_model$fitted.values)$fitted.values^2
-
-#perform weighted least squares regression
-wls_model_fem <- lm(fem_succ$relative_fit ~ fem_succ$MatingSuccess, weights=wt_fem)
-wls_model_mal <- lm(mal_succ$relative_fit ~ mal_succ$MatingSuccess, weights=wt_mal)
-```
-
-```{r fig4a, message=FALSE}
-bateman <- ggplot(data = fem_succ, aes(x = MatingSuccess, y = relative_fit)) +
-  geom_point(color = paste0(sex_cols["F"],"75"),
-             size = 3) +
-  geom_point(data = mal_succ,
-             color = paste0(sex_cols["M"],"75"),
-             size = 3,
-             aes(x=as.numeric(MatingSuccess)+0.05, y=relative_fit)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        text=element_text(size=16)) +
-  geom_smooth(method = "lm", 
-              mapping = aes(weight = wt_fem, color = "Female"), 
-              se = FALSE, lty = 2) +
-  geom_smooth(data = mal_succ, method = "lm", 
-              mapping = aes(weight = wt_mal, color = "Male"), 
-              fullrange = TRUE, se = FALSE, lty = 2) +
-  labs(x="Number of mates",
-       y="Relative num. eggs") +
-  scale_color_manual(name='',
-                     breaks=c('Female', 'Male'),
-                     values=c('Female'=sex_cols[["F"]], 'Male'=sex_cols[["M"]])) +
-  theme(legend.key=element_blank(),
-        legend.position = "top")
-
-
-```
-
-### Fig. 4b
-
-```{r fig4b, message=FALSE}
-prop_offspring_no0 <- ggplot(fem_succ[fem_succ$totalEggs != 0,], 
-                             aes(x = MatingSuccess, y = prop_surviving)) +
-  geom_point(color = paste0(sex_cols["F"],"75"), 
-             size = 3) +
-  geom_point(data = mal_succ[mal_succ$totalEggs != 0,], 
-             color = paste0(sex_cols["M"],"75"), 
-             size = 3,
-             aes(x=as.numeric(MatingSuccess)+0.05, y=prop_surviving)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        text=element_text(size=16)) +
-  geom_smooth(method = "lm", 
-              aes(color = "Female"), 
-              se = FALSE, lty = 2, 
-              fullrange=TRUE, show.legend = FALSE) +
-  geom_smooth(data = mal_succ[mal_succ$totalEggs != 0,], 
-              method = "lm", 
-              aes(color = "Male"), 
-              se = FALSE, lty = 2, 
-              fullrange = TRUE, show.legend = FALSE) +
-  labs(x="Number of mates", 
-       y="Prop. surviving offpring") +
-  scale_color_manual(name='',
-                     breaks=c('Female', 'Male'),
-                     values=c('Female'=sex_cols[["F"]], 'Male'=sex_cols[["M"]]))
-
-```
-
 ### Fig. 4 Assembly
 
 ```{r fig4, message=FALSE}
+fig4a <- image_ggplot(image_read_pdf('figs/Fig4A_tau_sexbias_v2.pdf'),interpolate = TRUE)
+fig4b <- image_ggplot(image_read_pdf('figs/Fig4B_tau_biascat_violins.pdf'),interpolate = TRUE)
+
+
 fig4<-wrap_plots(
-  bateman, 
-  prop_offspring_no0,
-  nrow = 1
+  fig4a,
+  fig4b,
+  ncol=2
 )
-fig4<-fig4 + plot_annotation(tag_levels = 'A') + 
-  plot_layout(guides = 'collect')  &
-  theme(legend.position='bottom',
-        legend.text=element_text(size=16))
+fig4<-fig4 + plot_annotation(tag_levels = 'A')
 fig4
 
-ggsave("figs/Fig4.pdf",fig4,height = 4, width=8)
-ggsave("figs/Fig4.png",fig4,height = 4, width=8)
+ggsave("figs/Fig4.pdf",fig4,height = 4, width=16)
+ggsave("figs/Fig4.png",fig4,height = 4, width=16)
 
 ```
 
@@ -790,4 +815,23 @@ ggsave("figs/Fig4.png",fig4,height = 4, width=8)
 knitr::include_graphics("figs/Fig4.png")
 ```
 
+## Fig. S1 - Top 50 genes heatmap
 
+
+```{r figS1}
+#Pull out the top 20 rows with the most expression
+select <- order(rowMeans(norm_counts),
+                decreasing = TRUE)[1:50]
+#Run the heat map with the function pheatmap
+p20<-pheatmap(vsd_assay[select,col_order], 
+              cluster_rows = FALSE, 
+              show_rownames = FALSE, 
+              cluster_cols = FALSE, 
+              show_colnames = FALSE,
+              annotation_col = df,
+              annotation_colors=ann_colors,
+              cellwidth = 9,
+              fontsize = 16)
+
+save_pheatmap_pdf(p20, "figs/FigS1_top50_heatmap.pdf",width=6,height=6)
+```
