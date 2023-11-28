@@ -279,8 +279,8 @@ outer_legend("top",
 dev.off()
 ```
 
-```{r fig1b}
-pdf("figs/Fig1B_PCA.pdf",height = 6,width=6)
+```{r fig2b}
+pdf("figs/Fig2B_PCA.pdf",height = 6,width=6)
 par(mar=c(4,5,4,1), oma=c(2,2,2,2))
 plot(pca_plotting_data$PC1,
      pca_plotting_data$PC3,
