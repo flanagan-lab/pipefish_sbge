@@ -434,7 +434,7 @@ knitr::include_graphics("figs/Fig2.png")
 ```{r fig3aData}
 logFC_long <- read.csv("plot_data/logFC_long_sexbias.csv")
 organs<-levels(as.factor(logFC_long$tissue))
-ymax<-max(abs(logFC_long$logFC))+5
+ymax<-max(abs(logFC_long$logFC),na.rm = TRUE)+5
 ```
 
 ### Fig. 3A
