@@ -192,26 +192,32 @@ For the PCA plots we will NOT remove the one gill outlier, although it was remov
 
 ```{r fig2DataPrep, eval=FALSE}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
-txi.salmon <- readRDS("plot_data/txi.salmon.floride.RDS")
+txi.salmon <- readRDS("../data/txi.salmon.floride.RDS")
 
 #Create the DESeq dataset
-dds_FL <- DESeqDataSetFromTximport(txi.salmon, 
+ddsMF_FL <- DESeqDataSetFromTximport(txi.salmon, 
                                    colData = samples,
                                    design = ~ Sex)
 
-#only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_FL)) >= 10
-dds_FL <- dds_FL[keep, ]
+#Create the DESeq dataset 
+dds_PCA <- DESeqDataSetFromTximport(txi.salmon, 
+                                   colData = samples,
+                                   design = ~ Sex)
+##Filter the dataset, only keeping rows that have at least 10 reads total, 
+## but less than 1,000,000
+keep <- rowSums(counts(dds_PCA)) >= 10 & rowSums(counts(dds_PCA)) < 1e6
+dds_PCA <- dds_PCA[keep, ]
 
-#Generate the expression values
-dds_FL_exp <- DESeq(dds_FL)
+#Run the differential expression analysis
+dds_PCA_exp <- DESeq(dds_PCA)
+
 
 #Transform the data
-vsd <- vst(dds_FL_exp, blind=FALSE)
+vsd <- vst(dds_PCA_exp, blind=FALSE)
 vsd_assay<-assay(vsd)
 write.csv(vsd_assay,"plot_data/vsd_assay.csv", row.names=TRUE)
 # get normalised counts
-norm_counts<-counts(dds_FL_exp, normalized = TRUE)
+norm_counts<-counts(ddsMF_FL_exp, normalized = TRUE)
 write.csv(norm_counts, "plot_data/normalized_counts.csv",row.names = TRUE)
 ```
 ```{r readCountData}
