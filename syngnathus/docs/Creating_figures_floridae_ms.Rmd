@@ -353,37 +353,41 @@ pc1<-pheatmap(vsd_assay[which(abs(pca_rotation[,1]) >= 0.02),col_order],
               annotation_col = df,
               annotation_colors=ann_colors,
               cellwidth = 9,
-              fontsize = 16)
-
-save_pheatmap_pdf(p20, "figs/Fig1C_top20_heatmap.pdf",width=6,height=6)
-```
-
-```{r getNext20Genes}
-keep_counts<-norm_counts[-select,] # remove overall top 20
-#Pull out the top 20 rows with the most expression within each gene
-gill_top20<- order(rowMeans(keep_counts[,samples$ID[samples$Organ=="Gill"]]),
-                   decreasing = TRUE)[1:20]
-gon_top20<-order(rowMeans(keep_counts[,samples$ID[samples$Organ=="Gonad"]]),
-                 decreasing = TRUE)[1:20]
-liver_top20<-order(rowMeans(keep_counts[,samples$ID[samples$Organ=="Liver"]]),
-                   decreasing = TRUE)[1:20]
-organ_tops<-unique(c(gill_top20, gon_top20,liver_top20))
+              fontsize = 16,
+              annotation_legend = FALSE,
+              main = "Top loading genes on PC1")
+save_pheatmap_pdf(pc1, "figs/Fig2C_pc1_heatmap.pdf",width=6,height=6)
 
 ```
 
-```{r fig1d}
-#Run the heat map with the function pheatmap
-porgans<-pheatmap(vsd_assay[organ_tops,col_order], 
-         cluster_rows = FALSE, 
-         show_rownames = FALSE, 
-         cluster_cols = FALSE, 
-         show_colnames = FALSE,
-         annotation_col = df,
-         annotation_colors=ann_colors,
-         cellwidth = 9,
-         fontsize = 18)
 
-save_pheatmap_pdf(porgans, "figs/Fig1D_top20_organs_heatmap.pdf",width=6,height=6)
+```{r fig2d}
+pc2<-pheatmap(vsd_assay[which(abs(pca_rotation[,2]) >= 0.02),col_order], 
+              cluster_rows = FALSE, 
+              show_rownames = FALSE, 
+              cluster_cols = FALSE, 
+              show_colnames = FALSE,
+              annotation_col = df,
+              annotation_colors=ann_colors,
+              cellwidth = 9,
+              fontsize = 16,
+              annotation_legend = FALSE,
+              main = "Top loading genes on PC2")
+save_pheatmap_pdf(pc2, "figs/Fig2D_pc2_heatmap.pdf",width=6,height=6)
+
+```
+```{r fig2e}
+pc3<-pheatmap(vsd_assay[which(abs(pca_rotation[,3]) >= 0.02),col_order], 
+              cluster_rows = FALSE, 
+              show_rownames = FALSE, 
+              cluster_cols = FALSE, 
+              show_colnames = FALSE,
+              annotation_col = df,
+              annotation_colors=ann_colors,
+              cellwidth = 9,
+              fontsize = 16,
+              main = "Top loading genes on PC3")
+save_pheatmap_pdf(pc3, "figs/Fig2E_pc3_heatmap.pdf",width=6,height=6)
 
 ```
 
