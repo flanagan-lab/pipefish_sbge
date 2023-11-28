@@ -32,7 +32,12 @@ biased_bins <- c("Low", "Med", "High", "Extreme", "Sex.specific")
 labs<-c("Low", "Med", "High", "Extreme", "Specific")
 
 sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4" )
-sex_shapes <- c(16, 17, 15,15)
+sex_shapes <- c(
+  Gill=16, 
+  Liver=17, 
+  Ovaries=15,
+  Testis=15,
+  Gonad=15)
 
 organ_cols<-c("Gill" = "#20B2AA",
   "Gonad" = "#EEB422", 
