@@ -226,6 +226,7 @@ vsd_assay<-read.csv("plot_data/vsd_assay.csv",row.names = 1)
 ```
 
 ```{r runPCA, eval=FALSE}
+
 pca <- prcomp(t(assay(vsd)))
 
 percents<-round(pca$sdev/sum(pca$sdev)*100,2)
@@ -237,6 +238,8 @@ pca_plotting_data$repo_fit <- samples$rep_fittness
 pca_plotting_data$Organ <- samples$Organ
 pca_plotting_data$Sex <- samples$Sex
 
+
+write.csv(pca$rotation,"plot_data/pca_rotation.csv", row.names=TRUE)
 write.csv(pca_plotting_data,"plot_data/pca_plotting_data.csv", row.names = TRUE)
 write.table(percents,"plot_data/PCA_percents.txt", row.names = FALSE)
 
@@ -244,6 +247,7 @@ write.table(percents,"plot_data/PCA_percents.txt", row.names = FALSE)
 ```{r getPCAdata}
 pca_plotting_data<-read.csv("plot_data/pca_plotting_data.csv",row.names = 1)
 percents<-unlist(read.delim("plot_data/PCA_percents.txt"))
+pca_rotation<-read.csv("plot_data/pca_rotation.csv",row.names = 1)
 ```
 
 
