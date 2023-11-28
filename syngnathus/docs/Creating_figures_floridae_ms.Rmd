@@ -307,9 +307,6 @@ dev.off()
 ### Fig. 2 Panels C, D, and E - heatmaps
 
 ```{r heatmapData}
-#Pull out the top 20 rows with the most expression
-select <- order(rowMeans(norm_counts),
-                decreasing = TRUE)[1:20]
 df <- as.data.frame(samples[,c("Sex", "Organ")])
 rownames(df) <- samples$ID
 df$Organ<-as.character(df$Organ)
