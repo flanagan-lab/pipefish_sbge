@@ -844,3 +844,48 @@ p20<-pheatmap(vsd_assay[select,col_order],
 
 save_pheatmap_pdf(p20, "figs/FigS1_top50_heatmap.pdf",width=6,height=6)
 ```
+
+## Fig. S2 - TPMs and logFC
+
+
+```{r getMedianExpression}
+cats<-c("FLG.*F","FLG.*M","FLL.*F","FLL.*M","FLO","FLT")
+
+cat_meds<-do.call(cbind,lapply(cats, function(label){
+  this_set<-vsd_assay[,grep(label,colnames(vsd_assay))]
+  gene_meds<-apply(this_set, 1, median)
+  return(gene_meds)
+  
+}))
+
+colnames(cat_meds)<-c("Gill_F","Gill_M","Liver_F","Liver_M","Gonad_F","Gonad_M")
+```
+
+```{r suppExpressionFC}
+pdf("figs/FigS2_medTPM_logFC.pdf",width = 6, height=3)
+par(mfrow=c(1,3),xpd=TRUE)
+x<-by(logFC_long_all,logFC_long_all$tissue,function(tissue_dat){
+  
+  expression<-cat_meds[,grep(tissue_dat$tissue[1],colnames(cat_meds))]
+  all_dat<-merge(tissue_dat, expression, by.x="geneID", by.y=0)
+  
+  plot(all_dat$logFC[all_dat$bias=="MB"], 
+       all_dat[all_dat$bias=="MB",ncol(all_dat)], 
+       col=scales::alpha(sex_cols["M"],0.5),
+       xlab="log fold change",
+       ylab="median expression",
+       bty='l',
+       main=tissue_dat$tissue[1],
+       cex=all_dat$tau[all_dat$bias=="MB"]*2,
+       xlim=c(min(all_dat$logFC),max(all_dat$logFC)),
+       ylim=c(min(all_dat[,(ncol(all_dat)-1):ncol(all_dat)]),
+              max(all_dat[,(ncol(all_dat)-1):ncol(all_dat)]))
+       )
+  points(all_dat$logFC[all_dat$bias=="FB"], 
+       all_dat[all_dat$bias=="FB",ncol(all_dat)-1], 
+       col=scales::alpha(sex_cols["F"],0.5),
+       cex=all_dat$tau[all_dat$bias=="FB"]*2)
+})
+dev.off()
+```
+
