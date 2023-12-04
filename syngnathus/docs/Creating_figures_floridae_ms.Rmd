@@ -517,19 +517,19 @@ ymax<-max(c(unlist(bias_cat_gill),
             unlist(bias_cat_gonad),
             unlist(bias_cat_liver)))+500
 
-par(mfrow=c(1, 3), oma=c(6,4,2,8), mar=c(1,1,1,0), 
+par(mfrow=c(1, 3), oma=c(6,4,2,8), mar=c(1,2.5,1,0), 
     cex.main=2,
     cex.axis=2)
 # gills
 bp<-barplot(bias_cat_gill[,biased_bins], 
         beside = TRUE,
         xaxt='n',
-        ylim = c(0, ymax), 
+        ylim = c(0, max(bias_cat_gill)+10), 
         col = sex_cols,
         main = "")
 mtext("Gill",3,outer = FALSE,cex=1.5,line=-1)
 axis(2,lwd=2)
-text(cex=2, x=colMeans(bp), y=-100, labs, xpd=NA, srt=35, adj = 1)
+text(cex=2, x=colMeans(bp), y=-2.5, labs, xpd=NA, srt=35, adj = 1)
 # gonads
 bp<-barplot(bias_cat_gonad[,biased_bins], 
         beside = TRUE, 
@@ -538,23 +538,21 @@ bp<-barplot(bias_cat_gonad[,biased_bins],
         col = sex_cols,
         main = "",
         cex.main=2,
-        cex.axis=2,
-        yaxt='n')
+        cex.axis=2)
 mtext("Gonad",3,outer = FALSE,cex=1.5,line=-1)
 axis(2,lwd=2,labels = NA)
 text(cex=2, x=colMeans(bp), y=-100, labs, xpd=NA, srt=35, adj=1)
 # liver
 barplot(bias_cat_liver[,biased_bins], 
         beside = TRUE, 
-        ylim = c(0, ymax), 
+        ylim = c(0, max(bias_cat_liver)+50), 
         xaxt='n',
         col = sex_cols,
         main = "",
         cex.main=2,
-        cex.axis=2,
-        axes = FALSE)
+        cex.axis=2)
 axis(2,lwd=2, labels = NA)
-text(cex=2, x=colMeans(bp), y=-100, labs, xpd=NA, srt=35,adj=1)
+text(cex=2, x=colMeans(bp), y=-10, labs, xpd=NA, srt=35,adj=1)
 mtext("Liver",3,outer = FALSE,cex=1.5,line=-1)
 
 mtext("Number of Genes",2,outer=TRUE, cex=1.5, line=2.25)
