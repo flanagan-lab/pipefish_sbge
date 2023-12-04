@@ -239,7 +239,7 @@ pca_plotting_data$Organ <- samples$Organ
 pca_plotting_data$Sex <- samples$Sex
 
 
-write.csv(pca$rotation,"plot_data/pca_rotation.csv", row.names=TRUE)
+write.csv(pca$rotation[,1:3],"plot_data/pca_rotation.csv", row.names=TRUE)
 write.csv(pca_plotting_data,"plot_data/pca_plotting_data.csv", row.names = TRUE)
 write.table(percents,"plot_data/PCA_percents.txt", row.names = FALSE)
 
