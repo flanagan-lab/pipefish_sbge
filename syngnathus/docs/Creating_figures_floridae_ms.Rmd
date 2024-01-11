@@ -107,7 +107,7 @@ bateman <- ggplot(data = fem_succ, aes(x = MatingSuccess, y = relative_fit)) +
   geom_smooth(data = mal_succ, method = "lm", 
               mapping = aes(weight = wt_mal, color = "Male"), 
               fullrange = TRUE, se = FALSE, lty = 2) +
-  labs(x="Number of mates",
+  labs(x="Relative num. mates",
        y="Relative num. eggs") +
   scale_color_manual(name='',
                      breaks=c('Female', 'Male'),
@@ -143,7 +143,7 @@ prop_offspring_no0 <- ggplot(fem_succ[fem_succ$totalEggs != 0,],
               aes(color = "Male"), 
               se = FALSE, lty = 2, 
               fullrange = TRUE, show.legend = FALSE) +
-  labs(x="Number of mates", 
+  labs(x="Relative num. mates", 
        y="Prop. surviving offpring") +
   scale_color_manual(name='',
                      breaks=c('Female', 'Male'),
