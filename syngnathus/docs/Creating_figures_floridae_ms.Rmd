@@ -1,6 +1,7 @@
 ---
 title: 'Syngnathus floridae: figures'
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 editor_options:
@@ -9,7 +10,7 @@ editor_options:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,out.extra='',fig.pos='H', eval = TRUE, message=FALSE)
+knitr::opts_chunk$set(echo = TRUE,out.extra='',fig.pos='H', eval = FALSE, message=FALSE)
 knitr::opts_knit$set(root.dir='./')
 ```
 ```{r loadLibs, message=FALSE, warning=FALSE,eval=TRUE}
