@@ -25,9 +25,7 @@ knitr::opts_knit$set(root.dir='../',
 #This is a cohesive list of all the libraries used in this document
 library(DESeq2)
 library(ggplot2)
-```
-
-``` {r functions, include = FALSE}
+library(EnvStats)
 ```
 
 ``` {r read-data, message = FALSE, warning = FALSE}
@@ -55,6 +53,9 @@ samples$Organ <- as.factor(samples$Organ)
 colData <- as.data.frame(samples)
 rownames(colData) <- samples$ID
 
+#Removing FLG4M4 from the metadata file
+colData <- colData[colData$ID != "FLG4M4", ]
+
 ```
 
 # Differential Expression Analysis
@@ -67,13 +68,16 @@ Additionally, because $\tau$ is calculated based on expression levels, I wanted 
 dds_FL <- DESeqDataSetFromTximport(txi.salmon, 
                                    colData = samples,
                                    design = ~ group)
+##Remove FLG4M4 from the dataset
+dds_FL <- dds_FL[, dds_FL$ID != "FLG4M4"]
 
-#only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_FL)) >= 10
+##Filter the dataset, only keeping rows that have at least 10 reads total, but less than 1,000,000
+keep <- rowSums(counts(dds_FL)) >= 10 & rowSums(counts(dds_FL)) < 1e6
 dds_FL <- dds_FL[keep, ]
 
 #Generate the expression values
 dds_FL_exp <- DESeq(dds_FL)
+
 ```
 
 # Calculating Tissue Specificity
@@ -100,16 +104,19 @@ tpms <- do.call(cbind, lapply(files, function(file){
   
   return(tpm)
 }))
+
+#Remove FLG4M4 from the dataset
+tpms <- tpms[, colnames(tpms) != "FLG4M4"]
 ```
 
 ## Filtering the TPM dataset
 Once all the TPMs were gathered for the different samples I filtered some of the rows out based on results of the differential expression analysis done by DESeq2. The two filtering steps applied to the TPM dataset included:
 
-  1. Keeping only the rows that weren't filtered out in the DESeq2 dataset due to low counts (rowSum $\le$ 10).
+  1. Keeping only the rows that weren't filtered out in the DESeq2 dataset due to low counts (rowSum $\le$ 10) or really high expression (rowSum $>$ 1,000,000).
   
   2. Removing the rows that corresponded to genes that were "outliers" in the DESeq2 analysis.
 
-It should be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
+It should be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect. The sample FLG4M4 was also removed from this dataset the same way it was removed in the differential expression analysis.
 
 ```{r filterTPMs}
 #Only keeping the rows that weren't filtered out due to low counts
@@ -420,6 +427,57 @@ cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = 
 
 We can see the rho values going down for both the gonads and the liver, but the correlations are still significant. We can also see that in the gills we now have a significant negative correlation between sex bias and $\tau$.
 
+```{r, eval = FALSE}
+##Looking at genes that have a high bias and tau in the gonads
+#Getting list of genes with the greatest Tau
+top_gonad <- gonad_bias_tau_all[sqrt(abs(gonad_bias_tau_all$log2FoldChange)) > 4 & gonad_bias_tau_all$tau > 0.85, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_gonad$Row.names[1],] #Testis-specific MB
+tpms[rownames(tpms)== top_gonad$Row.names[2],] #Liver-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[3],] #Testis-specific MB
+tpms[rownames(tpms)== top_gonad$Row.names[4],] #Testis-specific MB
+tpms[rownames(tpms)== top_gonad$Row.names[5],] #Ovary-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[6],] #Testis-specific MB
+tpms[rownames(tpms)== top_gonad$Row.names[7],] #Ovary-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[8],] #Ovary-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[9],] #Liver-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[10],] #Testis-specific MB
+tpms[rownames(tpms)== top_gonad$Row.names[11],] #Ovary-specific FB
+tpms[rownames(tpms)== top_gonad$Row.names[12],] #Liver-specific FB
+
+#Liver
+top_liver <- liver_bias_tau_all[sqrt(abs(liver_bias_tau_all$log2FoldChange)) > 4 & liver_bias_tau_all$tau > 0.7, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_liver$Row.names[1],] #Testis-specific MB
+
+tpms[rownames(tpms)== top_liver$Row.names[2],] #Testis-specific FB??
+tpms[rownames(tpms)== top_liver$Row.names[3],] #Liver-specific FB 
+
+tpms[rownames(tpms)== top_liver$Row.names[4],] #Gill-specific FB
+
+tpms[rownames(tpms)== top_liver$Row.names[5],] #Ovary-specific FB
+tpms[rownames(tpms)== top_liver$Row.names[6],] #Gill-specific FB 
+tpms[rownames(tpms)== top_liver$Row.names[7],] #Testis-specific FB?
+tpms[rownames(tpms)== top_liver$Row.names[8],] #Gill-specific FB
+
+tpms[rownames(tpms)== top_liver$Row.names[9],]
+
+#GILLS
+top_gills <- gill_bias_tau_all[sqrt(abs(gill_bias_tau_all$log2FoldChange)) > 4 & gill_bias_tau_all$tau > 0.75, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_gills$Row.names[1],] #Liver-specific FB
+tpms[rownames(tpms)== top_gills$Row.names[2],] #Testis-specific MB
+tpms[rownames(tpms)== top_gills$Row.names[3],] #Liver-specific FB
+tpms[rownames(tpms)== top_gills$Row.names[4],] #Testis-specific FB
+tpms[rownames(tpms)== top_gills$Row.names[5],] #Gill-specific FB
+tpms[rownames(tpms)== top_gills$Row.names[6],] #Ovary-specific FB
+tpms[rownames(tpms)== top_gills$Row.names[7],] #Testis-specific FB
+
+```
+
 ## Categories of sex bias vs $\tau$
 
 To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorized the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
@@ -489,13 +547,15 @@ plotdat<-ggplot(logFC_long,
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
 plotdat + 
-geom_point(data = logFC_long[logFC_long$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+geom_point(data = logFC_long[logFC_long$bias == "MB",], 
+           aes(x=as.numeric(bias_cat)+0.185, y=tau),
           size=0.4, 
           position = position_jitter(width = 0.15),
           bg=my_colors["MB"],
           col="black",pch=21
           )+ 
-geom_point(data = logFC_long[logFC_long$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+geom_point(data = logFC_long[logFC_long$bias == "FB",], 
+           aes(x=as.numeric(bias_cat)-0.185, y=tau),
           size=0.4, 
           position = position_jitter(width = 0.15),
           bg=my_colors["FB"],
@@ -542,7 +602,7 @@ logFC_long_all$bias <- ifelse(logFC_long_all$logFC <= -2 & logFC_long_all$padj <
   
 #Categorize the degree of sex bias in each row
 #Make a vector that contains all of the groupings
-biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme")
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
 #Create a new column in the dataset and use ifelse statements to set the category limits
 #abs(logFC) was used to account for the fem-biased genes possessing negative values
@@ -563,6 +623,182 @@ logFC_long_all$bias_cat <- ifelse(logFC_long_all$bias == "UB",
 #Making sure the ordering stays correct
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
+
+logFC_long_all$tissue <- factor(logFC_long_all$tissue, levels = c("Gonad", "Liver", "Gill"), ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias.csv", row.names = FALSE)
+```
+
+```{r sex-specific-for-loop}
+#Filtering out the dds dataset to remove the outliers determined by DESeq
+dds_FL_exp_filtered <- dds_FL_exp[!(rownames(dds_FL_exp) %in% out_ids), ]
+
+#Changing the organ from testis or ovaries back to gonad
+dds_FL_exp_filtered$Organ <- ifelse(dds_FL_exp_filtered$Organ =="Ovaries",
+                        paste0("Gonad"),
+                        ifelse(dds_FL_exp_filtered$Organ == "Testis",
+                               paste0("Gonad"),
+                               paste0(dds_FL_exp_filtered$Organ))
+                        )
+dds_FL_exp_filtered$Organ <- as.factor(dds_FL_exp_filtered$Organ)
+
+#Create a vector with the different organ types
+organs <- levels(colData(dds_FL_exp_filtered)$Organ)
+
+#Create an empty list to store my datasets in
+FL_sex_specific_genes <- list()
+
+#Generate the for loop to identify MSpecific and FSpecific genes in each organ based on Medians
+for(organ in organs){
+  
+  #Male-Specific Genes
+  ##Pull out all of the rows where fem count <=10 in every female sample
+  fem0_organ_names <- which(rowSums(t(apply(counts(dds_FL_exp_filtered, 
+                                                   normalized = TRUE)[, dds_FL_exp_filtered$Sex == "F" & 
+                                                                        dds_FL_exp_filtered$Organ == organ],
+                                            1,
+                                            function(x) x <= 10)
+                                      )
+                                    ) == ncol(counts(dds_FL_exp_filtered,
+                                                     normalized = TRUE)[, dds_FL_exp_filtered$Sex == "F" & 
+                                                                          dds_FL_exp_filtered$Organ == organ])
+                            )
+  
+  fem0_organ <- counts(dds_FL_exp_filtered, 
+                       normalized = TRUE)[rownames(counts(dds_FL_exp_filtered,
+                                                          normalized = TRUE)) %in% 
+                                            names(fem0_organ_names), 
+                                          dds_FL_exp_filtered$Organ == organ]
+  
+  ##Pull out rows where median of male count >=20 for that organ
+  mal10_organ <- apply(counts(dds_FL_exp_filtered, 
+                              normalized = TRUE)[, dds_FL_exp_filtered$Sex == "M" 
+                                                 & dds_FL_exp_filtered$Organ == organ],
+                       1,
+                       function(x) median(x) >=20)
+  
+  ##Keep only the rows where all fem samples <=10 and the Male median>=20
+  fem0_mal10_organ <- fem0_organ[rownames(fem0_organ) %in% 
+                                   names(mal10_organ[mal10_organ == TRUE]),]
+  
+  ##Create a new object with a name based on the organ type
+  organ_malsp <- sub("$", "_male_specific", organ)
+  FL_sex_specific_genes[[organ_malsp]] <- fem0_mal10_organ
+  
+  
+  
+  #Female-Specific Genes
+  ##Pull out all of the rows where male count <=10 in every male sample
+  mal0_organ_names <- which(rowSums(t(apply(counts(dds_FL_exp_filtered, 
+                                                   normalized = TRUE)[, dds_FL_exp_filtered$Sex == "M" & 
+                                                                        dds_FL_exp_filtered$Organ == organ],
+                                            1,
+                                            function(x) x <= 10)
+                                      )
+                                    ) == ncol(counts(dds_FL_exp_filtered, 
+                                                     normalized = TRUE)[, dds_FL_exp_filtered$Sex == "M" & 
+                                                                          dds_FL_exp_filtered$Organ == organ])
+                            )
+  
+  mal0_organ <- counts(dds_FL_exp_filtered, 
+                       normalized = TRUE)[rownames(counts(dds_FL_exp_filtered, 
+                                                          normalized = TRUE)) %in% 
+                                            names(mal0_organ_names), 
+                                          dds_FL_exp_filtered$Organ == organ]
+  
+  ##Pull out rows where median of female count >=10 for that organ
+  fem10_organ <- apply(counts(dds_FL_exp_filtered, 
+                              normalized = TRUE)[, dds_FL_exp_filtered$Sex == "F" &
+                                                   dds_FL_exp_filtered$Organ == organ],
+                       1,
+                       function(x) median(x) >=20)
+  
+  #Keep only the rows where male=0 and the fem median>=10
+  mal0_fem10_organ <- mal0_organ[rownames(mal0_organ) %in%
+                                   names(fem10_organ[fem10_organ == TRUE]),]
+  
+  # Create a new object with a name based on the organ type
+  organ_femsp <- sub("$", "_female_specific", organ)
+  FL_sex_specific_genes[[organ_femsp]] <- mal0_fem10_organ
+} 
+```
+
+```{r mvf-expression}
+#Looking at the relationship between male expression and female expression
+my_colors <- c("Gonad" = "#EEB42275", "Liver" = "#EE826275", "Gill" = "#20B2AA75")
+par(mfrow=c(1,3))
+for (organ in organs) {
+  
+  tmp <- as.data.frame(counts(dds_FL_exp, normalized = TRUE)[, dds_FL_exp$Organ == organ])
+  #tmp_M <- assay(dds_FL_filtered)[, dds_FL_filtered$Sex == "M" & dds_FL_filtered$Organ == organ]
+  #tmp_F <- assay(dds_FL_filtered)[, dds_FL_filtered$Sex == "F" & dds_FL_filtered$Organ == organ]
+  
+  tmp$Fmedian <- apply(tmp[, grep("F\\d", colnames(tmp))], 1, median)
+  tmp$Mmedian <- apply(tmp[, grep("M", colnames(tmp))], 1, median)
+  
+  plot(tmp$Fmedian, tmp$Mmedian,
+       ylab = "Male Expression",
+       xlab = "Female Expression",
+       main = organ,
+       col = my_colors[organ],
+       pch = 19,
+       ylim = c(0, 2000),
+       xlim = c(0, 2000))
+  
+}
+
+```
+
+```{r cat-sex-specific}
+#Changing the bias category for the genes we just labeled as sex-specific
+organs <- c("Gill", "Gill", "Gonad", "Gonad", "Liver", "Liver")
+bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
+
+for(i in 1:length(FL_sex_specific_genes)){#
+
+  tmp <- FL_sex_specific_genes[[i]]
+  tmp <- as.data.frame(tmp)
+  tmp$geneID <- rownames(tmp)
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    
+    if(one_gene[["geneID"]] %in%
+       logFC_long_all[logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"geneID"]){
+       
+       logFC_long_all[logFC_long_all$geneID == one_gene[["geneID"]] &
+                      logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"bias_cat"
+                      ] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long_all),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long_all)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene[["geneID"]]
+      one_gene_dat$tau <- tau[names(tau) == one_gene[["geneID"]]]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long_all <- rbind(one_gene_dat, logFC_long_all)
+      
+      rownames(logFC_long_all) <- NULL
+    }
+  }
+}
+
+#Making sure the ordering stays correct
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+logFC_long_all$tissue <- factor(logFC_long_all$tissue, levels = c("Gonad", "Liver", "Gill"), ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
 ```
 
 ```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
@@ -643,13 +879,10 @@ geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, 
 
 ```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
-
-sample_size = logFC_long_all %>% group_by(bias_cat, bias, tissue) %>% summarize(num=n())
-logFC_long_all$group <- paste0(logFC_long$bias, logFC_long_all$bias_cat)
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
 
 logFC_long_all %>%
-  #left_join(sample_size) %>%
-  #mutate(myaxis = paste0(bias_cat, "\n", "n=", num)) %>%
   ggplot(aes(x = bias_cat, y = tau, fill = bias)) +
     geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
     geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
