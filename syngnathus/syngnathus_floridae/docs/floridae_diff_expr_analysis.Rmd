@@ -1457,3 +1457,299 @@ write.table(rbind(blast_output_merged$FL_femG_biased_TRgenes_blast[,c("gene_name
             row.names = FALSE,
             col.names = FALSE)
 ```
+
+```{r panther-results}
+panther <- read.delim("data/pantherGeneList.txt", header = FALSE)
+colnames(panther) <- c("GeneID", "MappedID", "GeneName", "pantherFAM", 
+                       "panther_prot_class", "species")
+
+blast_output_merged$FL_femG_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_femG_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FL_femGon_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_femGon_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FL_femL_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_femL_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FL_malG_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_malG_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FL_malGon_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_malGon_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FL_malL_biased_TRgenes_blast <-
+  merge(blast_output_merged$FL_malL_biased_TRgenes_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+```
+
+```{r}
+go_tabs <- lapply(blast_output_merged, function(dat){
+
+  tab <- data.frame(table(dat$panther_prot_class) )
+  tab$Var1 <- as.character(tab$Var1)
+  tab$Var1[tab$Var1==""] <- "Unclassified"
+  #tab$prop <- tab$Freq/sum(tab$Freq)
+
+  return(tab)
+  })
+
+
+all_go_dat <- data.frame(matrix(ncol=4,nrow=0))
+colnames(all_go_dat) <- c(
+  colnames(go_tabs$FL_femG_biased_TRgenes_blast),
+  "bias_cat", "tissue"
+)
+tissues <- c("Gill", "Gonad", "Liver", "Gill", "Gonad", "Liver")
+
+for(i in 1:length(go_tabs)){
+  tmp<-go_tabs[[i]]
+  tmp$cat<-names(go_tabs)[i]
+  tmp$tissue <- tissues[[i]]
+  all_go_dat<-rbind(all_go_dat, tmp)
+}
+
+all_go_sums <- data.frame(matrix(ncol = 4,
+                                 nrow = 0))
+colnames(all_go_sums) <- c("Freq", "prot_class", "tissue", "prop")
+
+for(organ in unique(all_go_dat$tissue)){
+  
+  tmp <- all_go_dat[all_go_dat$tissue == organ, ]
+  go_sums <- as.data.frame(tapply(tmp$Freq, tmp$Var1, sum))
+  go_sums$prot_class <- rownames(go_sums)
+  colnames(go_sums)[1] <- "Freq"
+  go_sums$tissue <- organ
+  rownames(go_sums) <- NULL
+  
+  go_sums$prop <- go_sums$Freq/sum(go_sums$Freq)
+  
+  all_go_sums <- rbind(all_go_sums, go_sums)
+
+}
+
+all_go_sums$prot_class_final <- ifelse(all_go_sums$prop < 0.02,
+                                       paste0("Other Protien Class"),
+                                       paste0(all_go_sums$prot_class))
+
+# make a barplot somehow
+my_colors <- c("Gonad" = "#EEB422", "Liver" = "#EE8262", "Gill" = "#20B2AA")
+ggplot(all_go_sums, 
+       aes(prot_class, prop, fill = tissue)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = my_colors) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+#### Blasting sex-specific genes against the Zebrafish proteome
+
+```{r readin_blast_results_dreiro, echo=FALSE}
+#Specify the directory where BLAST results are located
+blast_path <- "data/floridae_BLAST/"
+
+#Create a list of the files I want
+FL_blast_files <- list.files(blast_path, pattern = "danio")
+
+#Create an empty list to store my datasets in
+FL_blast_list_SS_danio <- list()
+
+#Create a loop to read in all of the blast results
+for(file_name in FL_blast_files){
+  # Read the file and store it in a new object
+  file_data <- read.delim(file.path(blast_path, file_name), 
+                          stringsAsFactors = FALSE, quote = "", 
+                          sep = "\t", header = FALSE)
+
+  #Get rid of the columns we don't need
+  file_data <- file_data[,c(1:4,8,10:16)]
+  
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid", "trin_gene_start", "trin_gene_end",
+                           "reiro_prot_info", "prot_id", "reiro_prot_start",
+                           "reiro_prot_end", "evalue", "bit_score", "length",
+                           "pident", "gaps")
+  
+  # Create a new object with a name based on the file name
+  blast_name <- sub(".txt$", "", file_name) #Removes the file extension
+  FL_blast_list_SS_danio[[blast_name]] <- file_data
+}
+
+```
+
+```{r filter-BLAST-dreiro, echo=FALSE}
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered <- lapply(FL_blast_list_SS_danio, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end",
+                        "reiro_prot_info", "prot_id", "reiro_prot_start",
+                        "reiro_prot_end", "evalue", "bit_score", "length", 
+                        "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue ==
+                                                   min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[
+      which(uni_gene_subset_lowe$pident == 
+              max(uni_gene_subset_lowe$pident)),
+      ]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",
+                   uni_gene_subset_lowe_highpid$reiro_prot_info))>1){
+      uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+
+```
+
+In order to run PANTHER we need IDs that follow one of their supported formats. From NCBI, the gene name works (e.g. rpl27). That information is not automatically supplied with the BLAST output, but we can use the .gff file from NCBI to pull out the gene names that correspond to the proteinID (e.g. NP_956018.1).
+
+```{r merge-gff-gene-names}
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+  
+   output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
+  
+   return(output)
+})
+
+```
+
+```{r, eval=FALSE}
+write.table(c(blast_output_merged$FL_femG_specific_TRgenes_danio_blast$gene_name,
+              blast_output_merged$FL_femGon_specific_TRgenes_danio_blast$gene_name,
+              blast_output_merged$FL_femL_specific_TRgenes_danio_blast$gene_name,
+              blast_output_merged$FL_malG_specific_TRgenes_danio_blast$gene_name,
+              blast_output_merged$FL_malGon_specific_TRgenes_danio_blast$gene_name,
+              blast_output_merged$FL_malL_specific_TRgenes_danio_blast$gene_name),
+           'FL_GOnames_SS.txt', 
+            sep = " ", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```
+
+```{r panther-results-merge}
+panther_SS <- read.delim("data/pantherGeneList_SS.txt", header = FALSE)
+colnames(panther_SS) <- c("GeneID", "MappedID", "GeneName", "pantherFAM", 
+                       "panther_prot_class", "species")
+
+for (i in 1:length(blast_output_merged)) {
+  
+  blast_output_merged[[i]] <- merge(blast_output_merged[[i]],
+                                    panther_SS[, c(2, 5)],
+                                    by.x = "gene_name",
+                                    by.y = "MappedID",
+                                    all.x = TRUE)
+  
+}
+
+```
+
+```{r}
+go_tabs <- lapply(blast_output_merged, function(dat){
+
+  tab <- data.frame(table(dat$panther_prot_class) )
+  tab$Var1 <- as.character(tab$Var1)
+  tab$Var1[tab$Var1==""] <- "Unclassified"
+  #tab$prop <- tab$Freq/sum(tab$Freq)
+
+  return(tab)
+  })
+
+
+all_go_dat <- data.frame(matrix(ncol=4,nrow=0))
+colnames(all_go_dat) <- c(
+  colnames(go_tabs$FL_femG_biased_TRgenes_blast),
+  "bias_cat", "tissue"
+)
+tissues <- c("Gill", "Gonad", "Liver", "Gill", "Gonad", "Liver")
+
+for(i in 1:length(go_tabs)){
+  tmp<-go_tabs[[i]]
+  tmp$cat<-names(go_tabs)[i]
+  tmp$tissue <- tissues[[i]]
+  all_go_dat<-rbind(all_go_dat, tmp)
+}
+
+all_go_sums <- data.frame(matrix(ncol = 4,
+                                 nrow = 0))
+colnames(all_go_sums) <- c("Freq", "prot_class", "tissue", "prop")
+
+for(organ in unique(all_go_dat$tissue)){
+  
+  tmp <- all_go_dat[all_go_dat$tissue == organ, ]
+  go_sums <- as.data.frame(tapply(tmp$Freq, tmp$Var1, sum))
+  go_sums$prot_class <- rownames(go_sums)
+  colnames(go_sums)[1] <- "Freq"
+  go_sums$tissue <- organ
+  rownames(go_sums) <- NULL
+  
+  go_sums$prop <- go_sums$Freq/sum(go_sums$Freq)
+  
+  all_go_sums <- rbind(all_go_sums, go_sums)
+
+}
+
+for(class in unique(all_go_sums$prot_class)){
+  match_rows<-which(all_go_sums$prot_class==class)
+  if(any(all_go_sums$prop[match_rows]>0.02)==FALSE){
+    
+    all_go_sums$prot_class[match_rows]<-"Other"
+  }
+}
+
+# make a barplot somehow
+my_colors <- c("Gonad" = "#EEB422", "Liver" = "#EE8262", "Gill" = "#20B2AA")
+ggplot(all_go_sums, 
+       aes(prot_class, prop, fill = tissue)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = my_colors) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
