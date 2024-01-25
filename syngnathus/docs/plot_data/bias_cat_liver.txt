@@ -1,3 +1,0 @@
-"Extreme" "High" "Low" "Med" "Sex-specific"
-"FB" 24 116 176 265 153
-"MB" 8 15 77 72 40
