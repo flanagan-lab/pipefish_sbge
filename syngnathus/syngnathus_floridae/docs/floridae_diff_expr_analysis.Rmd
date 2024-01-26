@@ -1501,7 +1501,7 @@ blast_output_merged$FL_malL_biased_TRgenes_blast <-
         all.x = TRUE)
 ```
 
-```{r}
+```{r, eval = FALSE}
 go_tabs <- lapply(blast_output_merged, function(dat){
 
   tab <- data.frame(table(dat$panther_prot_class) )
@@ -1688,7 +1688,7 @@ for (i in 1:length(blast_output_merged)) {
 
 ```
 
-```{r}
+```{r, eval=FALSE}
 go_tabs <- lapply(blast_output_merged, function(dat){
 
   tab <- data.frame(table(dat$panther_prot_class) )
