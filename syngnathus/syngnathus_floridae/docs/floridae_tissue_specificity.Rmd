@@ -26,6 +26,7 @@ knitr::opts_knit$set(root.dir='../',
 library(DESeq2)
 library(ggplot2)
 library(EnvStats)
+library(dplyr)
 ```
 
 ``` {r read-data, message = FALSE, warning = FALSE}
@@ -877,7 +878,7 @@ geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, 
           col="black",pch=21)
 ```
 
-```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased."}
+```{r tau-v-biascat-plot-all-vp2, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
