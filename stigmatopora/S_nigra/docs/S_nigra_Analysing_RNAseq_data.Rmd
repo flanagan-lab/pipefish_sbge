@@ -1,0 +1,821 @@
+---
+title: "Analysing *Stigmatopora nigra* RNAseq Data"
+author: "Emily Beasley"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        code_folding: show
+        toc: yes
+        toc_float: yes
+        number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+```
+
+``` {r library, include = FALSE}
+#library(tximport) #This was used to generate an abundance matrix from the salmon quant outputs
+
+```
+This pipeline follows a pipeline outlined for _Syngnathus floridae_. Changes in scripts and outputs are outlined in this document. This pipeline was run on the University of Canterbury's RCC. 
+
+# Pre-assembly Quality Control and Filtering
+
+## Trimming the Reads with Trimmomatic
+[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. Currently for version **0.40** of trimmomatic these are the different steps:\
+\
+
+1.  **ILLUMINACLIP**: Cut adapter and other illumina-specific seuqences from the read.\
+    `:<fastaWithAdaptersEtc>:<seed mismatches>:<palindrome clip threshold>:<simple clip threshold>`\
+    -   fastaWithAdaptersEtc = specifies the path to a fasta file containing all the adapters, PCR sequences etc.
+    -   seedMismatches = the max. mismatch count which will still allow a full match to be performed.
+    -   palindromeClipThreshold = how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment
+    -   simpleClipThreshold = how accurate the match between any adapterect. sequence must be against a read.
+2.  **SLIDINGWINDOW**: Perform a sliding window trimming, cutting once the average quality within the window falls below a designated threshold.\
+    `:<windowSize>:<requiredQuality>`\
+    -   windowSize = the number of bases to average across
+    -   requiredQuality = the average quality required
+3.  **LEADING**: Cut bases off the start of a read, if below a designated threshold quality.\
+    `:<quality>`\
+    -   quality = the minimum quality required to keep a base
+4.  **TRAILING**: Cut bases off the end of a read, if below a designated threshold quality.\
+    `:<quality>`\
+    -   quality = the minimum quality required to keep a base
+5.  **CROP**: Cut the read to a specified length.\
+    `:<length>` 
+    -   length = the number of bases to keep, from the start of the read
+6.  **HEADCROP**: Cut the specified number of bases from the start of a read.\
+    `:<length>`\
+    -   length = the number of bases to remove from the start of the read
+7.  **MINLEN**: Drop the read if it is below a specified length.\
+    `:<length>`
+    -   length = the minimum length of reads to be kept
+
+For **paired-end** data, two input files are specified and 4 output files. Two for the **paired** output where both of the reads survived the processing, and two for the corresponding **unpaired** output where one read survived but it's partner did not.\
+\
+**Trimming occurs in the order which the steps are specified on the command line**. Recommended that if the adapter clipping is required it is done as early as possible.
+
+### Installing Trimmomatic
+
+Trimmomatic was installed on the RCC through conda in a conda environment called **Trim**.
+
+```
+conda create -n Trim
+conda activate Trim
+conda install trimmomatic
+```
+
+### Running trimmomatic across Multiple Pairs of Reads
+
+```{bash}
+#!/bin/bash
+
+data=/home/rccuser/shared/emily_files/S_nigra_raw/
+
+for fq in ${data}*_R1_001.fastq.gz
+        do
+        base=$(basename $fq _R1_001.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq ${data}${base}_R2_001.fastq.gz \
+                ${data}trimmed/${base}_paired_R1_001.fastq.gz ${data}trimmed/${base}_unpaired_R1_001.fastq.gz \
+                ${data}trimmed/${base}_paired_R2_001.fastq.gz ${data}trimmed/${base}_unpaired_R2_001.fastq.gz \
+                ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+
+```
+
+
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Then remove the `echo ""` and run the script as `nohup bash trimmomatic_run.sh > trim.out 2>&1 &`.\
+
+-   The **NexteraPE-PE.fa** file was pulled from the [trimmomatic github](https://github.com/usadellab/Trimmomatic/tree/main/adapters) using `wget https://github.com/usadellab/Trimmomatic/blob/main/adapters/NexteraPE-PE.fa`
+
+
+## Using SortMeRNA to remove rRNA contamination
+### Create a new environment and install SortMeRNA in it
+
+```
+conda create -n sortmerna
+conda activate sortmerna
+conda install sortmerna
+
+which sortmerna #check location of installation
+  /home/rccuser/anaconda3/envs/contamination/bin/sortmerna
+```
+
+### Test the installation of SortMeRNA
+
+```
+sortmerna --version
+    SortMeRNA version 4.3.6
+    Build Date: Aug 16 2022
+    sortmerna_build_git_sha:@db8c1983765f61986b46ee686734749eda235dcc@
+    sortmerna_build_git_date:@2022/08/16 11:42:59@
+```
+
+### Download the latest SortMeRNA databases (v4.3.4)
+The `database.tar.gz` file can also be downloaded from [this link](https://github.com/sortmerna/sortmerna/releases).
+
+```
+wget https://github.com/biocore/sortmerna/releases/download/v4.3.4/database.tar.gz
+mkdir rRNA_databases_v4.3.4
+tar -xvf database.tar.gz -C rRNA_databases_v4.3.4
+```
+
+These .fasta files are what will be used in the next step for our reference file. There are 4 fasta files associated with `v4.3.4`.
+
+  1. `smr_v4.3_default_db.fasta`: this FASTA file contains the **default** SortMeRNA database, which is a comprehensive rRNA database derived from the SILVA and Rfam databases. This database includes Bacteria 16S/23S (SILVA), Archaea 16S (SILVA), Eukarya 18S/28S (SILVA),5S/5.8s rRNA (Rfam).
+  
+  2. `smr_v4.3_sensitive_db_rfam_seeds.fasta`: this FASTA file contatins **seed sequences** of the covariance models (CMs) from the Rfam database. Rfam is a comprehensive collection of RNA families, each represented by a CM that describes the consensus secondary structure of the RNA family. These CMs are used to annotate RNA sequences in genomes and metagenomes. The sensitivity of SortMeRNA can be increased by including this database in the analysis, but it can also increase the runtime and memory requirements of the analysis.
+  
+  3. `smr_v4.3_fast_db.fasta`: this FASTA file contains **a subset of sequences** from the default SortMeRNA database. Here, the number of sequences in each database is reduced to improve the speed of the analysis. This file would be intended for use in cases where speed is a priority and a lower sensitivity is acceptable.
+  
+  4. `smr_v4.3_sensitive_db.fasta`: this FASTA file contains **a more comprehensive set of sequences** than the default SortMeRNA database. The sensitive database is intended for use in cases where higher sensitivity is required, such as in metagenomic or environmental sequencing studies, but similar to the second FASTA file it will also increase the runtime and memory requirements of the analysis.
+  
+**More than one of theses reference databases can be used at a time if desired**. To do this you add `--ref` twice in the script (e.g. `--ref smr_v4.3_default_db.fasta --ref smr_v4.3_sensitive_db_rfam_seeds.fasta` ).
+
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+#!/bin/bash
+
+input_dir=/home/rccuser/shared/emily_files/S_nigra_raw/trimmed/paired/
+output_dir=/home/rccuser/shared/emily_files/S_nigra_raw/trimmed/paired/sortmerna/
+
+ref_fasta=/home/rccuser/shared/emily_files/rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta
+
+for pair in $input_dir/*_R1_001.fastq.gz
+        do
+
+        sample=$(basename $pair _R1_001.fastq.gz)
+
+        echo "Running sortmerna for ${sample}..."
+
+        rm -rf /home/rccuser/sortmerna
+
+        input1=$input_dir/${sample}_R1_001.fastq.gz
+        input2=$input_dir/${sample}_R2_001.fastq.gz
+
+        
+        output=$output_dir/${sample}/
+
+        # mkdir $output_dir/${sample}/
+
+        time sortmerna --ref $ref_fasta --reads $input1 --reads $input2 --fastx --other --aligned --workdir $output --threads 16 --out2     
+
+done
+
+```
+
+This script was run as `nohup bash scripts/sortmerna_run.sh > sortmerna.log 2>&1 &`
+
+
+## Using Kraken2 to remove biological contamination
+### Create a new environment and install Kraken2 in it
+
+```
+conda create -n kraken2
+conda activate kraken2
+conda install kraken2
+```
+
+### Creating the Standard Kraken2 Database {.tabset}
+The Kraken2 Database can be generated in one of two ways
+
+#### Builidng it by Hand {.unnumbered}
+Kraken2 has a built in function `kraken2-build` that allows you to build whatever database you are wanting. For example if you want to generate the standard kraken2 database (That includes archea and bacteria):
+
+```
+mkdir kraken2_standard_db
+
+kraken2-buid --standard --db kraken2_standard_db/
+```
+
+If you run into the following error:
+"rsync_from_ncbi.pl: unexpected FTP path (new server?) for https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/900/128/725/GCF_900128725.1_BCifornacula_v1.0" 
+
+You will need to change some of the code in the file `rsync_from_ncbi.pl`. If Kraken 2 was installed via conda the file will be located in `/anaconda3/envs/kraken2/share/kraken2-2.1.2-4/libexec`. Use `nano` to edit the file and on line **46** replace _ftp_ with _((ht|f)tp(s?))_ so the whole line for 46 would look like this:
+
+`if (! ($full_path =~ s#^((ht|f)tp(s?))://${qm_server}${qm_server_path}/##)) {`
+
+
+#### Uploading a pre-built database {.unnumbered}
+This [website](https://benlangmead.github.io/aws-indexes/k2) also has all of the different datasets pre-built and available for download. To access one of these pre-built databases through the RCC directly use:
+
+```
+wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_20230314.tar.gz #Using the link associated to the dataset of choice
+
+mkdir kraken2_pluspfp_database
+tar -xvf k2_pluspfp_20230314.tar.gz -C kraken2_pluspfp_database/
+```
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+#!/bin/bash
+
+#Create arguments
+ref_fasta=$1 #/home/rccuser/shared/kraken2_pluspfp/
+input_dir=$2 #/home/rccuser/shared/emily_files/S_nigra_norrna/sortmerna/S_nigra_unaligned/
+output_dir=$3 #/home/rccuser/shared/emily_files/S_nigra_norrna/kraken_output/
+
+## Loop through all pairs of reads in the input directory
+for pair in $2/*_fwd.fq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _fwd.fq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running Kraken2 for ${sample}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$2/${sample}_fwd.fq.gz
+        input2=$2/${sample}_rev.fq.gz
+
+        #Run Kraken2 on this pair of reads
+        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
+
+done
+
+```
+
+This script was run as `nohup bash scripts/kraken2_run.sh ../kraken2_pluspfp/ S_nigra_norrna/sortmerna/S_nigra_unaligned/ > kraken2.log 2>&1 &`
+
+## Doing a k-mer based correction with RCorrector
+Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
+
+### Install Rcorrector 
+
+1. Clone the GitHub Repo: `git clone https://github.com/mourisl/rcorrector.git`
+
+2. Run `make` in the repo directory.
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+### Creating a for loop to run multiple samples at a time
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$3 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_1.fq -2 $2/${sample}_2.fq -od $3
+
+done
+
+```
+
+This script was run as `nohup bash scripts/rcorrector_run.sh ../../rcorrector S_nigra_norrna/kraken_output/ > rcor.log 2>&1 &`
+
+# Checking quality of trimmed and filtered reads
+The quality of the reads once they finished going through the filtering and trimming pipeline outlined above was assessed with FastQC and the results were compiled using MultiQC.
+
+```{bash}
+!/bin/bash
+
+data=/home/rccuser/shared/emily_files/S_nigra_raw/trimmed/paired/
+
+for fq in ${data}*.gz
+        do
+        base=$(basename $fq)
+        echo "Running fastqc for ${base} ..."
+        time fastqc $fq -t 16 -o ${data}FastQC_trimmed
+done
+
+```
+
+This script was run as `nohup bash scripts/fastqc_run.sh S_nigra_raw/trimmed/paired/ > fastqc.log 2>&1 &`. Once finished MultiQC was run: `multiqc S_nigra_FastQC`. 
+
+# De novo transcriptome assembly
+
+## Installing Trinity
+Trinity requires the installation of several programs, to get around this Trinity was installed via a Docker in the RCC and must be used within one. **The first time that you use Trinity you must pull the latest Docker image for Trinity** like so:
+
+```
+docker pull trinityrnaseq/trinityrnaseq
+
+```
+
+## Running Trinity 
+Once started, a successful Trinity run will take days to complete. There are a lot of extra components you can add onto a Trinity run (View the [Trinity User Manual](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity) for more information) but here are the main components you should specify:
+
+1.  **SeqType**: Signifies the type of reads (fa or fq).
+    `--seqType <string>`
+
+2.  **Max Memory**: Suggested max memory to use by Trinity where limiting can be enabled.
+    `--max_memory <string>`
+    -   This should be based on the available memory for your computer. For example `--max_memory 20G`
+    
+3.  **Read Locations**: Provide exact file locations for the left and right reads. One or more file names separated by commas, NOT spaces.
+    `--left <string>`
+    `--right <string>` 
+    -   The left and right reads must be paired up sequentially, if XXX32_R1 is mentioned first for the left, XXX32_R2 must also be first for the right.
+    -   If running across multiple samples `--samples_file <string>` can be used rather than typing out the location for each individual. See below for more details.
+
+4.  **CPU**: Tell Trinity the number of CPUs to use, default is 2.
+    `--CPU <int>`
+    -   This should be based on the number of cores the computer has and it must be an even number.
+    
+5.  **Output Directory**: Name of the directory for output.This will be created if it doesn't already exist.
+    `--output <string>`
+    -   Good to include trinity in the name as a safety precaution! Don't forget to include the full file path.
+    
+### Using multiple reads
+#### Creating a Sample Name File
+There are two options when using multiple files to generate your de novo transcriptome assembly. Each sample can be typed out individually, ensuring that the two reads are paired up by order. Alternatively, the argument `--samples_file` can be used instead. With this argument you must provide a tab-delimited text file indicating biological replicate relationships. This is the example provided on the [Trinity Website](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity):
+
+         cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
+         cond_A    cond_A_rep2    A_rep2_left.fq    A_rep2_right.fq
+         cond_B    cond_B_rep1    B_rep1_left.fq    B_rep1_right.fq
+         cond_B    cond_B_rep2    B_rep2_left.fq    B_rep2_right.fq
+         
+The samples file that was provided for the script below was adapted into this format:
+
+```
+SN31    S31     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S31_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S31_2.cor.fq.gz
+SN32    S32     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S32_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S32_2.cor.fq.gz
+SN33    S33     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S33_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S33_2.cor.fq.gz       
+SN34    S34     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S34_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S34_2.cor.fq.gz       
+SN35    S35     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S35_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S35_2.cor.fq.gz       
+SN36    S36     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S36_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S36_2.cor.fq.gz       
+SN37    S37     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S37_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S37_2.cor.fq.gz       
+SN38    S38     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S38_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S38_2.cor.fq.gz       
+SN39    S39     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S39_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S39_2.cor.fq.gz       
+SN40    S40     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S40_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S40_2.cor.fq.gz       
+SN41    S41     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S41_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S41_2.cor.fq.gz       
+SN42    S42     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S42_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S42_2.cor.fq.gz       
+SN43    S43     /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S43_1.cor.fq.gz       /home/rccuser/shared/emily_files/S_nigra_norrna/rcorrector_output/S43_2.cor.fq.gz
+...
+```
+The last two columns contain the **full** location to the desired reads.
+
+#### Script
+```{bash}
+#!/bin/bash
+
+#Create arguements
+samples_file=$1 #File containing sample names and locations
+out_dir_name=$2 #Desired name for the output directory
+
+sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
+        --samples_file $1 \
+        --normalize_by_read_set \
+        --CPU 16 \
+        --output `pwd`/$2
+
+```
+
+Trinity was run inside of a **screen** session as `bash scripts/trinity_run.sh `pwd`/S_nigra_samples.txt trinity_out_dir_S_nigra`. The `pwd` was added in front of the samples file name as a shortcut since Trinity needs to full path to the file (since it was installed as a docker image).
+
+# Post-Assembly Quality Control
+## Using BUSCO to assess composition or 'completeness' of assembly
+[BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
+
+The base command to run a BUSCO assessment looks something like this:
+    
+    busco -i <SEQUENCE_FILE> -l <LINEAGE> -o <OUTPUT_NAME> -m <MODE>
+    
+      -i is a path to your FASTA file, either nucleotide or protein fast file
+      -l is the lineage, the manually picked dataset to be used for the assessment
+      -m is which analysis mode to run, wither genome (geno), protein (prot), or transcriptome (tran)
+      -o is the name of the output directory
+
+Use `busco --list-datasets` to print the full list of clades that can be used for the lineage.
+
+### Installing BUSCO from Bioconda
+
+```
+> conda update -n base conda
+
+> conda create -n busco -c conda_forge -c bioconda busco=5.2.2
+> conda activate busco
+
+#Double check version
+> busco -v
+```
+
+### Running BUSCO on a single transcriptome
+The lineage for _S. nigra_ was chosen as `actinopterygii_odb10` since it is the closest clade provided with BUSCO.
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+lineage=$2 #chosen dataset for assessment
+out_dir_name=$3 #Desired name for the output directory
+
+busco -i $1 -l $2 -m tran -o $3 -c 16
+
+```
+This script was run as `nohup bash scripts/busco_run.sh S_nigra_trinity.Trinity.fasta actinopterygii_odb10 busco_out_nigra > busco.log 2>&1 &`
+
+### Interpreting BUSCO results {.tabset}
+The main results from BUSCO are simplified into categories of _Complete and single-copy_, _Complete and duplicated_, _Fragmented_, or _Missing_. The results from BUSCO will only make sense in the context of the biology of your organism and data types.
+
+The transcriptome was not filtered for isoforms prior to running BUSCO which may then lead to a high proportion of duplicates. Additionally, not all BUSCO genes are necessarily expressed in the tissue/organ under consideration or at that specific timepoint. Therefore, transcriptomes are expected to show varying degrees of completeness.
+
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2 
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# BUSCO was run in mode: transcriptome
+
+ ***** Results: *****
+
+        C:89.8%[S:16.4%,D:73.4%],F:2.7%,M:7.5%,n:3640
+        3268    Complete BUSCOs (C)
+        596     Complete and single-copy BUSCOs (S)
+        2672    Complete and duplicated BUSCOs (D)
+        100     Fragmented BUSCOs (F)
+        272     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+
+
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+
+  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+  - This can be done using the built in TrinityStats.pl script within trinity.
+  - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
+
+```{bash}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
+This script was run as `bash scripts/trinity_N50.sh `pwd`/S_nigra_trinity.Trinity.fasta trinity_stats_output`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  182622
+Total trinity transcripts:      316349
+Percent GC: 46.37
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 6410
+        Contig N20: 4708
+        Contig N30: 3660
+        Contig N40: 2872
+        Contig N50: 2204
+
+        Median contig length: 445
+        Average contig: 1027.09
+        Total assembled bases: 324919761
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 5733
+        Contig N20: 3985
+        Contig N30: 2811
+        Contig N40: 1860
+        Contig N50: 1104
+
+        Median contig length: 341
+        Average contig: 672.71
+        Total assembled bases: 122851419
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1104 bases in length (going off the stats based on the longest isoform).
+
+
+
+# Alignment and Abundance Estimations
+## Using Salmon
+### Installing Salmon
+Salmon was originally installed in a conda environment as shown below:
+```
+conda create -n salmon
+conda activate salmon
+conda install samlon
+
+#Check version
+salmon --version
+  0.6.0
+  
+```
+However, there were issues getting conda to install the latest version of salmon and so the docker image of it was used instead:
+```
+docker pull combinelab/salmon
+
+#Check version
+sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon --version
+  salmon 1.10.2
+
+```
+
+Again, there were issues with the `salmon quant` function when it was used within the docker and I get getting the error: `Exception : [Error: The index version file /home/rccuser/shared/coley_files/floridae_salmon_index/versionInfo.json doesn't seem to exist.  Please try re-building the salmon index.]`. Attempting now to install the physical version on the RCC. The lastest release was pulled from the [salmon github](https://github.com/COMBINE-lab/salmon/releases).
+
+```
+# Get the latest Salmon source from releases
+wget https://github.com/COMBINE-lab/salmon/archive/refs/tags/v1.10.1.tar.gz
+tar -xzf v1.10.1.tar.gz
+cd salmon-1.10.1/
+
+# Create the out-of-source build directory
+mkdir build && cd build
+
+# Cmake configure
+cmake -DFETCH_BOOST=TRUE ..
+
+# Had to install  bunch of things
+sudo apt install curl && sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install pkg-config
+sudo apt-get install autoconf
+sudo apt install liblzma-dev
+sudo apt install libbz2-dev && sudo apt install libclang-dev
+
+# Went to Francois for help finishing the installation
+sudo apt install libeigen3-dev libboost1.74-all-dev libjemalloc-dev libtbb-dev libgff-dev
+sudo apt install cereal-dev 
+
+# Additionally installed cmake-curses-gui
+mkdir build
+cd build
+cmake /path/to/salmon/src -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_VERBOSE_MAKEFILE=ON -DUSE_SHARED_LIBS=ON -DCURL_LIBRARY_RELEASE=/usr/lib/x86_64-linux-gnu/libcurl.so
+
+make -j16
+sudo make install
+```
+
+### Generating the index
+The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+transcriptome_file=$1
+desired_index_name=$2
+kmer_length=$3
+
+/usr/local/bin/salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash scripts/salmon_txome_indicies.sh S_nigra_trinity.Trinity.fasta nigra_salmon_index 31 > salmon_index.log 2>&1 &`.
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). If I end up seeing a smaller mapping rate than expected I will generate another index using a smaller k-mer length.
+
+### Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_1.cor.fq.gz
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _1.cor.fq.gz)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $1/${sample}_1.cor.fq.gz \
+                -2 $1/${sample}_2.cor.fq.gz \
+                -p 16 -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash scripts/salmon_quant.sh S_nigra_norrna/rcorrector_output nigra_salmon_index/ nigra_salmon_quant/ > salmon_quant.log 2>&1 &`
+
+Running the above script generates an output with the following organization:
+```
+nigra_salmon_quant/
+    S31_quant/
+      aux_info/
+      cmd_info.json
+      lib_format_counts.json
+      libParams/
+      logs/
+        salmon_quant.log
+      quant.sf
+      
+    ... for all samples
+```
+The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+    do
+
+    echo "$dir"
+
+    #Extract the sample name from the directory
+    sample=$(basename $dir _quant)
+
+    #Echo the sample that is being processed
+    echo "Rename sample ${sample} ..."
+
+    #Rename the quant.sf file
+    mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+    #Rename the log file
+    mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+done
+
+```
+This script was run as ` bash scripts/rename_salmon.sh nigra_salmon_quant/ nigra_salmon_quant/expression_files nigra_salmon_quant/log_files`.
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+S31_salmon_quant.log:[2024-01-22 10:32:30.040] [jointLog] [info] Mapping rate = 84.5311%
+S32_salmon_quant.log:[2024-01-22 10:32:49.660] [jointLog] [info] Mapping rate = 78.9753%
+S33_salmon_quant.log:[2024-01-22 10:33:30.407] [jointLog] [info] Mapping rate = 86.7068%
+S34_salmon_quant.log:[2024-01-22 10:33:37.050] [jointLog] [info] Mapping rate = 27.3251%
+S35_salmon_quant.log:[2024-01-22 10:34:16.219] [jointLog] [info] Mapping rate = 87.3911%
+S36_salmon_quant.log:[2024-01-22 10:34:55.241] [jointLog] [info] Mapping rate = 86.1137%
+S37_salmon_quant.log:[2024-01-22 10:35:47.052] [jointLog] [info] Mapping rate = 87.6235%
+S38_salmon_quant.log:[2024-01-22 10:36:34.148] [jointLog] [info] Mapping rate = 86.0542%
+S39_salmon_quant.log:[2024-01-22 10:37:20.113] [jointLog] [info] Mapping rate = 85.3744%
+S40_salmon_quant.log:[2024-01-22 10:38:07.893] [jointLog] [info] Mapping rate = 80.6694%
+S41_salmon_quant.log:[2024-01-22 10:38:52.290] [jointLog] [info] Mapping rate = 90.1614%
+S42_salmon_quant.log:[2024-01-22 10:39:50.569] [jointLog] [info] Mapping rate = 91.6335%
+S43_salmon_quant.log:[2024-01-22 10:40:42.886] [jointLog] [info] Mapping rate = 89.9318%
+S44_salmon_quant.log:[2024-01-22 10:41:26.452] [jointLog] [info] Mapping rate = 91.6508%
+S45_salmon_quant.log:[2024-01-22 10:42:10.024] [jointLog] [info] Mapping rate = 89.4008%
+S46_salmon_quant.log:[2024-01-22 10:42:49.407] [jointLog] [info] Mapping rate = 89.7572%
+S47_salmon_quant.log:[2024-01-22 10:43:59.675] [jointLog] [info] Mapping rate = 91.3466%
+S48_salmon_quant.log:[2024-01-22 10:44:43.790] [jointLog] [info] Mapping rate = 90.1717%
+S49_salmon_quant.log:[2024-01-22 10:45:42.207] [jointLog] [info] Mapping rate = 91.2323%
+S50_salmon_quant.log:[2024-01-22 10:46:43.490] [jointLog] [info] Mapping rate = 91.9309%
+S51_salmon_quant.log:[2024-01-22 10:47:33.698] [jointLog] [info] Mapping rate = 92.019%
+S53_salmon_quant.log:[2024-01-22 10:48:16.603] [jointLog] [info] Mapping rate = 92.3999%
+S54_salmon_quant.log:[2024-01-22 10:49:02.725] [jointLog] [info] Mapping rate = 92.3802%
+S55_salmon_quant.log:[2024-01-22 10:50:20.751] [jointLog] [info] Mapping rate = 95.6488%
+S56_salmon_quant.log:[2024-01-22 10:51:01.791] [jointLog] [info] Mapping rate = 89.8339%
+S57_salmon_quant.log:[2024-01-22 10:51:58.254] [jointLog] [info] Mapping rate = 92.7079%
+S58_salmon_quant.log:[2024-01-22 10:53:02.198] [jointLog] [info] Mapping rate = 93.2282%
+S59_salmon_quant.log:[2024-01-22 10:54:01.264] [jointLog] [info] Mapping rate = 93.635%
+S60_salmon_quant.log:[2024-01-22 10:54:35.592] [jointLog] [info] Mapping rate = 87.2988%
+S61_salmon_quant.log:[2024-01-22 10:55:18.162] [jointLog] [info] Mapping rate = 89.9212%
+S62_salmon_quant.log:[2024-01-22 10:55:58.461] [jointLog] [info] Mapping rate = 87.5969%
+S63_salmon_quant.log:[2024-01-22 10:56:53.017] [jointLog] [info] Mapping rate = 93.3033%
+S64_salmon_quant.log:[2024-01-22 10:57:43.442] [jointLog] [info] Mapping rate = 92.1591%
+S65_salmon_quant.log:[2024-01-22 10:58:35.308] [jointLog] [info] Mapping rate = 92.7356%
+S66_salmon_quant.log:[2024-01-22 10:59:35.291] [jointLog] [info] Mapping rate = 92.1646%
+```
+
+
+# Assembly thinning and redundancy reduction
+When doing a _de novo_ transcriptome assembly, the output generally contains many more sequences than would be expected based on the number of genes in a genome. This is a product of assembled contigs including transcriptional artifacts or may be representative of real biological phenomenon such as alternative splicing. Because of this extra noise, assembly thinning is often an important step towards achieving a more manageable set of sequences. This thinning can be done in many ways:
+
+  1. Choose a representative isoform that has the **highest read support**
+  2. Choose a representative isoform that is the **longest**
+  3. Choose a representative isoform that produces the **longest translated amino acid sequence**
+  4. Choose a representative isoform whose **coding sequence has the highest read support**
+  5. Exclude transcripts that are lowly expressed (TPM < XX = discarded)
+  6. Use a clustering tool to group sequences together into clusters and extract representative sequences
+  7. Create SuperTranscripts
+
+## Using Super transcripts
+A SuperTranscript is constructed by collapsing unique and common sequence regions among your splicing isoforms into a single linear sequence. While the resulting SuperTranscript may not necessarily exist in a real biological context, they allow for assembly thinning to occur without any sequence loss. Here assembly thinning is not the main objective, but rather a nice side effect.
+
+```{bash}
+#!/bin/bash
+
+trinity_out=$1 #The .fasta file generated by the Trinity run
+
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/emily_files/ && /usr/local/bin/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py --incl_malign --trinity_fasta $trinity_out"
+
+```
+
+## Re-evaluating quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_genes.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:88.3%[S:84.2%,D:4.1%],F:3.2%,M:8.5%,n:3640
+        3214    Complete BUSCOs (C)
+        3064    Complete and single-copy BUSCOs (S)
+        150     Complete and duplicated BUSCOs (D)
+        116     Fragmented BUSCOs (F)
+        310     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+
+```
+
+
+# Prepping for differential expression analysis
+## Importing transcript abundance with tximport
+```{r create_sample_file}
+
+##Create a file containing information about the samples
+ID <- c("S31", "S32", "S33", "S35", "S36", "S37", "S38", "S39", "S40", "S31", "S41", "S42", "S43", "S44","S45","S46","S47","S48","S49","S50","S51","S52","S53","S54","S55","S56","S57","S58","S59","S60","S61","S62","S63","S64","S65","S66",)
+Sex <- c("F", "F", "F", "F" "M", "M", "M", "M", "M", "F",
+         "F", "F", "F", "F", "M", "M", "M", "M", "M", "F",
+         "F", "F", "F", "F", "F",
+         "M", "M", "M", "M", "M", "M", "M", "M", "F", "F", "F")
+Organ <- rep(c("Liver", "Gill", "Gonad"), times = c(9, 10, 15))
+samples <- cbind(ID, Sex, Organ)
+samples <- as.data.frame(samples)
+write.table(samples, file = "SN_samples.txt", quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Install and load required package
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("tximport")
+library(tximport)
+
+#Read in sample file
+samples <- read.table("SN_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("/home/rccuser/shared/emily_files/nigra_salmon_expression_files", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- read.table("trinity_genes.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 10)] #Using the geneID for both the gene and transcript ID as we no longer has isoform information in the SuperTranscripts assembly
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.FL <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.FL$counts)
+saveRDS(txi.salmon.FL, "txi.salmon_FL.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
+
+```
