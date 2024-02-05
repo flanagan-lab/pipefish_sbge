@@ -1,0 +1,37 @@
+---
+title: "Differential Expression Analysis in _Stigmatopora nigra_"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(pheatmap)
+library(RColorBrewer)
+library(PCAtools)
+library(ggpubr)
+library(cowplot)
+library(UpSetR)
+library(ggplot2)
+library(kableExtra)
+library(tidyverse)
+library(knitr)
+library(magick)
+```
