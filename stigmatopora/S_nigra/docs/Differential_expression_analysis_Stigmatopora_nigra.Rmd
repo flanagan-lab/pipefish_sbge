@@ -313,23 +313,23 @@ liver_con_res_p05 <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05, ]
 top50_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
   liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 #Run once to create the file and then commented out
-#write.table(top50_MLiver_trin_genes,
- #           'SN_maleL_top50TRgenes.txt', 
-  #           sep = "", 
-   #          quote=FALSE, 
-    #         row.names = FALSE, 
-     #        col.names = FALSE)
+write.table(top50_MLiver_trin_genes,
+           'SN_maleL_top50TRgenes.txt', 
+           sep = "", 
+           quote=FALSE, 
+             row.names = FALSE, 
+             col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
   liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
 #Run once to create the file and then commented out
-#write.table(top50_Fliver_trin_genes,
- #           'SN_femL_top50TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(top50_Fliver_trin_genes,
+            'SN_femL_top50TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 ```
 
 ### M-F Gill Comparisson
@@ -433,23 +433,23 @@ gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
 top50_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 #Run once to create the file and then commented out
-#write.table(top50_MGonad_trin_genes,
- #           'SN_maleGon_top50TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(top50_MGonad_trin_genes,
+            'SN_maleGon_top50TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
 #Run once to create the file and then commented out
-#write.table(top50_FGonad_trin_genes,
- #           'SN_femGon_top50TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(top50_FGonad_trin_genes,
+            'SN_femGon_top50TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 ```
 
 ### MA Plots
@@ -527,19 +527,19 @@ upset(fromList(listInputFB),
 ```
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
-#Esporting data used to make the Upset plot (run once and them commented out)
-#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
- #           row.names = TRUE)
+#Exporting data used to make the Upset plot (run once and them commented out)
+write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+            row.names = TRUE)
+write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+            row.names = TRUE)
+write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+            row.names = TRUE)
+write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+            row.names = TRUE)
+write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+            row.names = TRUE)
+write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+            row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
 listInputall <- list("Testis" = rownames(gonad_mal_biased),
@@ -629,7 +629,7 @@ logFC_long<- data.frame(
 )
 
 #Exporting this data, run once and then commented out
-#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
 ```
 
 With the dataset in the proper format now, we can generate the plot
@@ -699,10 +699,13 @@ Prior to running the for loop, any "outliers" that were determined by DESeq were
 #Calculating the Cooks threshold that would have been used
 np <- length(resultsNames(ddsMF_SN_exp))
 nsamp <- ncol(ddsMF_SN_exp)
-cooks_thresh <- qf(0.99, df1 = np, df2 = 29-np)
+cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
 
 out_ids <- names(mcols(ddsMF_SN_exp)$maxCooks[mcols(ddsMF_SN_exp)$maxCooks >
                                                 cooks_thresh])
+
+#Checking to make sure we have correct number of outliers
+length(out_ids)
 
 #Filtering out the dds dataset to remove the outliers determined by DESeq
 ddsMF_SN_exp_filtered <- ddsMF_SN_exp[!(rownames(ddsMF_SN_exp) %in% out_ids), ]
@@ -727,21 +730,21 @@ for(organ in organs){
                                             function(x) x <= 10)
                                       )
                                 ) == ncol(counts(ddsMF_SN_exp_filtered, 
-                                                 normalized = TRUE)[, ddsMF_SN_exp_filtered$Sex == "F" &
-                                                                      ddsMF_SN_exp_filtered$Organ == organ])
+                                                 normalized = TRUE)[, ddsMF_SN_exp_filtered$sex == "F" &
+                                                                      ddsMF_SN_exp_filtered$organ == organ])
                       )
   
   fem0_organ <- counts(ddsMF_SN_exp_filtered, 
                        normalized = TRUE)[rownames(counts(ddsMF_SN_exp_filtered, 
                                                           normalized = TRUE)) %in% 
                                             names(fem0_organ_names), 
-                                          ddsMF_SN_exp_filtered$Organ == organ]
+                                          ddsMF_SN_exp_filtered$organ == organ]
                                                          
   
   ##Pull out rows where median of male count >=20 for that organ
   mal10_organ <- apply(counts(ddsMF_SN_exp_filtered, 
-                              normalized = TRUE)[, ddsMF_SN_exp_filtered$Sex == "M" 
-                                                 & ddsMF_SN_exp_filtered$Organ == organ], 
+                              normalized = TRUE)[, ddsMF_SN_exp_filtered$sex == "M" 
+                                                 & ddsMF_SN_exp_filtered$organ == organ], 
                        1,
                        function(x) median(x) >=20)
   
@@ -817,4 +820,172 @@ sex_specific_counts %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
 ```
 
-### battling with the output of the above script (no sex-specific genes in any of the male organs) - note to self to try and solve this tomorrow
+To get a better idea what is going on between the sex-specific genes vs the sex-biased genes I first determined how many overlaps there were between our sex-biased and sex-specific genes and then used plotCounts to plot the counts for each gene separately. 
+
+In the **Male Gills** there are `r nrow(SN_sex_specific_genes$Gill_male_specific[rownames(SN_sex_specific_genes$Gill_male_specific) %in% rownames(gill_mal_biased),])` genes that overlap between sex-biased and sex-specific, there are `r nrow(SN_sex_specific_genes$Gonad_male_specific[rownames(SN_sex_specific_genes$Gonad_male_specific) %in% rownames(gonad_mal_biased),])` overlapping in the **gonads** and `r nrow(SN_sex_specific_genes$Liver_male_specific[rownames(SN_sex_specific_genes$Liver_male_specific) %in% rownames(liver_mal_biased),])` overlapping in the **liver**. For females we have `r nrow(SN_sex_specific_genes$Gill_female_specific[rownames(SN_sex_specific_genes$Gill_female_specific) %in% rownames(gill_fem_biased),])` overlapping sex-specific and sex-biased genes in the **gills**, `r nrow(SN_sex_specific_genes$Gonad_female_specific[rownames(SN_sex_specific_genes$Gonad_female_specific) %in% rownames(gonad_fem_biased),])` genes in the **gonads**, and `r nrow(SN_sex_specific_genes$Liver_female_specific[rownames(SN_sex_specific_genes$Liver_female_specific) %in% rownames(liver_fem_biased),])` genes in the **liver**.
+
+```{r gills-sex-specific, eval = FALSE}
+## Female sex-specific
+fem_sp_geneIDs <- rownames(SN_sex_specific_genes$Gill_female_specific)
+
+##Set the plotting window
+par(mfrow=c(1,1))
+
+for(gene in fem_sp_geneIDs){
+  
+  plotCounts(ddsMF_SN[,ddsMF_SN$organ == 'Gill'], gene=gene, intgroup="sex")
+  
+}
+
+## Female sex-biased
+gill_fem_biased_geneIDS <- rownames(gill_fem_biased)
+
+##Set the plotting window
+par(mfrow=c(1,1))
+
+for(gene in gill_fem_biased_geneIDS){
+  
+  plotCounts(ddsMF_SN[,ddsMF_SN$organ == 'Gill'], gene=gene, intgroup="sex", col= 'salmon', pch = 19)
+  
+}
+```
+
+### Pulling out the gene IDs for all of the sex-specific genes
+```{r}
+#Run once to create the file and then commented out
+write.table(cbind(rownames(SN_sex_specific_genes$Gill_male_specific)),
+            'SN_malG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(SN_sex_specific_genes$Gill_female_specific)),
+            'SN_femG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(SN_sex_specific_genes$Gonad_male_specific)),
+            'SN_malGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(SN_sex_specific_genes$Gonad_female_specific)),
+            'SN_femGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(SN_sex_specific_genes$Liver_male_specific)),
+            'SN_malL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(SN_sex_specific_genes$Liver_female_specific)),
+            'SN_femL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```
+
+## Creating categories and binning the sex-biased genes based on degree of logFC
+This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:
+
+    1. Low - biased = LFC 2 - 3
+    2. Medium - biased = LFC 3 - 5
+    3. High - biased = LFC 5 - 10
+    4. Extreme sex bias = LFC > 10
+
+Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
+
+```{r bin-sex-bias}
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
+                              biased_bins[1],
+                              ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+
+#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their 
+#bias cat. in the dataset
+organs <- c("Gill", "Gill", "Gonad", "Gonad", "Liver", "Liver")
+bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
+
+for(i in 1:length(SN_sex_specific_genes)){
+
+  tmp <- SN_sex_specific_genes[[i]]
+  tmp <- as.data.frame(tmp)
+  tmp$geneID <- rownames(tmp)
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    
+    if(one_gene[["geneID"]] %in%
+       logFC_long[logFC_long$tissue == organs[[i]] &
+                  logFC_long$bias == bias[[i]],"geneID"]){
+       
+      logFC_long[logFC_long$geneID == one_gene[["geneID"]] &
+                   logFC_long$tissue == organs[[i]] &
+                   logFC_long$bias == bias[[i]],
+                 "bias_cat"] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene[["geneID"]]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long <- rbind(one_gene_dat, logFC_long)
+      
+      rownames(logFC_long) <- NULL
+    }
+  }
+ }
+
+#Create  subset of our long dataset that does not include the non-biased genes
+logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
+
+#Make a table to count the number of genes in each category for each organ
+bias_cat_table <- table(logFC_long_noNB$bias, logFC_long_noNB$bias_cat, logFC_long_noNB$tissue)
+
+#Add the counts of sex-specific genes to the table
+bias_cat_gill <- bias_cat_table[,, "Gill"]
+#write.table(bias_cat_gill, "data/bias_cat_gills.txt", row.names = TRUE)
+
+bias_cat_gonad <- bias_cat_table[,, "Gonad"]
+#write.table(bias_cat_gonad, "data/bias_cat_gonad.txt", row.names = TRUE)
+
+bias_cat_liver <- bias_cat_table[,, "Liver"]
+write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+
+#Plot the counts for each tissue type
+par(mfrow=c(1, 3))
+barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Gill", ylab = "Number of Genes", xlab = "Bias Category")
+barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Gonad")
+barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "Liver")
+legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
+
+```
