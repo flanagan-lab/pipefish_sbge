@@ -240,7 +240,7 @@ pc1v3
 ```
 
 # Multifactor design - Comparing M v F across the diff tissue types
-If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis. In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "FLG4M4" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
+If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis. In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "S34" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
 
 ```{r multi-factor-analysis, message=FALSE, warning=FALSE}
 #Create an additional column the has the two conditions combined(sex and organ type)
@@ -313,23 +313,24 @@ liver_con_res_p05 <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05, ]
 top50_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
   liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 #Run once to create the file and then commented out
-write.table(top50_MLiver_trin_genes,
-           'SN_maleL_top50TRgenes.txt', 
-           sep = "", 
-           quote=FALSE, 
-             row.names = FALSE, 
-             col.names = FALSE)
+#write.table(top50_MLiver_trin_genes,
+ #          'SN_maleL_top50TRgenes.txt', 
+  #         sep = "", 
+   #        quote=FALSE, 
+    #         row.names = FALSE, 
+     #        col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
   liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
+
 #Run once to create the file and then commented out
-write.table(top50_Fliver_trin_genes,
-            'SN_femL_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(top50_Fliver_trin_genes,
+ #           'SN_femL_top50TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 ```
 
 ### M-F Gill Comparisson
@@ -372,24 +373,26 @@ gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
 #Pulling the top 27 diff expressed genes in Males
 top27_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
   gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=27)))
+
 #Run once to create the file and then commented out
-write.table(top27_MGill_trin_genes,
-            'SN_maleG_top27TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(top27_MGill_trin_genes,
+ #           'SN_maleG_top27TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 
 #Pulling the top 27 diff expressed genes in Females 
 top27_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
   gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=27)))
+
 #Run once to create the file and then commented out
-write.table(top27_FGill_trin_genes,
-            'SN_femG_top27TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(top27_FGill_trin_genes,
+ #           'SN_femG_top27TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 ```
 
 ### M-F Gonad Comparisson
@@ -432,24 +435,26 @@ gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
 #Pulling the top 50 diff expressed genes in Males
 top50_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
+
 #Run once to create the file and then commented out
-write.table(top50_MGonad_trin_genes,
-            'SN_maleGon_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(top50_MGonad_trin_genes,
+ #           'SN_maleGon_top50TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 
 #Pulling the top 50 diff expressed genes in Females
 top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
+
 #Run once to create the file and then commented out
-write.table(top50_FGonad_trin_genes,
-            'SN_femGon_top50TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(top50_FGonad_trin_genes,
+ #           'SN_femGon_top50TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 ```
 
 ### MA Plots
@@ -629,7 +634,7 @@ logFC_long<- data.frame(
 )
 
 #Exporting this data, run once and then commented out
-write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
 ```
 
 With the dataset in the proper format now, we can generate the plot
@@ -853,42 +858,42 @@ for(gene in gill_fem_biased_geneIDS){
 ### Pulling out the gene IDs for all of the sex-specific genes
 ```{r}
 #Run once to create the file and then commented out
-write.table(cbind(rownames(SN_sex_specific_genes$Gill_male_specific)),
-            'SN_malG_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-write.table(cbind(rownames(SN_sex_specific_genes$Gill_female_specific)),
-            'SN_femG_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-write.table(cbind(rownames(SN_sex_specific_genes$Gonad_male_specific)),
-            'SN_malGon_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-write.table(cbind(rownames(SN_sex_specific_genes$Gonad_female_specific)),
-            'SN_femGon_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-write.table(cbind(rownames(SN_sex_specific_genes$Liver_male_specific)),
-            'SN_malL_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
-write.table(cbind(rownames(SN_sex_specific_genes$Liver_female_specific)),
-            'SN_femL_specific_TRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Gill_male_specific)),
+ #           'SN_malG_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Gill_female_specific)),
+ #           'SN_femG_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Gonad_male_specific)),
+ #           'SN_malGon_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Gonad_female_specific)),
+ #           'SN_femGon_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Liver_male_specific)),
+ #           'SN_malL_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(SN_sex_specific_genes$Liver_female_specific)),
+ #           'SN_femL_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 ```
 
 ## Creating categories and binning the sex-biased genes based on degree of logFC
@@ -987,5 +992,229 @@ barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, yl
 barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Liver")
 legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
+
+```
+
+## Gene Ontology Analysis
+We wanted to figure out two things:   
+
+  1) What are the genes that are sex-biased within each tissue type   
+  2) What are the GO terms for those genes.   
+
+To accomplish this I first had to pull out the sequences that corresponded to the Trinity gene IDS pulled out above. Once those sequences were fetched they were blasted against the _Corythoichthys intestinalis_ genome. This was completed with the following bash script on the RCC. 
+
+### Using BLAST in command line
+```{bash, eval = FALSE}
+#Create a BLAST database - Used Corythoichthys intestinalis for our BLAST database
+makeblastdb -in /home/rccuser/shared/emily_files/S_nigra_2024/c_intestinalis_data/data/GCF_030265065.1/GCF_030265065.1_ASM3026506v1_genomic.fna -out c_intestinalis_genome -dbtype nucl
+```
+
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create the arguements
+input_dir_TR=$1 #Location of the .txt files that contain the trinity gene IDs
+subset_fasta=$2 #Path to the subset_fasta_file script
+assembly_file=$3 #Name/location of the de novo assembly
+blast_database=$4
+output_dir=$5 #Desired output directory for .fasta and BLAST files
+
+## Loop through all the Trinity gene ID .txt files
+for file in $input_dir_TR/*TRgenes.txt
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $file .txt)
+
+        #Get the corresponding sequences for the Trinity Gene IDs
+        echo "Running subset_fasta_file for ${sample}..."
+        $subset_fasta -c -f $assembly_file -l $input_dir_TR/${sample}.txt
+
+        #Rename the automated output from the subset_fasta_file script
+        fasta_out=$(basename $assembly_file fasta)
+        mv $fasta_out.subset.fasta ${sample}.fasta
+
+        #Blast the sequences
+        echo "Running BLAST for ${sample}..."
+        blastn -db $blast_database -query ${sample}.fasta -out ${sample}_corythoicthys_blast.txt \
+                -evalue 0.001 \
+                -num_threads 12 \
+                -outfmt "6 qseqid qstart qend stitle salltitles sseqid sallseqid sacc sblastnames sstart send evalue bitscore length pident gaps"       
+
+        #Move the outputs into desired output directory
+        mv ${sample}* $output_dir
+
+done
+
+```
+
+This script was run as `bash ../scripts/blast_pipeline.sh nigra_high_exp_genes/TRgenes/ ../scripts/subset_fasta_file nigra_supertranscript.fasta c_intestinalis_genome/c_intestinalis_genome nigra_high_exp_genes/high_exp_results`
+
+Once the BLAST results were obtained in the RCC I read them into R for further filtering (keeping only one hit per gene)
+```{r readin_blast_results}
+#Specify the directory where BLAST results are located
+blast_path <- "data/nigra_BLAST/"
+
+#Create a list of the files I want
+SN_blast_files <- list.files(blast_path, pattern = "cory")
+
+#Create an empty list to store my datasets in
+SN_blast_list <- list()
+
+#Create a loop to read in all of the blast results
+for(file_name in SN_blast_files){
+   # Read the file and store it in a new object
+  file_data <- read.delim(file.path("data/nigra_BLAST", file_name), 
+                          stringsAsFactors = FALSE, 
+                          quote = "", 
+                          sep = "\t",
+                          header = FALSE)
+ 
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid", 
+                           "trin_gene_start", 
+                           "trin_gene_end", 
+                           "cory_gene_info", 
+                           "cory_gene_start
+                           cory_gene_end", 
+                           "evalue", 
+                           "bit_score", 
+                           "length", 
+                           "pident", 
+                           "gaps")
+  
+  # Create a new object with a name based on the file name
+  blast_name <- sub(".txt$", "", file_name) #Removes the file extension
+  SN_blast_list[[blast_name]] <- file_data
+}
+
+```
+
+### Filtering Blast results
+Because of the way BLAST was run in the RCC, we can have multiple hits for one gene, I want to filter that out so that there is only one hit kept for each gene.
+
+```{r filter-BLAST}
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered <- lapply(SN_blast_list, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "cory_gene_info", "cory_gene_start", "cory_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID in cory, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",uni_gene_subset_lowe_highpid$cory_gene_info))>1){
+    #   browser()
+    # } else{
+      uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+
+```
+
+### Merging the BLAST filtered Data frames with the sex-biased information
+Not all of the trinity genes had a BLAST hit come back, but I still want to include what those genes are in the dataset. To do this I am merging all of the top 50 genes with the filtered BLAST dataset and if there are genes that did not have any hits (i.e. are not in the filtered BLAST database) then they will receive an "NA".
+
+All genes that had an "NA" come back from blasting against the _C. intestinalis_ database will be blasted against the non-redundant BLAST database as well.
+
+```{r merge-blast-results}
+#Getting the top 50 diff. expressed genes in Males
+top50_MGonad <- head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], 
+                     n=50)
+top50_MGill <- head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = TRUE),], 
+                     n=50)
+top50_MLiver <- head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = TRUE),], 
+                     n=50)
+
+#Pulling the top 50 diff expressed genes in Females
+top50_FGonad <- head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = FALSE),],
+                     n=50)
+top21_FGill <- head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = FALSE),],
+                     n=21)
+top50_FLiver <- head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = FALSE),],
+                     n=50)
+#Create dataframes for all of the above that contains the trinity gene ID and the logFoldChange
+top50_MGonad_df <- as.data.frame(cbind(trin_geneid = top50_MGonad$trin_geneid,
+                                       LogFC = top50_MGonad$log2FoldChange))
+top50_MGill_df <- as.data.frame(cbind(trin_geneid = top50_MGill$trin_geneid,
+                                       LogFC = top50_MGill$log2FoldChange))
+top50_MLiver_df <- as.data.frame(cbind(trin_geneid = top50_MLiver$trin_geneid,
+                                       LogFC = top50_MLiver$log2FoldChange))
+top50_FGonad_df <- as.data.frame(cbind(trin_geneid = top50_FGonad$trin_geneid, 
+                                      LogFC = top50_FGonad$log2FoldChange))
+top21_FGill_df <- as.data.frame(cbind(trin_geneid = top21_FGill$trin_geneid, 
+                                      LogFC = top21_FGill$log2FoldChange))
+top50_FLiver_df <- as.data.frame(cbind(trin_geneid = top50_FLiver$trin_geneid, 
+                                      LogFC = top50_FLiver$log2FoldChange))
+
+#Merge the above dataframes with the corresponding blast_output_filtered dataframe
+blast_output_filtered$SN_femG_top21TRgenes_blast <- merge(top21_FGill_df, blast_output_filtered$SN_femG_top27TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+blast_output_filtered$SN_femGon_top50TRgenes_blast <- merge(top50_FGonad_df, blast_output_filtered$SN_femL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+blast_output_filtered$SN_femL_top50TRgenes_blast <- merge(top50_FLiver_df, blast_output_filtered$SN_femL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+blast_output_filtered$SN_maleG_top50TRgenes_blast <- merge(top50_MGill_df, blast_output_filtered$SN_maleG_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+blast_output_filtered$SN_maleGon_top50TRgenes_blast <- merge(top50_MGonad_df, blast_output_filtered$SN_maleGon_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+blast_output_filtered$SN_maleL_top50TRgenes_blast <- merge(top50_MLiver_df, blast_output_filtered$SN_maleL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+```
+
+### Blasting the sex-specific genes against the _C. intestinalis_ genome
+The trinity genes that were pulled out for the sex-specific genes above were blasted with `blastn` against the _C. intestinalis_ genome in the RCC. I then need to load those BLAST results into R, filter them, and pull out what the _C. intestinalis_ gene names are that correspond to them. 
+
+First, I read in all of the BLAST results for the sex-specific genes in each organ.
+
+```{r readin_blast_results_SS}
+#Specify the directory where BLAST results are located
+blast_path <- "data/floridae_BLAST/"
+
+#Create a list of the files I want
+FL_blast_files <- list.files(blast_path, pattern = "specific")
+
+#Create an empty list to store my datasets in
+FL_blast_list_sex_specific <- list()
+
+#Create a loop to read in all of the blast results
+for(file_name in FL_blast_files){
+  # Read the file and store it in a new object
+  file_data <- read.delim(file.path(blast_path, file_name), 
+                          stringsAsFactors = FALSE, 
+                          quote = "", 
+                          sep = "\t",
+                          header = FALSE)
+  
+  file_data <- file_data[, c(1:4, 10:16)]
+  
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid", 
+                           "trin_gene_start", "trin_gene_end", 
+                           "scov_gene_info",
+                           "scov_gene_start", "scov_gene_end", 
+                           "evalue", "bit_score", "length", "pident", 
+                           "gaps")
+
+  # Create a new object with a name based on the file name
+  blast_name <- sub(".txt$", "", file_name) #Removes the file extension
+  FL_blast_list_sex_specific[[blast_name]] <- file_data
+}
 
 ```
