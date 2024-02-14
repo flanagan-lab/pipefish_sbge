@@ -21,6 +21,7 @@ knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 
 ``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+#setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_nigra")
 #This is a cohesive list of all the libraries used in this document
 library(DESeq2)
 library(pheatmap)
@@ -533,18 +534,18 @@ upset(fromList(listInputFB),
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
 #Exporting data used to make the Upset plot (run once and them commented out)
-write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
-            row.names = TRUE)
+#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+      #      row.names = TRUE)
+#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+     #       row.names = TRUE)
+#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+    #        row.names = TRUE)
+#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+   #         row.names = TRUE)
+#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+  #          row.names = TRUE)
+#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+ #           row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
 listInputall <- list("Testis" = rownames(gonad_mal_biased),
@@ -1173,7 +1174,8 @@ top50_FLiver_df <- as.data.frame(cbind(trin_geneid = top50_FLiver$trin_geneid,
 blast_output_filtered$SN_femG_top21TRgenes_blast <- merge(top21_FGill_df, blast_output_filtered$SN_femG_top27TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 blast_output_filtered$SN_femGon_top50TRgenes_blast <- merge(top50_FGonad_df, blast_output_filtered$SN_femL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 blast_output_filtered$SN_femL_top50TRgenes_blast <- merge(top50_FLiver_df, blast_output_filtered$SN_femL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SN_maleG_top50TRgenes_blast <- merge(top50_MGill_df, blast_output_filtered$SN_maleG_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
+#I need to make top 50 maleG, but while I'm figuring out what went wrong, I'll plug in top 27
+blast_output_filtered$SN_maleG_top27TRgenes_blast <- merge(top50_MGill_df, blast_output_filtered$SN_maleG_top27TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 blast_output_filtered$SN_maleGon_top50TRgenes_blast <- merge(top50_MGonad_df, blast_output_filtered$SN_maleGon_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 blast_output_filtered$SN_maleL_top50TRgenes_blast <- merge(top50_MLiver_df, blast_output_filtered$SN_maleL_top50TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
 ```
@@ -1185,16 +1187,16 @@ First, I read in all of the BLAST results for the sex-specific genes in each org
 
 ```{r readin_blast_results_SS}
 #Specify the directory where BLAST results are located
-blast_path <- "data/floridae_BLAST/"
+blast_path <- "data/nigra_BLAST/"
 
 #Create a list of the files I want
-FL_blast_files <- list.files(blast_path, pattern = "specific")
+SN_blast_files <- list.files(blast_path, pattern = "cory")
 
 #Create an empty list to store my datasets in
-FL_blast_list_sex_specific <- list()
+SN_blast_list_sex_specific <- list()
 
 #Create a loop to read in all of the blast results
-for(file_name in FL_blast_files){
+for(file_name in SN_blast_files){
   # Read the file and store it in a new object
   file_data <- read.delim(file.path(blast_path, file_name), 
                           stringsAsFactors = FALSE, 
@@ -1207,14 +1209,137 @@ for(file_name in FL_blast_files){
   #Add column names to the dataset
   colnames(file_data) <- c("trin_geneid", 
                            "trin_gene_start", "trin_gene_end", 
-                           "scov_gene_info",
-                           "scov_gene_start", "scov_gene_end", 
+                           "cory_gene_info",
+                           "cory_gene_start", "cory_gene_end", 
                            "evalue", "bit_score", "length", "pident", 
                            "gaps")
 
   # Create a new object with a name based on the file name
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
-  FL_blast_list_sex_specific[[blast_name]] <- file_data
+  SN_blast_list_sex_specific[[blast_name]] <- file_data
 }
 
 ```
+
+I then need to filter to make sure each trinity gene only has one hit in the same way I did above.
+
+```{r filter-BLAST-SS}
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered_SS <- lapply(SN_blast_list_sex_specific, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end",
+                        "cory_gene_info", "cory_gene_start", "cory_gene_end", 
+                        "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue ==
+                                                   min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- 
+      uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident ==
+                                   max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID in scovelli, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$",
+                   "\\1",
+                   uni_gene_subset_lowe_highpid$scov_gene_info))>1){
+      
+      uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+
+```
+
+Now I am going to pull out the gene name and protein ID from the "cory_gene_info" column.
+
+```{r}
+for (i in 1:length(blast_output_filtered_SS)) {
+  
+  #Pulling out the gene name and adding it to a new column
+  blast_output_filtered_SS[[i]]$gene <- gsub("^(.*)(gene=)(\\w+\\d*)(.*$)",
+                                             "\\3",
+                                             blast_output_filtered_SS[[i]]$cory_gene_info)
+  
+  #Pulling out the protein name and adding it to a new column
+  blast_output_filtered_SS[[i]]$protein <- gsub("^(.*)(protein=)(.*)([[:graph:]]\\s[[:graph:]])(protein_id=)(.*$)",
+                                                "\\3",
+                                                blast_output_filtered_SS[[i]]$cory_gene_info)
+  
+  
+}
+
+```
+
+```{r long_BLAST}
+#Create a long format dataset that has the tissue information, BLAST gene and protein, 
+#geneID, and sex 
+blast_long_SS <- data.frame(
+  tissue=c(rep("Gill", 
+               sum(nrow(blast_output_filtered_SS$SN_femG_specific_TRgenes_corythoicthys_blast),
+                   nrow(blast_output_filtered_SS$SN_malG_specific_TRgenes_corythoicthys_blast))),
+           rep("Gonad", 
+               sum(nrow(blast_output_filtered_SS$SN_femGon_specific_TRgenes_corythoicthys_blast),
+                   nrow(blast_output_filtered_SS$SN_malGon_specific_TRgenes_corythoicthys_blast))),
+           rep("Liver",
+               sum(nrow(blast_output_filtered_SS$SN_femL_specific_TRgenes_corythoicthys_blast),
+                   nrow(blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast)))
+         ),
+  sex=c(rep("Female",
+            nrow(blast_output_filtered_SS$SN_femG_specific_TRgenes_corythoicthys_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$SN_malG_specific_TRgenes_corythoicthys_blast)),
+        rep("Female",
+            nrow(blast_output_filtered_SS$SN_femGon_specific_TRgenes_corythoicthys_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$SN_malGon_specific_TRgenes_corythoicthys_blast)),
+        rep("Female",
+            nrow(blast_output_filtered_SS$SN_femL_specific_TRgenes_corythoicthys_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast))
+        ),
+  gene=c(blast_output_filtered_SS$SN_femG_specific_TRgenes_corythoicthys_blast$gene,
+         blast_output_filtered_SS$SN_malG_specific_TRgenes_corythoicthys_blast$gene,
+         blast_output_filtered_SS$SN_femGon_specific_TRgenes_corythoicthys_blast$gene,
+         blast_output_filtered_SS$SN_malGon_specific_TRgenes_corythoicthys_blast$gene,
+         blast_output_filtered_SS$SN_femL_specific_TRgenes_corythoicthys_blast$gene,
+         blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast$gene
+         ),
+  protein=c(blast_output_filtered_SS$SN_femG_specific_TRgenes_corythoicthys_blast$protein,
+            blast_output_filtered_SS$SN_malG_specific_TRgenes_corythoicthys_blast$protein,
+            blast_output_filtered_SS$SN_femGon_specific_TRgenes_corythoicthys_blast$protein,
+            blast_output_filtered_SS$SN_malGon_specific_TRgenes_corythoicthys_blast$protein,
+            blast_output_filtered_SS$SN_femL_specific_TRgenes_corythoicthys_blast$protein,
+            blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast$protein
+            ),
+  trinityID=c(blast_output_filtered_SS$SN_femG_specific_TRgenes_corythoicthys_blast$trin_geneid,
+              blast_output_filtered_SS$SN_malG_specific_TRgenes_corythoicthys_blast$trin_geneid,
+              blast_output_filtered_SS$SN_femGon_specific_TRgenes_corythoicthys_blast$trin_geneid,
+              blast_output_filtered_SS$SN_malGon_specific_TRgenes_corythoicthys_blast$trin_geneid,
+              blast_output_filtered_SS$SN_femL_specific_TRgenes_corythoicthys_blast$trin_geneid,
+              blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast$trin_geneid)
+  )
+
+write.csv(blast_long_SS, "SN_BLAST_results_sex_specific.csv", row.names = FALSE)
+```
+
+
+
