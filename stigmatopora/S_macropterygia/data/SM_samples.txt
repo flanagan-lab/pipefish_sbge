@@ -16,7 +16,7 @@ S14	F	Gill
 S15	F	Gill
 S16	M	Gill
 S17	M	Gill
-S17	M	Gill
+S18	M	Gill
 S19	M	Gill
 S20	M	Gill
 S21	F	Liver
