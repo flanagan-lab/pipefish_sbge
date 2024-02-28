@@ -1402,6 +1402,7 @@ SN_blast_list <- list()
 
 #Create a loop to read in all of the blast results
 for(file_name in SN_blast_files){
+  #browser()
   # Read the file and store it in a new object
   file_data <- read.delim(file.path(blast_path, file_name), 
                           stringsAsFactors = FALSE, quote = "", 
