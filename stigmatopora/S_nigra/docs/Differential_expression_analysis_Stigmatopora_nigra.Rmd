@@ -1395,7 +1395,7 @@ The `blast_pipeline.sh` script was then used like above to pull out all of the c
 blast_path <- "data/danio_BLAST/"
 
 #Create a list of the files I want
-SN_blast_files <- list.files(blast_path, pattern = "_TRgenes")
+SN_blast_files <- list.files(blast_path, pattern = "danio")
 
 #Create an empty list to store my datasets in
 SN_blast_list <- list()
