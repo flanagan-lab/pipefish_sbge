@@ -48,3 +48,6 @@ stigmatopora/S_nigra/data/danio_BLAST/d_reiro_prot.psq
 *.fasta
 stigmatopora/S_nigra/data/nigra_BLAST/FL_femL_top50TRgenes.fasta
 *.csv
+*.gff
+stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.pdf
+stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.tex

@@ -37,6 +37,7 @@ library(knitr)
 library(magick)
 library(multcompView)
 ```
+
 ``` {r read-data}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.nigra <- readRDS("data/txi.salmon_SN.RDS")
@@ -1422,4 +1423,96 @@ for(file_name in SN_blast_files){
   SN_blast_list[[blast_name]] <- file_data
 }
 
+```
+
+```{r filter-BLAST-dreiro, echo=FALSE}
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered <- lapply(SN_blast_list, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end",
+                        "reiro_prot_info", "prot_id", "reiro_prot_start",
+                        "reiro_prot_end", "evalue", "bit_score", "length", 
+                        "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue ==
+                                                   min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[
+      which(uni_gene_subset_lowe$pident == 
+              max(uni_gene_subset_lowe$pident)),
+      ]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",
+                   uni_gene_subset_lowe_highpid$reiro_prot_info))>1){
+      uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+
+```
+
+In order to run PANTHER we need IDs that follow one of their supported formats. From NCBI, the gene name works (e.g. rpl27). That information is not automatically supplied with the BLAST output, but we can use the .gff file from NCBI to pull out the gene names that correspond to the proteinID (e.g. NP_956018.1).
+
+```{r gff-gene-names}
+#Read in the GFF file for zebrafish that has info about the geneID
+reiro_gff <- read.delim("data/danio_BLAST/d_reiro_genomic.gff",
+                        header = FALSE,
+                        comment.char = "#")
+
+#Keep only the columns I want and rename them
+reiro_gff <- reiro_gff[,c(1:5,9)]
+colnames(reiro_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
+
+#Subset the dataset to only include the rows we're interested in
+genes <- reiro_gff[reiro_gff$feature == "CDS",]
+
+#Pull out the gene name that corresponds to each protein ID
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", 
+                        genes$gene_info)
+genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", 
+                      genes$gene_info)
+
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+  
+   output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
+  
+   return(output)
+})
+
+```
+
+I am now going to make sure the sex bias information is included with the BLAST results so we can perform statistical overrepresentation and enrichment tests with PANTHER.
+```{r merge-blast-logfc}
+blast_output_merged$SN_femG_biased_TRgenes_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SN_femG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_femGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SN_femGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_femL_biased_TRgenes_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SN_femL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_malG_biased_TRgenes_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SN_malG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_malGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SN_malGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_malL_biased_TRgenes_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SN_malL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
 ```
