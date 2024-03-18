@@ -117,7 +117,7 @@ plotMA(res)
 ```
 
 ### Heatmap - overall expression
-We can also generate a heat map to look ar overall expression levels across our samples. Note, this is not differentially expressed genes.
+We can also generate a heat map to look at overall expression levels across our samples. Note, this is not differentially expressed genes.
 
 ```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
 #Pull out the top 20 rows with the most expression
@@ -206,7 +206,7 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
         axis.line = element_line(colour = "black"))
 ```
 
-```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with color now representing sex and shape representing organ type (left) as well as the comparisson of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
+```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
 
 par(mfrow=c(1,2))
 my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
