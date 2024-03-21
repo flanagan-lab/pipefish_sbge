@@ -123,7 +123,7 @@ We can also generate a heat map to look at overall expression levels across our 
 #Pull out the top 20 rows with the most expression
 select <- order(rowMeans(counts(dds_SN_exp, normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds_SN)[,c("sex", "organ")])
+df <- as.data.frame(colData(dds_SN)[,c("sex", "organ")]) 
 
 #Transform the data
 vsd <- vst(dds_SN_exp, blind=FALSE)
@@ -240,6 +240,92 @@ pc1v3 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = sex, shape = organ)
 pc1v3
 
 ```
+
+In the single-factor analyses we have established that sample S34 is an outlier. Here, we will remove it and re-run the PCA plots.
+```{r remove outlier S34 and then re-run PCA plots}
+##Remove S34 from the dataset
+dds_SN <- dds_SN[, dds_SN$ID != "S34"]
+
+#only keeping rows that have at lead 10 reads total
+keep <- rowSums(counts(dds_SN)) >= 10
+dds_SN <- dds_SN[keep, ]
+
+
+#Generate the expression values
+dds_SN_exp <- DESeq(dds_SN)
+
+#Transform the data
+vsd <- vst(dds_SN_exp, blind=FALSE)
+
+```
+
+```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+
+#Generate the PCA dataframe
+pca <- prcomp(t(assay(vsd)))
+pca_plotting_data<-as.data.frame(pca$x)
+
+#Add the metadata to the PCA dataset
+pca_plotting_data$organ <- samples$organ[samples$ID != "S34"]
+pca_plotting_data$sex <- samples$sex[samples$ID != "S34"]
+
+#Calculate the percent variation attributed to each axis 
+pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SN))
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+
+my_colors <- c("Gill" = "#6E8B3D75", "Gonad" = "#EEB42275", "Liver" = "#EE826275")
+my_shapes <- c(16, 17)
+
+par(mfrow=c(1,2))
+ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = my_shapes) +
+  geom_point(aes(size = organ)) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
+
+par(mfrow=c(1,2))
+my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
+my_shapes2 <- c(16, 17, 15)
+pc1v2 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = sex, shape = organ)) +
+  scale_color_manual(values = my_colors2) +
+  scale_shape_manual(values = my_shapes2) +
+  geom_point(aes(size = organ)) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+pc1v2
+
+pc1v3 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = sex, shape = organ)) +
+  scale_color_manual(values = my_colors2) +
+  scale_shape_manual(values = my_shapes2) +
+  geom_point(aes(size = organ)) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC3: 10% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+pc1v3
+
+```
+
 
 # Multifactor design - Comparing M v F across the diff tissue types
 If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis. In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "S34" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
