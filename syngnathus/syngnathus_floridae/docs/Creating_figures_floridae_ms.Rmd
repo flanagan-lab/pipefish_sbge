@@ -1,9 +1,9 @@
 ---
-title: 'Syngnathus floridae: figures'
-output:
-  pdf_document: default
-  html_document:
-    df_print: paged
+title: '_Syngnathus floridae_: figures'
+output: github_document
+  #pdf_document: default
+  #html_document:
+    #df_print: paged
 editor_options:
   chunk_output_type: console
 ---
