@@ -259,7 +259,7 @@ vsd <- vst(dds_SN_exp, blind=FALSE)
 
 ```
 
-```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 31% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 20% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
 
 #Generate the PCA dataframe
 pca <- prcomp(t(assay(vsd)))
@@ -1426,7 +1426,7 @@ blast_long_SS <- data.frame(
               blast_output_filtered_SS$SN_malL_specific_TRgenes_corythoicthys_blast$trin_geneid)
   )
 #write csv once, then comment out
-write.csv(blast_long_SS, "SN_BLAST_results_sex_specific.csv", row.names = FALSE)
+#write.csv(blast_long_SS, "SN_BLAST_results_sex_specific.csv", row.names = FALSE)
 ```
 
 ### Blasting against the Zebrafish genome
@@ -1482,7 +1482,7 @@ The `blast_pipeline.sh` script was then used like above to pull out all of the c
 blast_path <- "data/danio_BLAST/"
 
 #Create a list of the files I want
-SN_blast_files <- list.files(blast_path, pattern = "danio")
+SN_blast_files <- list.files(blast_path, pattern = "top")
 
 #Create an empty list to store my datasets in
 SN_blast_list <- list()
@@ -1590,15 +1590,148 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
 I am now going to make sure the sex bias information is included with the BLAST results so we can perform statistical overrepresentation and enrichment tests with PANTHER.
 ```{r merge-blast-logfc}
-blast_output_merged$SN_femG_biased_TRgenes_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SN_femG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SN_femGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SN_femGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$SN_femG_top27TRgenes_danio_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SN_femG_top27TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SN_femL_biased_TRgenes_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SN_femL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$SN_femGon_top50TRgenes_danio_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SN_femGon_top50TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE) 
 
-blast_output_merged$SN_malG_biased_TRgenes_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SN_malG_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$SN_femL_top50TRgenes_danio_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SN_femL_top50TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SN_malGon_biased_TRgenes_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SN_malGon_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$SN_maleG_top27TRgenes_danio_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SN_maleG_top27TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SN_malL_biased_TRgenes_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SN_malL_biased_TRgenes_blast, by = "trin_geneid", all.y = TRUE)
+blast_output_merged$SN_maleGon_top50TRgenes_danio_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SN_maleGon_top50TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SN_maleL_top50TRgenes_danio_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SN_maleL_top50TRgenes_danio_blast, by = "trin_geneid", all.y = TRUE)
+
 ```
+
+```{r, eval=FALSE}
+#Write once then comment out
+#write.table(c(blast_output_merged$SN_femG_top27TRgenes_danio_blast$gene_name, blast_output_merged$SN_femGon_top50TRgenes_danio_blast$gene_name, blast_output_merged$SN_femL_top50TRgenes_danio_blast$gene_name, blast_output_merged$SN_maleG_top27TRgenes_danio_blast$gene_name, blast_output_merged$SN_maleGon_top50TRgenes_danio_blast$gene_name, blast_output_merged$SN_maleL_top50TRgenes_danio_blast$gene_name),
+ #          'SN_GOnames.txt', 
+  #          sep = " ", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+
+#write once then comment out
+#write.table(rbind(blast_output_merged$SN_femG_top27TRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+ #             blast_output_merged$SN_femGon_top50TRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+  #            blast_output_merged$SN_femL_top50TRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+   #           blast_output_merged$SN_maleG_top27TRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+    #          blast_output_merged$SN_maleGon_top50TRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+     #         blast_output_merged$SN_maleL_top50TRgenes_danio_blast[,c("gene_name", "log2FoldChange")]),
+      #      'SN_GOnames_FC.txt',
+       #     sep = "\t",
+        #    quote = FALSE,
+         #   row.names = FALSE,
+          #  col.names = FALSE)
+```
+
+```{r panther-results}
+panther <- read.delim("data/pantherGeneList.txt", header = FALSE)
+colnames(panther) <- c("GeneID", "MappedID", "GeneName", "pantherFAM", 
+                       "panther_prot_class", "species")
+
+blast_output_merged$SN_femG_top27TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_femG_top27TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$SN_femGon_top50TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_femGon_top50TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$SN_femL_top50TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_femL_top50TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$SN_maleG_top27TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_maleG_top27TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$SN_maleGon_top50TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_maleGon_top50TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$SN_maleL_top50TRgenes_danio_blast <-
+  merge(blast_output_merged$SN_maleL_top50TRgenes_danio_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+```
+
+
+```{r, eval = FALSE}
+go_tabs <- lapply(blast_output_merged, function(dat){
+
+  tab <- data.frame(table(dat$panther_prot_class) )
+  tab$Var1 <- as.character(tab$Var1)
+  tab$Var1[tab$Var1==""] <- "Unclassified"
+  tab$prop <- tab$Freq/sum(tab$Freq)
+
+  return(tab)
+  })
+
+
+all_go_dat <- data.frame(matrix(ncol=4,nrow=0))
+colnames(all_go_dat) <- c(
+  colnames(go_tabs$SN_femG_top27TRgenes_danio_blast),
+  "bias_cat", "tissue"
+)
+tissues <- c("Gill", "Gonad", "Liver", "Gill", "Gonad", "Liver")
+
+for(i in 1:length(go_tabs)){
+  tmp<-go_tabs[[i]]
+  tmp$cat<-names(go_tabs)[i]
+  tmp$tissue <- tissues[[i]]
+  all_go_dat<-rbind(all_go_dat, tmp)
+}
+
+all_go_sums <- data.frame(matrix(ncol = 4,
+                                 nrow = 0))
+colnames(all_go_sums) <- c("Freq", "prot_class", "tissue", "prop")
+
+for(organ in unique(all_go_dat$tissue)){
+  
+  tmp <- all_go_dat[all_go_dat$tissue == organ, ]
+  go_sums <- as.data.frame(tapply(tmp$Freq, tmp$Var1, sum))
+  go_sums$prot_class <- rownames(go_sums)
+  colnames(go_sums)[1] <- "Freq"
+  go_sums$tissue <- organ
+  rownames(go_sums) <- NULL
+  
+  go_sums$prop <- go_sums$Freq/sum(go_sums$Freq)
+  
+  all_go_sums <- rbind(all_go_sums, go_sums)
+
+}
+
+all_go_sums$prot_class_final <- ifelse(all_go_sums$prop < 0.02,
+                                       paste0("Other Protien Class"),
+                                       paste0(all_go_sums$prot_class))
+
+# make a barplot 
+my_colors <- c("Gonad" = "#EEB422", "Liver" = "#EE8262", "Gill" = "#20B2AA")
+ggplot(all_go_sums, 
+       aes(prot_class, prop, fill = tissue)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = my_colors) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+#note to future Emily - Go back and do this for all SB genes, not just the top 27 and top 50 
