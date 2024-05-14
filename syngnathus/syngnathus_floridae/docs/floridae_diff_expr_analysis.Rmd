@@ -1,12 +1,14 @@
 ---
 title: "Differential Expression Analysis in _Syngnathus floridae_"
 output:
-  html_document:
-    df_print: paged
-    code_folding: show
-    toc: yes
-    toc_float: yes
-    number_sections: yes
+  github_document:
+    toc: true
+  #html_document:
+    #df_print: paged
+    #code_folding: show
+    #toc: yes
+    #toc_float: yes
+    #number_sections: yes
 editor_options:
   chunk_output_type: console
 ---
@@ -785,7 +787,7 @@ for(organ in organs){
 
 ### Investigating the results of the sex-specific subsetting
 Let's now take a look at how many sex-specific genes we have in each tissue type:
-```{r sex-specific-counts, echo=FALSE, message=FALSE, warning=FALSE}
+```{r sex-specific-counts, echo=FALSE, message=FALSE, warning=FALSE, eval = FALSE}
 sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
                                   sex = c(rep("M", 3),
                                           rep("F", 3)),
