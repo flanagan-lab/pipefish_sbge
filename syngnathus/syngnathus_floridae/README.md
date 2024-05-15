@@ -31,3 +31,6 @@ All Rmarkdown documents used for the various analyses are located in the directo
 
 All bash scripts that correspond with any .Rmd documents can be found in the bash/ directory.
 
+### R
+The directory R/ contains the script that was used to convert the results from the genetic parentage analysis into overall mating and reproductive success and the script that was used to generate the BUSCO plot.
+
