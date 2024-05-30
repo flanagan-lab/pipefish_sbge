@@ -8,11 +8,13 @@ editor_options:
   chunk_output_type: console
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,out.extra='',fig.pos='H', eval = FALSE, message=FALSE)
+
 knitr::opts_knit$set(root.dir='./')
+
 ```
+
 ```{r loadLibs, message=FALSE, warning=FALSE,eval=TRUE}
 library(spfTools)
 library(DESeq2)
@@ -24,6 +26,7 @@ library(tidyverse)
 library(UpSetR)
 library(EnvStats)
 library(knitr)
+
 ```
 
 ```{r setParams, eval=TRUE}
@@ -42,8 +45,8 @@ sex_shapes <- c(
 
 organ_cols<-c("Gill" = "#20B2AA",
   "Gonad" = "#EEB422", 
-  "Liver" = "#EE8262" 
-)
+  "Liver" = "#EE8262")
+
 ```
 
 ```{r getSamplesInfo, eval=TRUE}
@@ -623,7 +626,7 @@ all_go_sums$prot_class[all_go_sums$prot_class=="Unclassified"]<- " unclassified"
 
 ```{r fig3D}
 pdf("figs/Fig3D_GO_barplot.pdf",height=14, width=12)
-ggplot(all_go_sums, 
+ggplot(all_go_sums[!(all_go_sums$prot_class %in% c(" other", " unclassified")),], 
        aes(fct_rev(prot_class), prop, fill = tissue)) +   
   geom_bar(position = "dodge", stat="identity") +
   scale_fill_manual(values = organ_cols) +
@@ -748,8 +751,10 @@ dev.off()
 
 ```{r fig4Bsetup}
 bias_labs<-c("U","L", "M", "H", "E", "S")
+biased_bins <- c("Low", "Med", "High", "Extreme", "Sex-specific")
 bias_bins<-c("Unbiased",biased_bins)
 ```
+
 ```{r fig4BData}
 logFC_long_all_ss <- read.csv("plot_data/logFC_long_taubias_SS.csv")
 
@@ -798,6 +803,69 @@ logFC_long_all_ss %>%
               color=sex_bias_colors["UB"]
               ) +
   guides(fill = guide_legend(title = "Bias", order = 3))
+dev.off()
+```
+
+Remove the violin and boxplots from groups that have a sample size of less than 10
+
+```{r fig4b}
+
+pdf("figs/Fig4B_tau_biascat_violin_jitter2.pdf",width = 12, height=3.75)
+# Preprocessing to create a new variable indicating sample size greater than 10
+logFC_long_all_ss <- logFC_long_all_ss %>%
+  group_by(bias_cat, tissue, bias) %>%
+  mutate(sample_size = n()) %>%
+  ungroup() %>%
+  mutate(plot_type = ifelse(sample_size > 10, "box_violin", "jitter"))
+
+# Plotting
+ggplot(logFC_long_all_ss, aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(data = filter(logFC_long_all_ss, plot_type == "box_violin"), 
+              position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(data = filter(logFC_long_all_ss, plot_type == "box_violin"), 
+               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  geom_point(data = filter(logFC_long_all_ss[logFC_long_all_ss$bias == "MB",],
+                           plot_type == "jitter"),
+             aes(x = as.numeric(bias_cat) + 0.185, y = tau),
+             size=1.5, 
+             position = position_jitter(width = 0.10),
+             bg=paste0(sex_bias_colors["MB"],"75"),
+             col=sex_bias_colors["MB"], pch = 21) +
+  geom_point(data = filter(logFC_long_all_ss[logFC_long_all_ss$bias == "FB",],
+                           plot_type == "jitter"), 
+             aes(x=as.numeric(bias_cat)-0.185, y=tau),
+             size=1.5, 
+             position = position_jitter(width = 0.10),
+             bg=paste0(sex_bias_colors["FB"], "75"),
+             col=sex_bias_colors["FB"],pch=21) +
+  scale_x_discrete(labels= bias_labs) +
+  scale_fill_manual(values = sex_bias_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=16)) +
+  labs(x = "Bias Category", y = expression(tau["TPM"]))  +
+  guides(fill = guide_legend(title = "Bias", order = 3)) +
+  guides(color = guide_legend(title = "Bias", order = 3)) +
+  stat_n_text(data = logFC_long_all_ss[logFC_long_all_ss$bias == "FB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = sex_bias_colors["FB"]
+  ) +
+  stat_n_text(data = logFC_long_all_ss[logFC_long_all_ss$bias == "MB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = 0.95,
+              color = sex_bias_colors["MB"]
+  ) +
+  stat_n_text(data = logFC_long_all_ss[logFC_long_all_ss$bias == "UB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = sex_bias_colors["UB"]
+  )
+
 dev.off()
 ```
 

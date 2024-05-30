@@ -3,11 +3,13 @@ title: "Tissue Specificity in _Syngnathus floridae_"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: yes
-    number_sections: no
-    toc: false
+  github_document: 
+    toc: true
+  #bookdown::pdf_document2:
+   # fig_caption: yes
+   # keep_tex: yes
+  #  number_sections: no
+   # toc: false
 header-includes: >
   \usepackage{lipsum}
   \usepackage{float}

@@ -3,11 +3,13 @@ title: "Selection pressures in _Syngnathus floridae_"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: yes
-    number_sections: no
-    toc: false
+  github_document:
+    toc: TRUE
+  #bookdown::pdf_document2:
+   # fig_caption: yes
+    #keep_tex: yes
+    #number_sections: no
+    #toc: false
 header-includes: >
   \usepackage{lipsum}
   \usepackage{float}
@@ -42,7 +44,7 @@ mal_meso <- read.csv("data/all_mal_meso_floridae.csv")
 
 # Calculating the degree of sexual dimorphism
 Other papers have reported varying levels of significant or non-significant size differences between males and females in this species. I want to compare the sizes that I have to see what sexual size dimorphism is like for this population. I am doing this across all fish that were used, including those trials that had no successful matings.
-```{r}
+```{r, eval = FALSE}
 library(vegan)
 traits<-dplyr::bind_rows(
   cbind(fem_meso,sex="Female"), 
@@ -887,15 +889,6 @@ wls_model_fem <- lm(fem_bateman$rel_repo_fitness ~ fem_bateman$MatingSuccess,
 wls_model_mal <- lm(mal_bateman$rel_repo_fitness ~ mal_bateman$MatingSuccess,
                     weights=wt_mal)
 
-#Running a weighted least squares regression between MS and Sex
-all_sex_succ <- read.csv("data/all_succ_matings.csv", header = TRUE)
-MS_sex_model <- lm(all_sex_succ$relative_fit ~
-                     all_sex_succ$MatingSuccess*all_sex_succ$sex)
-
-wt_all <- 1 / lm(abs(MS_sex_model$residuals) ~
-                   MS_sex_model$fitted.values)$fitted.values^2
-
-wls_MS_sex_model <- lm(all_sex_succ$relative_fit ~ all_sex_succ$MatingSuccess*all_sex_succ$sex, weights = wt_all)
   
 #Plotting the relationship between the mating and reproductive success
 par(mfrow=c(1,1))

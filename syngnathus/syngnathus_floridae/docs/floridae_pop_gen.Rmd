@@ -3,11 +3,13 @@ title: "Genetic diversity and Intersexual Fst in _Syngnathus floridae_"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: yes
-    number_sections: no
-    toc: false
+  github_document:
+    toc: true
+  #bookdown::pdf_document2:
+   # fig_caption: yes
+    #keep_tex: yes
+    #number_sections: no
+    #toc: false
 header-includes: >
   \usepackage{lipsum}
   \usepackage{float}
@@ -143,13 +145,3 @@ hist(tajD$Tajima,
 
 It appears that the low number of genes that we are seeing here may be due to a lack of sufficient individuals being aligned to the same regions, and then whether those regions are variable enough for the pop gen statistics to be calculated. I am going to try aligning my reads with a different software and see if that changes anything.
 
-# Re-generating SAM/BAM files with BWA
-`Bowtie2` was originally used to map the processed reads back to the reference transcriptome, but now I am going to try `Burrows-Wheeler Aligner` (`BWA`) to generate the SAM files. Converting the SAM files to BAM files nd coordinate sorting them will still be done with `SAMtools` v1.18 as I did before.
-
-`BWA` was installed inside of a conda environment on the RCC named `bwa`. `BWA` v0.7.17 was used. `SAMtools` was installed in the same conda environment. The following script was then used to generate the index, map the reads back to it to create the SAM files, then convert those SAM files to BAM files, and finally coordinate sort the BAM files.
-
-```{bash, eval = FALSE, file="bash/bwa_alignment.sh"}
-
-```
-
-The script was run as `nohup bash bash_scripts/bwa_alignment.sh trinity_supertran_floridae.fasta bwa_index/floridae floridae_kmer_corrected/ floridae_SAM_bwa/ floridae_BAM_bwa/ > bwa.log 2>&1 &`.

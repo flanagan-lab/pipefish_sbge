@@ -75,7 +75,7 @@ The cutoff here was to remove rows that had counts fewer than 10 across all samp
 
 ```{r pre-filtering, message=FALSE, warning=FALSE}
 #only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_FL)) >= 10
+keep <- rowSums(counts(dds_FL)) >= 10 & rowSums(counts(dds_FL)) < 1e6
 dds_FL <- dds_FL[keep, ]
 
 ```
@@ -977,6 +977,45 @@ barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, yl
 legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
 
 ```
+
+## Sex-bias across expression levels
+
+```{r getMedianExpression}
+cats <- c("FLG.*F", "FLG.*M",
+          "FLL.*F", "FLL.*M",
+          "FLO", "FLT")
+
+vsd_assay <- assay(vsd)
+
+cat_meds <- do.call(cbind,
+                    lapply(cats, 
+                           function(label){
+                            this_set <- vsd_assay[,
+                                                  grep(label,
+                                                       colnames(vsd_assay))]
+                            gene_meds <- apply(this_set, 1, median)
+                            return(gene_meds)
+                            }
+                           )
+                    )
+
+colnames(cat_meds) <- c("Gill_F","Gill_M",
+                        "Liver_F","Liver_M",
+                        "Gonad_F","Gonad_M")
+
+cat_meds <- as.data.frame(cat_meds)
+
+quantile(cat_meds$Gill_F, prob = c(0.25, 0.5, 0.75), type = 1)
+
+nrow(unique(cat_meds[rownames(cat_meds[cat_meds$Gill_F < 3.085522, ]) %in% rownames(gill_fem_biased),])) #24
+
+nrow(cat_meds[rownames(cat_meds[cat_meds$Gill_F < 3.085522, ]) %in% rownames(gill_non_biased),]) #15934
+
+
+
+
+```
+
 
 
 ## Gene Ontology Analysis
