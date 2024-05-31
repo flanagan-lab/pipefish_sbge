@@ -40,10 +40,10 @@ library(multcompView)
 
 ``` {r read-data}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
-txi.nigra <- readRDS("data/txi.salmon_SN.RDS")
+txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
 
 #The samples file generated for tximport
-samples <- read.table("data/SN_samples.txt", header = TRUE)
+samples <- read.table("data/SM_samples.txt", header = TRUE)
 
 #Make sure the conditions are in the samples file as a factor
 samples$sex <- as.factor(samples$sex)
@@ -58,7 +58,7 @@ To analyze your data with DESeq2 you must first generate the DESeqDataSet. In or
 
 ```{r DESeqDataSet, message=FALSE, warning=FALSE}
 #Create the DESeq dataset
-dds_SN <- DESeqDataSetFromTximport(txi.nigra, 
+dds_SM <- DESeqDataSetFromTximport(txi.macropterygia, 
                                    colData = samples,
                                    design = ~ sex)
 
@@ -68,10 +68,14 @@ The data is then pre-filtered to remove low gene counts before running further D
 
 The cutoff here was to remove rows that had counts fewer than 10 across all samples.
 
+Sample S23 (Mapping rate = 33.7558%) and S30 (Mapping rate = 11.6745%) both had lower than expected gene counts, so they were filtered out entirely. 
+
 ```{r pre-filtering, message=FALSE, warning=FALSE}
 #only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_SN)) >= 10
-dds_SN <- dds_SN[keep, ]
+keep <- rowSums(counts(dds_SM)) >= 10
+dds_SM <- dds_SM[keep, ]
+
+dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S23", "S30"))]
 
 ```
 
@@ -79,15 +83,15 @@ After filtering we can now perform the standard differential expression analysis
 
 ```{r diff-exp, message=FALSE, warning=FALSE}
 #Generate the expression values
-dds_SN_exp <- DESeq(dds_SN)
+dds_SM_exp <- DESeq(dds_SM)
 
 #Compile the results
-res <- results(dds_SN_exp)
+res <- results(dds_SM_exp)
 res
 ```
 
 Once that has finished we can now start exploring some of the single-factor analysis results
-```{r investigate-DESeq-results-SN}
+```{r investigate-DESeq-results-SM}
 ##Ordering our results based on p-value
 resOrdered <- res[order(res$pvalue),]
 resOrdered
@@ -98,11 +102,25 @@ summary(res)
 sum(res$padj < 0.1, na.rm = TRUE)
 
 #Looking at  an alpha=0.05, the default is 0.1
-res05 <- results(dds_SN_exp, alpha = 0.05)
+res05 <- results(dds_SM_exp, alpha = 0.05)
 summary(res05)
 sum(res05$padj < 0.05, na.rm = TRUE)
 
 ```
+out of 92491 with nonzero total read count
+adjusted p-value < 0.05
+LFC > 0 (up)       : 1389, 1.5%
+LFC < 0 (down)     : 1525, 1.6%
+outliers [1]       : 0, 0%
+low counts [2]     : 61344, 66%
+(mean count < 2)
+[1] see 'cooksCutoff' argument of ?results
+[2] see 'independentFiltering' argument of ?results
+
+> sum(res05$padj < 0.05, na.rm = TRUE)
+[1] 2914
+
+
 
 ## Visualizing the results
 ### MA-plot - MvF Differntial expression
@@ -121,12 +139,12 @@ We can also generate a heat map to look at overall expression levels across our 
 
 ```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
 #Pull out the top 20 rows with the most expression
-select <- order(rowMeans(counts(dds_SN_exp, normalized = TRUE)),
+select <- order(rowMeans(counts(dds_SM_exp, normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds_SN)[,c("sex", "organ")]) 
+df <- as.data.frame(colData(dds_SM)[,c("sex", "organ")]) 
 
 #Transform the data
-vsd <- vst(dds_SN_exp, blind=FALSE)
+vsd <- vst(dds_SM_exp, blind=FALSE)
 
 #Run the heat map with the function pheatmap
 pheatmap(assay(vsd)[select,], 
@@ -143,11 +161,11 @@ From the heatmap (Fig. \@ref(fig:heatmap)) we can see that for all of these top 
 heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
 #Run once to create the file and then commented out
 #write.table(heatmap_TG,
-            #'heatmap_trinitygenes.txt',
-            #sep = "",
-            #quote=FALSE,
-            #row.names = FALSE,
-            #col.names = FALSE)
+ #           'heatmap_trinitygenes.txt',
+  #          sep = "",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
 ```
 
 ### Sample-dist Heatmap
@@ -175,17 +193,19 @@ pheatmap(sampleDistsMatrix,
 Next we can look at PCA plots for our samples to see how our different samples are grouping. The size of the points for these plots will be scaled by the mating success of the individual to see if that may be at all correlated with the sample grouping.
 
 ```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+#Remove 23 and 30 ID rows from sample sheet
+samples2 <- samples[!(samples$ID %in% c("S23", "S30")), ]
 
 #Generate the PCA dataframe
 pca <- prcomp(t(assay(vsd)))
 pca_plotting_data<-as.data.frame(pca$x)
 
 #Add the metadata to the PCA dataset
-pca_plotting_data$organ <- samples$organ
-pca_plotting_data$sex <- samples$sex
+pca_plotting_data$organ <- samples2$organ
+pca_plotting_data$sex <- samples2$sex
 
 #Calculate the percent variation attributed to each axis 
-pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SN))
+pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SM))
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
 
@@ -196,7 +216,7 @@ par(mfrow=c(1,2))
 ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
   scale_color_manual(values = my_colors) +
   scale_shape_manual(values = my_shapes) +
-  geom_point(aes(size = organ)) +
+  geom_point(size = 3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
   coord_fixed() +
@@ -241,21 +261,21 @@ pc1v3
 
 ```
 
-In the single-factor analyses we have established that sample S34 is an outlier. Here, we will remove it and re-run the PCA plots.
+In the single-factor analyses we have established that sample S10 is an outlier. Here, we will remove it and re-run the PCA plots.
 ```{r remove outlier S34 and then re-run PCA plots}
 ##Remove S34 from the dataset
-dds_SN <- dds_SN[, dds_SN$ID != "S34"]
+dds_SM <- dds_SM[, dds_SM$ID != "S10"]
 
 #only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_SN)) >= 10
-dds_SN <- dds_SN[keep, ]
+keep <- rowSums(counts(dds_SM)) >= 10
+dds_SM <- dds_SM[keep, ]
 
 
 #Generate the expression values
-dds_SN_exp <- DESeq(dds_SN)
+dds_SM_exp <- DESeq(dds_SM)
 
 #Transform the data
-vsd <- vst(dds_SN_exp, blind=FALSE)
+vsd <- vst(dds_SM_exp, blind=FALSE)
 
 ```
 
@@ -266,11 +286,11 @@ pca <- prcomp(t(assay(vsd)))
 pca_plotting_data<-as.data.frame(pca$x)
 
 #Add the metadata to the PCA dataset
-pca_plotting_data$organ <- samples$organ[samples$ID != "S34"]
-pca_plotting_data$sex <- samples$sex[samples$ID != "S34"]
+pca_plotting_data$organ <- samples2$organ[samples2$ID != "S10"]
+pca_plotting_data$sex <- samples2$sex[samples2$ID != "S10"]
 
 #Calculate the percent variation attributed to each axis 
-pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SN))
+pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SM))
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
 
@@ -335,20 +355,20 @@ If we investigate the column data of our DESeq dataset we can see that each samp
 samples$group <- factor(paste0(samples$sex, samples$organ))
 
 ##Create a copy of the DESeq dataset
-ddsMF_SN <- DESeqDataSetFromTximport(txi.nigra,
+ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
                                      colData = samples,
                                      design = ~ group)
 
-##Remove S34 from the dataset
-ddsMF_SN <- ddsMF_SN[, ddsMF_SN$ID != "S34"]
+##Remove S10 from the dataset
+ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
-keep <- rowSums(counts(ddsMF_SN)) >= 10 #& rowSums(counts(ddsMF_SN)) < 1e6
-ddsMF_SN <- ddsMF_SN[keep, ]
+keep <- rowSums(counts(ddsMF_SM)) >= 10 #& rowSums(counts(ddsMF_SM)) < 1e6
+ddsMF_SM <- ddsMF_SM[keep, ]
 
 #Run the differential expression analysis
-ddsMF_SN_exp <- DESeq(ddsMF_SN)
-resultsNames(ddsMF_SN_exp)
+ddsMF_SM_exp <- DESeq(ddsMF_SM)
+resultsNames(ddsMF_SM_exp)
 ```
 
 ## Invesitgate the results of the differential expression
@@ -362,7 +382,7 @@ Thanks to the multi-factor analysis we can now explore differential expression b
 ### M-F Liver Comparisson
 ```{r m-f-liver-results}
 ##Pulling out the liver M-F results with an alpha of 0.05
-liver_con_res <- results(ddsMF_SN_exp, contrast = c("group", "MLiver", "FLiver"),
+liver_con_res <- results(ddsMF_SM_exp, contrast = c("group", "MLiver", "FLiver"),
                          alpha = 0.05)
 liver_con_res$trin_geneid <- rownames(liver_con_res)
 head(liver_con_res)
@@ -402,7 +422,7 @@ top50_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
   liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
 #Run once to create the file and then commented out
 #write.table(top50_MLiver_trin_genes,
- #          'SN_maleL_top50TRgenes.txt', 
+ #          'SM_maleL_top50TRgenes.txt', 
   #         sep = "", 
    #        quote=FALSE, 
     #         row.names = FALSE, 
@@ -414,7 +434,7 @@ top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
 
 #Run once to create the file and then commented out
 #write.table(top50_Fliver_trin_genes,
- #           'SN_femL_top50TRgenes.txt', 
+ #           'SM_femL_top50TRgenes.txt', 
   #          sep = "", 
    #         quote=FALSE, 
     #        row.names = FALSE, 
@@ -424,7 +444,7 @@ top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
 ### M-F Gill Comparisson
 ```{r m-f-gill}
 ##Pulling out the gill M-F results
-gill_con_res <- results(ddsMF_SN_exp, contrast = c("group", "MGill", "FGill"),
+gill_con_res <- results(ddsMF_SM_exp, contrast = c("group", "MGill", "FGill"),
                         alpha = 0.05)
 gill_con_res$trin_geneid <- rownames(gill_con_res)
 head(gill_con_res)
@@ -452,31 +472,33 @@ gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -
 gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
 ```
 
-Here I am getting the trinity gene IDs that correspond to the top 50 differentially expressed genes for males and females. Because there are only 27 female-biased and male-biased genes I will only use those.
+Here I am getting the trinity gene IDs that correspond to the top 50 differentially expressed genes for males and females. Because there are only 16 female-biased and male-biased genes I will only use those.
 
 ```{r top50-gill}
 #Creating a subset of results where p-value is less than 0.05
 gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
 
-#Pulling the top 27 diff expressed genes in Males
-top27_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=27)))
+#Pulling the top 16 diff expressed genes in Males
+#top16_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
+ # gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=16)))
 
 #Run once to create the file and then commented out
-#write.table(top27_MGill_trin_genes,
- #           'SN_maleG_top27TRgenes.txt', 
+#write.table(top50_MGill_trin_genes,
+ #           'SM_maleG_top16TRgenes.txt', 
   #          sep = "", 
    #         quote=FALSE, 
     #        row.names = FALSE, 
      #       col.names = FALSE)
 
 #Pulling the top 27 diff expressed genes in Females 
-top27_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=27)))
+
+#DO THIS FOR ALL THE THINGS WHEN YOU CAN BE BOTHERED
+FGill_trin_genes <- cbind(rownames(gill_con_res_p05[order(
+  gill_con_res_p05$log2FoldChange, decreasing = FALSE),]))
 
 #Run once to create the file and then commented out
 #write.table(top27_FGill_trin_genes,
- #           'SN_femG_top27TRgenes.txt', 
+ #           'SM_femG_top27TRgenes.txt', 
   #          sep = "", 
    #         quote=FALSE, 
     #        row.names = FALSE, 
@@ -486,7 +508,7 @@ top27_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
 ### M-F Gonad Comparisson
 ```{r m-f-gonads}
 ##Pulling out the gonad M-F results
-gonad_con_res <- results(ddsMF_SN_exp, 
+gonad_con_res <- results(ddsMF_SM_exp, 
                          contrast = c("group", "MGonad", "FGonad"),
                          alpha = 0.05)
 gonad_con_res$trin_geneid <- rownames(gonad_con_res)
@@ -526,7 +548,7 @@ top50_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
 
 #Run once to create the file and then commented out
 #write.table(top50_MGonad_trin_genes,
- #        'SN_maleGon_top50TRgenes.txt', 
+ #        'SM_maleGon_top50TRgenes.txt', 
   #        sep = "", 
    #       quote=FALSE, 
     #      row.names = FALSE, 
@@ -538,7 +560,7 @@ top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
 
 #Run once to create the file and then commented out
 #write.table(top50_FGonad_trin_genes,
- #           'SN_femGon_top50TRgenes.txt', 
+ #           'SM_femGon_top50TRgenes.txt', 
   #          sep = "", 
    #         quote=FALSE, 
     #        row.names = FALSE, 
