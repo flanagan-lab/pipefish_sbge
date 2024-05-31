@@ -120,20 +120,42 @@ plotMA(res)
 We can also generate a heat map to look at overall expression levels across our samples. Note, this is not differentially expressed genes.
 
 ```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
+df <- as.data.frame(samples[,c("sex", "organ")])
+rownames(df) <- samples$ID
+df$organ <- as.character(df$organ)
+
+organ_cols<-c("GILL" = "#20B2AA",
+              "GONAD" = "#EEB422", 
+              "LIVER" = "#EE8262")
+
+sex_cols<-c("F" = "#7fc97f", "M" = "#beaed4")
+
+ann_colors = list(sex=sex_cols,
+                  organ=organ_cols)
+
+col_order <- c(rownames(df[df$sex=="F" & df$organ=="GILL",]),
+               rownames(df[df$sex=="M" & df$organ=="GILL",]),
+               rownames(df[df$sex=="F" & df$organ=="GONAD",]),
+               rownames(df[df$sex=="M" & df$organ=="GONAD",]),
+               rownames(df[df$sex=="F" & df$organ=="LIVER",]),
+               rownames(df[df$sex=="M" & df$organ=="LIVER",]))
+
+
 #Pull out the top 20 rows with the most expression
 select <- order(rowMeans(counts(dds_SA_exp, normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds_SA)[,c("sex", "organ")]) 
+
 
 #Transform the data
 vsd <- vst(dds_SA_exp, blind=FALSE)
 
 #Run the heat map with the function pheatmap
-pheatmap(assay(vsd)[select,], 
+pheatmap(assay(vsd)[select, col_order], 
          cluster_rows = FALSE, 
          show_rownames = TRUE, 
          cluster_cols = FALSE, 
-         annotation_col = df)
+         annotation_col = df, 
+         annotation_colors = ann_colors)
 ```
 
 From the heatmap (Fig. \@ref(fig:heatmap)) we can see that for all of these top 20 expressed genes the highest expression in found in the liver. There are also a few genes that appear to be highly expressed across all of the tissue types. With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
