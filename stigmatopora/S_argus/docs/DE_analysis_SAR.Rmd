@@ -263,23 +263,6 @@ pc1v3
 
 ```
 
-In the single-factor analyses we have established that sample S34 is an outlier. Here, we will remove it and re-run the PCA plots.
-```{r remove outlier S34 and then re-run PCA plots}
-##Remove S34 from the dataset
-dds_SA <- dds_SA[, dds_SA$ID != "S34"]
-
-#only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_SA)) >= 10
-dds_SA <- dds_SA[keep, ]
-
-
-#Generate the expression values
-dds_SA_exp <- DESeq(dds_SA)
-
-#Transform the data
-vsd <- vst(dds_SA_exp, blind=FALSE)
-
-```
 
 ```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 31% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 20% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
 
@@ -288,15 +271,15 @@ pca <- prcomp(t(assay(vsd)))
 pca_plotting_data<-as.data.frame(pca$x)
 
 #Add the metadata to the PCA dataset
-pca_plotting_data$organ <- samples$organ[samples$ID != "S34"]
-pca_plotting_data$sex <- samples$sex[samples$ID != "S34"]
+pca_plotting_data$organ <- samples$organ
+pca_plotting_data$sex <- samples$sex
 
 #Calculate the percent variation attributed to each axis 
 pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SA))
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
 
-my_colors <- c("Gill" = "#6E8B3D75", "Gonad" = "#EEB42275", "Liver" = "#EE826275")
+my_colors <- c("GILL" = "#6E8B3D75", "GONAD" = "#EEB42275", "LIVER" = "#EE826275")
 my_shapes <- c(16, 17)
 
 par(mfrow=c(1,2))
@@ -361,8 +344,6 @@ ddsMF_SA <- DESeqDataSetFromTximport(txi.argus,
                                      colData = samples,
                                      design = ~ group)
 
-##Remove S34 from the dataset
-ddsMF_SA <- ddsMF_SA[, ddsMF_SA$ID != "S34"]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(ddsMF_SA)) >= 10 #& rowSums(counts(ddsMF_SA)) < 1e6
@@ -370,7 +351,7 @@ ddsMF_SA <- ddsMF_SA[keep, ]
 
 #Run the differential expression analysis
 ddsMF_SA_exp <- DESeq(ddsMF_SA)
-resultSAames(ddsMF_SA_exp)
+resultsNames(ddsMF_SA_exp)
 ```
 
 ## Invesitgate the results of the differential expression
@@ -384,7 +365,7 @@ Thanks to the multi-factor analysis we can now explore differential expression b
 ### M-F Liver Comparisson
 ```{r m-f-liver-results}
 ##Pulling out the liver M-F results with an alpha of 0.05
-liver_con_res <- results(ddsMF_SA_exp, contrast = c("group", "MLiver", "FLiver"),
+liver_con_res <- results(ddsMF_SA_exp, contrast = c("group", "MLIVER", "FLIVER"),
                          alpha = 0.05)
 liver_con_res$trin_geneid <- rownames(liver_con_res)
 head(liver_con_res)
@@ -446,7 +427,7 @@ top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
 ### M-F Gill Comparisson
 ```{r m-f-gill}
 ##Pulling out the gill M-F results
-gill_con_res <- results(ddsMF_SA_exp, contrast = c("group", "MGill", "FGill"),
+gill_con_res <- results(ddsMF_SA_exp, contrast = c("group", "MGILL", "FGILL"),
                         alpha = 0.05)
 gill_con_res$trin_geneid <- rownames(gill_con_res)
 head(gill_con_res)
@@ -509,7 +490,7 @@ top27_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
 ```{r m-f-gonads}
 ##Pulling out the gonad M-F results
 gonad_con_res <- results(ddsMF_SA_exp, 
-                         contrast = c("group", "MGonad", "FGonad"),
+                         contrast = c("group", "MGONAD", "FGONAD"),
                          alpha = 0.05)
 gonad_con_res$trin_geneid <- rownames(gonad_con_res)
 head(gonad_con_res)
