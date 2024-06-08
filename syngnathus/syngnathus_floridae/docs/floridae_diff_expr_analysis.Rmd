@@ -895,7 +895,7 @@ biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
 #Create a new column in the dataset and use ifelse statements to set the category limits
 #abs(logFC) was used to account for the fem-biased genes possessing negative values
-logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
+logFC_long$bias_cat <- ifelse(logFC_long$bias == "NB",
                               biased_bins[1],
                               ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3,
                                      biased_bins[2],
@@ -985,10 +985,17 @@ cats <- c("FLG.*F", "FLG.*M",
           "FLL.*F", "FLL.*M",
           "FLO", "FLT")
 
+new_cats <- c("FLG.*",
+              "FLL.*",
+              "FL[OT].*")
+
+
+
 vsd_assay <- assay(vsd)
 
+
 cat_meds <- do.call(cbind,
-                    lapply(cats, 
+                    lapply(new_cats, 
                            function(label){
                             this_set <- vsd_assay[,
                                                   grep(label,
@@ -999,19 +1006,82 @@ cat_meds <- do.call(cbind,
                            )
                     )
 
-colnames(cat_meds) <- c("Gill_F","Gill_M",
-                        "Liver_F","Liver_M",
-                        "Gonad_F","Gonad_M")
+colnames(cat_meds) <- c("Gill",
+                        "Liver",
+                        "Gonad")
 
 cat_meds <- as.data.frame(cat_meds)
 
-quantile(cat_meds$Gill_F, prob = c(0.25, 0.5, 0.75), type = 1)
+# add gene id as column
+cat_meds$geneID <- rownames(cat_meds)
 
-nrow(unique(cat_meds[rownames(cat_meds[cat_meds$Gill_F < 3.085522, ]) %in% rownames(gill_fem_biased),])) #24
+# make cat_meds long
+library(tidyr)
+cat_meds_long <- cat_meds %>% pivot_longer(cols = c("Gill", 
+                                                    "Liver", 
+                                                    "Gonad"),
+                                           names_to = "tissue",
+                                           values_to = "med_expression")
 
-nrow(cat_meds[rownames(cat_meds[cat_meds$Gill_F < 3.085522, ]) %in% rownames(gill_non_biased),]) #15934
+meds_bias <- merge(logFC_long, cat_meds_long, by=c("geneID","tissue"),
+                   all.x = TRUE)
 
+#Create an empty dataframe to store the data
+sb_props <- data.frame(matrix(ncol = 5,
+                              nrow = 0))
+colnames(sb_props) <- c("organ", "q1", "q2", "q3", "q4")
 
+for (organ in unique(meds_bias$tissue)) {
+  
+  #Subset dataset for one organ
+  tmp <- meds_bias[meds_bias$tissue == organ &
+                     !(is.na(meds_bias$med_expression)), ]
+  
+  #Calculate the quartiles of expression for that organ
+  quants <- quantile(tmp$med_expression,
+                     prob = c(0.25, 0.5, 0.75),
+                     type = 1,
+                     na.rm = TRUE)
+  
+  #For each quartile, calculate the number of MB, FB, and UB genes
+  q1 <- tapply(tmp[tmp$med_expression <= quants[[1]],]$geneID,
+         tmp[tmp$med_expression <= quants[[1]],]$bias,
+         length)
+  
+  q2 <- tapply(tmp[tmp$med_expression > quants[[1]] & 
+               tmp$med_expression <= quants[[2]],]$geneID,
+         tmp[tmp$med_expression > quants[[1]] & 
+               tmp$med_expression <= quants[[2]],]$bias,
+         length)
+  
+  q3 <- tapply(tmp[tmp$med_expression > quants[[2]] & 
+               tmp$med_expression <= quants[[3]],]$geneID,
+         tmp[tmp$med_expression > quants[[2]] & 
+               tmp$med_expression <= quants[[3]],]$bias,
+         length)
+  
+  q4 <- tapply(tmp[tmp$med_expression > quants[[3]],]$geneID,
+         tmp[tmp$med_expression > quants[[3]],]$bias,
+         length)
+  
+  quartiles <- list(q1, q2, q3, q4)
+  
+  #For each quartile, calculate the percentage of sex-biased genes
+  pers <- t(lapply(quartiles, function(quart){
+    
+    per_SB <- (sum(quart[names(quart) != "NB"])/sum(quart))*100
+    
+    return(per_SB)
+  }))
+  
+  #Add the organ information to the quartile data
+  tmp2 <- cbind(organ, pers)
+  colnames(tmp2) <- c("organ", "q1", "q2", "q3", "q4")
+  
+  #Save the data
+  sb_props <- rbind(sb_props, tmp2)
+  
+}
 
 
 ```
