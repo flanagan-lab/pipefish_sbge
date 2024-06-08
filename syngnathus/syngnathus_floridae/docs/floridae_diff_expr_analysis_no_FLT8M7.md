@@ -1,41 +1,35 @@
----
-title: "Differential Expression Analysis in _Syngnathus floridae_"
-output:
-  github_document:
-    toc: true
-  #html_document:
-    #df_print: paged
-    #code_folding: show
-    #toc: yes
-    #toc_float: yes
-    #number_sections: yes
-editor_options:
-  chunk_output_type: console
----
+Differential Expression Analysis in *Syngnathus floridae*
+================
 
-```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
-```
+- [Single factor analysis - Comparing Males v
+  Females](#single-factor-analysis---comparing-males-v-females)
+  - [Generating the PCA plots](#generating-the-pca-plots)
+    - [Creating heatmaps based on the PCA
+      axes](#creating-heatmaps-based-on-the-pca-axes)
+    - [Making the combined figure](#making-the-combined-figure)
+- [Multifactor design - Comparing M v F across the diff tissue
+  types](#multifactor-design---comparing-m-v-f-across-the-diff-tissue-types)
+  - [Invesitgate the results of the differential
+    expression](#invesitgate-the-results-of-the-differential-expression)
+    - [M-F Liver Comparisson](#m-f-liver-comparisson)
+    - [M-F Gill Comparisson](#m-f-gill-comparisson)
+    - [M-F Gonad Comparisson](#m-f-gonad-comparisson)
+  - [Creating an Upset Plot](#creating-an-upset-plot)
+  - [Variation in FC across sex-bias and tissue
+    type](#variation-in-fc-across-sex-bias-and-tissue-type)
+  - [Categorizing sex-specific genes](#categorizing-sex-specific-genes)
+    - [Investigating the results of the sex-specific
+      subsetting](#investigating-the-results-of-the-sex-specific-subsetting)
+  - [Creating categories and binning the sex-biased genes based on
+    degree of
+    logFC](#creating-categories-and-binning-the-sex-biased-genes-based-on-degree-of-logfc)
+  - [Gene Ontology Analysis](#gene-ontology-analysis)
+    - [Using BLAST in command line](#using-blast-in-command-line)
+    - [Blasting against the Zebrafish
+      genome](#blasting-against-the-zebrafish-genome)
+  - [Combination Figure Assembly](#combination-figure-assembly)
 
-``` {r library, include = FALSE}
-#This is a cohesive list of all the libraries used in this document
-library(DESeq2)
-library(pheatmap)
-library(RColorBrewer)
-library(PCAtools)
-library(spfTools)
-library(magick)
-library(patchwork)
-library(ggpubr)
-library(cowplot)
-library(UpSetR)
-library(ggplot2)
-library(kableExtra)
-library(tidyverse)
-library(knitr)
-```
-
-``` {r read-data}
+``` r
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.salmon <- readRDS("data/txi.salmon.floride.RDS")
 
@@ -56,14 +50,18 @@ samples$rep_fittness <- c(169, 88, 762, 285, 467, 500, 427, 156, 0,
                           169, 88, 762, 916, 285, 467, 500, 427, 156, 0, 
                           169, 88, 762, 916, 0,
                           159, 285, 156, 372, 166)
-
 ```
 
-In this document I am re-doing the analysis conducted in "floridae_diff_expr_analysis.Rmd" but without sample FLT8M7. We are unable to determine whether that individual was pregnant and therefore want to remove it and see if there are any differences in the results that we found. There will be less detail in this document as that is all present in "floridae_diff_expr_analysis.Rmd".
+In this document I am re-doing the analysis conducted in
+“floridae_diff_expr_analysis.Rmd” but without sample FLT8M7. We are
+unable to determine whether that individual was pregnant and therefore
+want to remove it and see if there are any differences in the results
+that we found. There will be less detail in this document as that is all
+present in “floridae_diff_expr_analysis.Rmd”.
 
 # Single factor analysis - Comparing Males v Females
 
-```{r DESeqDataSet, message=FALSE, warning=FALSE}
+``` r
 #Create the DESeq dataset
 dds_FL <- DESeqDataSetFromTximport(txi.salmon, 
                                    colData = samples,
@@ -83,14 +81,28 @@ dds_FL_exp <- DESeq(dds_FL)
 #Compile the results
 res05 <- results(dds_FL_exp, alpha = 0.05)
 summary(res05)
-sum(res05$padj < 0.05, na.rm = TRUE)
-
 ```
+
+    ## 
+    ## out of 163208 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 2420, 1.5%
+    ## LFC < 0 (down)     : 2438, 1.5%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 105822, 65%
+    ## (mean count < 2)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
+sum(res05$padj < 0.05, na.rm = TRUE)
+```
+
+    ## [1] 4858
 
 ## Generating the PCA plots
 
-```{r setParams-PCAs}
-
+``` r
 #Generate the PCA dataframe
 vsd <- vst(dds_FL_exp, blind=FALSE)
 pca <- prcomp(t(assay(vsd)))
@@ -112,10 +124,9 @@ organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15)
 
 #Setting the colors I want for each sex
 sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
-
 ```
 
-```{r figPCA1v2, eval = FALSE}
+``` r
 #Create the blank pdf to store the plot in
 pdf("imgs/Fig_PCA1v2.pdf",height = 6,width=6)
 
@@ -149,7 +160,7 @@ outer_legend("top",
 dev.off()
 ```
 
-```{r figPCA1v3, eval = FALSE}
+``` r
 #Create the blank pdf to store the plot in
 pdf("imgs/Fig_PCA1v3.pdf",height = 6,width=6)
 
@@ -179,14 +190,11 @@ outer_legend("top",
              pt.cex = 2)
 
 dev.off()
-
 ```
-
 
 ### Creating heatmaps based on the PCA axes
 
-```{r setParams-heatmaps}
-
+``` r
 df <- as.data.frame(samples[,c("Sex", "Organ")])
 rownames(df) <- samples$ID
 df$Organ <- as.character(df$Organ)
@@ -206,11 +214,9 @@ col_order <- c(rownames(df[df$Sex=="F" & df$Organ=="Gill",]),
                rownames(df[df$Sex=="M" & df$Organ=="Liver",]))
 
 pca_rotation <- pca$rotation[, 1:3]
-
 ```
 
-```{r savePheatmapFxn}
-
+``` r
 #Function to use to export the heatmaps to pdfs
 # from https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file
 save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
@@ -221,11 +227,9 @@ save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
   grid::grid.draw(x$gtable)
   dev.off()
 }
-
 ```
 
-```{r figheatmap-PC1, eval = FALSE}
-
+``` r
 pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -241,11 +245,9 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
 save_pheatmap_pdf(pc1, "imgs/Fig_pc1_heatmap.pdf",
                   width=6,
                   height=6)
-
 ```
 
-```{r figheatmap-PC2, eval=FALSE}
-
+``` r
 pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -262,12 +264,9 @@ pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order],
 save_pheatmap_pdf(pc2, "imgs/Fig_pc2_heatmap.pdf",
                   width=6,
                   height=6)
-
-
 ```
 
-```{r figheatmap-PC3, eval=FALSE}
-
+``` r
 pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -283,13 +282,11 @@ pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order],
 save_pheatmap_pdf(pc3, "imgs/Fig_pc3_heatmap.pdf",
                   width=6,
                   height=6)
-
-
 ```
 
 ### Making the combined figure
 
-```{r assembleFigPCA, message=FALSE}
+``` r
 figPCAa <- image_ggplot(image_read_pdf('imgs/Fig_PCA1v2.pdf'),
                         interpolate = TRUE)
 figPCAb <- image_ggplot(image_read_pdf('imgs/Fig_PCA1v3.pdf'),
@@ -315,16 +312,15 @@ ggsave("imgs/FigPCA.pdf", figPCA, height=4, width=5)
 ggsave("imgs/FigPCA.png", figPCA, height=4, width=5) # also save as a png
 ```
 
-
-```{r showAssembledFigPCA, eval=TRUE}
+``` r
 figPCA
 ```
 
-
+![](floridae_diff_expr_analysis_no_FLT8M7_files/figure-gfm/showAssembledFigPCA-1.png)<!-- -->
 
 # Multifactor design - Comparing M v F across the diff tissue types
 
-```{r multi-factor-analysis, message=FALSE, warning=FALSE}
+``` r
 ##Create a copy of the DESeq dataset
 ddsMF_FL <- dds_FL
 
@@ -343,57 +339,154 @@ ddsMF_FL <- ddsMF_FL[keep, ]
 #Run the differential expression analysis
 ddsMF_FL_exp <- DESeq(ddsMF_FL)
 resultsNames(ddsMF_FL_exp)
-
 ```
 
+    ## [1] "Intercept"             "group_FGonad_vs_FGill" "group_FLiver_vs_FGill"
+    ## [4] "group_MGill_vs_FGill"  "group_MGonad_vs_FGill" "group_MLiver_vs_FGill"
+
 ## Invesitgate the results of the differential expression
+
 ### M-F Liver Comparisson
 
-```{r m-f-liver-results}
+``` r
 ##Pulling out the liver M-F results with an alpha of 0.05
 liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"), 
                          alpha = 0.05)
 liver_con_res$trin_geneid <- rownames(liver_con_res)
 head(liver_con_res)
+```
 
+    ## log2 fold change (MLE): group MLiver vs FLiver 
+    ## Wald test p-value: group MLiver vs FLiver 
+    ## DataFrame with 6 rows and 7 columns
+    ##                     baseMean log2FoldChange     lfcSE       stat    pvalue
+    ##                    <numeric>      <numeric> <numeric>  <numeric> <numeric>
+    ## TRINITY_DN0_c0_g1 1728.92535      0.2053589  0.209129  0.9819720 0.3261137
+    ## TRINITY_DN0_c0_g2 2350.07145     -0.8761813  0.407696 -2.1491056 0.0316260
+    ## TRINITY_DN0_c1_g1    8.69338      0.6559900  0.984683  0.6661939 0.5052872
+    ## TRINITY_DN1_c0_g1 1263.12606     -0.2283173  0.157605 -1.4486661 0.1474308
+    ## TRINITY_DN1_c0_g2  108.70931     -0.8121522  0.391436 -2.0748038 0.0380047
+    ## TRINITY_DN1_c1_g1  577.28277     -0.0171069  0.237398 -0.0720601 0.9425541
+    ##                        padj       trin_geneid
+    ##                   <numeric>       <character>
+    ## TRINITY_DN0_c0_g1  0.744457 TRINITY_DN0_c0_g1
+    ## TRINITY_DN0_c0_g2  0.220903 TRINITY_DN0_c0_g2
+    ## TRINITY_DN0_c1_g1        NA TRINITY_DN0_c1_g1
+    ## TRINITY_DN1_c0_g1  0.512813 TRINITY_DN1_c0_g1
+    ## TRINITY_DN1_c0_g2  0.244816 TRINITY_DN1_c0_g2
+    ## TRINITY_DN1_c1_g1  1.000000 TRINITY_DN1_c1_g1
+
+``` r
 summary(liver_con_res)
 ```
 
-There are many criteria that have been employed previously to denote sex bias. For this study we are classifying sex-biased genes as **genes with a p-value < 0.05 AND a logFC $\ge$ |2|**. With that criteria in the liver there are `r sum(liver_con_res$padj <= 0.05 & liver_con_res$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(liver_con_res$padj <= 0.05 & liver_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes. 
+    ## 
+    ## out of 160318 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 550, 0.34%
+    ## LFC < 0 (down)     : 1242, 0.77%
+    ## outliers [1]       : 3082, 1.9%
+    ## low counts [2]     : 124731, 78%
+    ## (mean count < 10)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
 
-```{r liver-sex-biased}
+There are many criteria that have been employed previously to denote sex
+bias. For this study we are classifying sex-biased genes as **genes with
+a p-value \< 0.05 AND a logFC $\ge$ \|2\|**. With that criteria in the
+liver there are 176 male-biased genes and 615 female-biased genes.
+
+``` r
 #Removing the rows where padj. is NA in results
 liver_con_res_noNA <- liver_con_res[!is.na(liver_con_res$padj),]
 summary(liver_con_res_noNA) #We can now see that there are no outliers or low counts since the NAs have been removed
+```
 
+    ## 
+    ## out of 32505 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 550, 1.7%
+    ## LFC < 0 (down)     : 1242, 3.8%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 10)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
 #Creating a vector that contains all of the male-biased and female-biased genes in the liver
 liver_mal_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange >= 2 & liver_con_res_noNA$padj <= 0.05),]
 liver_fem_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange <= -2 & liver_con_res_noNA$padj <= 0.05),]
 
 #Creating an object that contains all of the non-biased genes in the liver
 liver_non_biased <- liver_con_res_noNA[which(liver_con_res_noNA$padj > 0.05),]
-
 ```
-
 
 ### M-F Gill Comparisson
 
-```{r m-f-gill}
+``` r
 ##Pulling out the gill M-F results
 gill_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGill", "FGill"), alpha = 0.5)
 gill_con_res$trin_geneid <- rownames(gill_con_res)
 head(gill_con_res)
+```
 
+    ## log2 fold change (MLE): group MGill vs FGill 
+    ## Wald test p-value: group MGill vs FGill 
+    ## DataFrame with 6 rows and 7 columns
+    ##                     baseMean log2FoldChange     lfcSE       stat    pvalue
+    ##                    <numeric>      <numeric> <numeric>  <numeric> <numeric>
+    ## TRINITY_DN0_c0_g1 1728.92535     -0.0774711  0.230794 -0.3356724  0.737118
+    ## TRINITY_DN0_c0_g2 2350.07145     -0.0736525  0.450916 -0.1633397  0.870251
+    ## TRINITY_DN0_c1_g1    8.69338      0.5114914  0.854935  0.5982808  0.549653
+    ## TRINITY_DN1_c0_g1 1263.12606     -0.0170765  0.173560 -0.0983894  0.921623
+    ## TRINITY_DN1_c0_g2  108.70931     -0.0824826  0.410145 -0.2011058  0.840616
+    ## TRINITY_DN1_c1_g1  577.28277      0.1670693  0.250659  0.6665193  0.505079
+    ##                        padj       trin_geneid
+    ##                   <numeric>       <character>
+    ## TRINITY_DN0_c0_g1         1 TRINITY_DN0_c0_g1
+    ## TRINITY_DN0_c0_g2         1 TRINITY_DN0_c0_g2
+    ## TRINITY_DN0_c1_g1         1 TRINITY_DN0_c1_g1
+    ## TRINITY_DN1_c0_g1         1 TRINITY_DN1_c0_g1
+    ## TRINITY_DN1_c0_g2         1 TRINITY_DN1_c0_g2
+    ## TRINITY_DN1_c1_g1         1 TRINITY_DN1_c1_g1
+
+``` r
 summary(gill_con_res)
 ```
 
-In the gills there were `r sum(gill_con_res$padj <= 0.05 & gill_con_res$log2FoldChange >= 2, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gill_con_res$padj <= 0.05 & gill_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes based on our criteria for sex-bias.
+    ## 
+    ## out of 160318 with nonzero total read count
+    ## adjusted p-value < 0.5
+    ## LFC > 0 (up)       : 79, 0.049%
+    ## LFC < 0 (down)     : 73, 0.046%
+    ## outliers [1]       : 3082, 1.9%
+    ## low counts [2]     : 97697, 61%
+    ## (mean count < 3)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
 
-```{r gill-sex-biased}
+In the gills there were 24 genes that we can consider male-biased and 21
+female-biased genes based on our criteria for sex-bias.
+
+``` r
 #Removing the rows where padj. is NA in results
 gill_con_res_noNA <- gill_con_res[!is.na(gill_con_res$padj), ]
 summary(gill_con_res_noNA) #We can now see that there are no outliers or low counts since the NAs have been removed
+```
 
+    ## 
+    ## out of 59539 with nonzero total read count
+    ## adjusted p-value < 0.5
+    ## LFC > 0 (up)       : 79, 0.13%
+    ## LFC < 0 (down)     : 73, 0.12%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 3)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
 #Creating a vector that contains all of the male-biased and female-biased genes in the gills
 gill_mal_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange >= 2 & gill_con_res_noNA$padj <= 0.05),]
 gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -2 & gill_con_res_noNA$padj <= 0.05),]
@@ -402,25 +495,72 @@ gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -
 gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
 ```
 
-
 ### M-F Gonad Comparisson
 
-```{r m-f-gonads}
+``` r
 ##Pulling out the gonad M-F results
 gonad_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGonad", "FGonad"), alpha = 0.05)
 gonad_con_res$trin_geneid <- rownames(gonad_con_res)
 head(gonad_con_res)
+```
 
+    ## log2 fold change (MLE): group MGonad vs FGonad 
+    ## Wald test p-value: group MGonad vs FGonad 
+    ## DataFrame with 6 rows and 7 columns
+    ##                     baseMean log2FoldChange     lfcSE      stat      pvalue
+    ##                    <numeric>      <numeric> <numeric> <numeric>   <numeric>
+    ## TRINITY_DN0_c0_g1 1728.92535       0.723590  0.219519   3.29626 0.000979830
+    ## TRINITY_DN0_c0_g2 2350.07145       1.115981  0.427360   2.61134 0.009018828
+    ## TRINITY_DN0_c1_g1    8.69338       1.892514  0.855819   2.21135 0.027011748
+    ## TRINITY_DN1_c0_g1 1263.12606      -0.368135  0.164979  -2.23141 0.025653771
+    ## TRINITY_DN1_c0_g2  108.70931       0.506726  0.405836   1.24860 0.211812593
+    ## TRINITY_DN1_c1_g1  577.28277      -0.825451  0.240370  -3.43409 0.000594551
+    ##                         padj       trin_geneid
+    ##                    <numeric>       <character>
+    ## TRINITY_DN0_c0_g1 0.00742330 TRINITY_DN0_c0_g1
+    ## TRINITY_DN0_c0_g2 0.04951817 TRINITY_DN0_c0_g2
+    ## TRINITY_DN0_c1_g1 0.12033593 TRINITY_DN0_c1_g1
+    ## TRINITY_DN1_c0_g1 0.11561847 TRINITY_DN1_c0_g1
+    ## TRINITY_DN1_c0_g2 0.52306139 TRINITY_DN1_c0_g2
+    ## TRINITY_DN1_c1_g1 0.00478886 TRINITY_DN1_c1_g1
+
+``` r
 summary(gonad_con_res)
 ```
 
-Between the ovaries and testis (gonads) there were `r sum(gonad_con_res$padj <= 0.05 & gonad_con_res$log2FoldChange >= 2, na.rm = TRUE)` genes that we can consider male-biased and `r sum(gonad_con_res$padj <= 0.05 & gonad_con_res$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes based on our criteria for sex-bias.
+    ## 
+    ## out of 160318 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 10759, 6.7%
+    ## LFC < 0 (down)     : 7237, 4.5%
+    ## outliers [1]       : 3082, 1.9%
+    ## low counts [2]     : 58648, 37%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
 
-```{r gonad-sex-biased}
+Between the ovaries and testis (gonads) there were 7946 genes that we
+can consider male-biased and 3954 female-biased genes based on our
+criteria for sex-bias.
+
+``` r
 #Removing the rows where padj. is NA in results
 gonad_con_res_noNA <- gonad_con_res[!is.na(gonad_con_res$padj), ]
 summary(gonad_con_res_noNA) #We can now see that there are no outliers or low counts since the NAs have been removed
+```
 
+    ## 
+    ## out of 98588 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 10759, 11%
+    ## LFC < 0 (down)     : 7237, 7.3%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
 #Creating an object that contains all of the male-biased and female-biased genes in the gonads
 gonad_mal_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange >= 2 & gonad_con_res_noNA$padj <= 0.05),]
 gonad_fem_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange <= -2 & gonad_con_res_noNA$padj <= 0.05),]
@@ -431,8 +571,7 @@ gonad_non_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$padj > 0.05),]
 
 ## Creating an Upset Plot
 
-```{r upset-plot-all, eval=FALSE}
-
+``` r
 #Checking there is no overlap between the two sexes
 listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
                   "MB Gill"=rownames(gill_mal_biased), 
@@ -453,12 +592,11 @@ upset(fromList(listInputall),
       text.scale = c(2, 2, 2, 1.5, 2, 1.5))
 
 dev.off()
-
 ```
 
 ## Variation in FC across sex-bias and tissue type
 
-```{r logFC-long-dataset}
+``` r
 logFC_long <- data.frame(
   tissue=c(rep("Gill",nrow(gill_fem_biased)),
            rep("Gill", nrow(gill_mal_biased)),
@@ -505,8 +643,8 @@ logFC_long <- data.frame(
 ```
 
 With the dataset in the proper format now, we can generate the plot
-```{r FC-var-plot, eval=FALSE}
 
+``` r
 pdf("imgs/Fig3A_logFC_boxplots.pdf", width = 8, height= 3.5)
 
 ymax <- max(abs(logFC_long$logFC),
@@ -584,25 +722,71 @@ spfTools::outer_legend("right",
                        pt.cex=2)
 
 dev.off()
-
 ```
 
-
-```{r FC-var-stats, warning=FALSE}
-
+``` r
 #Looking at some summary statistics for logFC between the different groups
 tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), mean)
-tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
-
-model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
-summary(model)
-
 ```
 
+    ##          Gill    Gonad    Liver
+    ## FB 15.1639412 4.307787 4.666793
+    ## MB  9.0296164 4.625456 3.844788
+    ## NB  0.7755019 1.349332 0.586131
+
+``` r
+tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
+```
+
+    ##        Gill    Gonad     Liver
+    ## FB 8.128077 2.646644 3.5967761
+    ## MB 6.454319 2.369209 3.1998706
+    ## NB 1.011407 1.541600 0.7241402
+
+``` r
+model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
+summary(model)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -12.621  -0.744  -0.354   0.419  35.489 
+    ## 
+    ## Coefficients:
+    ##                                          Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)                               15.1639     0.3026   50.12   <2e-16
+    ## logFC_long$tissueGonad                   -10.8562     0.3034  -35.79   <2e-16
+    ## logFC_long$tissueLiver                   -10.4971     0.3077  -34.12   <2e-16
+    ## logFC_long$biasMB                         -6.1343     0.4143  -14.81   <2e-16
+    ## logFC_long$biasNB                        -14.3884     0.3026  -47.55   <2e-16
+    ## logFC_long$tissueGonad:logFC_long$biasMB   6.4520     0.4152   15.54   <2e-16
+    ## logFC_long$tissueLiver:logFC_long$biasMB   5.3123     0.4309   12.33   <2e-16
+    ## logFC_long$tissueGonad:logFC_long$biasNB  11.4300     0.3034   37.67   <2e-16
+    ## logFC_long$tissueLiver:logFC_long$biasNB  10.3078     0.3078   33.48   <2e-16
+    ##                                             
+    ## (Intercept)                              ***
+    ## logFC_long$tissueGonad                   ***
+    ## logFC_long$tissueLiver                   ***
+    ## logFC_long$biasMB                        ***
+    ## logFC_long$biasNB                        ***
+    ## logFC_long$tissueGonad:logFC_long$biasMB ***
+    ## logFC_long$tissueLiver:logFC_long$biasMB ***
+    ## logFC_long$tissueGonad:logFC_long$biasNB ***
+    ## logFC_long$tissueLiver:logFC_long$biasNB ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 1.386 on 183523 degrees of freedom
+    ## Multiple R-squared:  0.324,  Adjusted R-squared:  0.324 
+    ## F-statistic: 1.1e+04 on 8 and 183523 DF,  p-value: < 2.2e-16
 
 ## Categorizing sex-specific genes
 
-```{r sex-specific-for-loop}
+``` r
 #Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
 #Calculating the Cooks threshold that would have been used
 np <- length(resultsNames(ddsMF_FL_exp))
@@ -705,30 +889,9 @@ for(organ in organs){
 
 ### Investigating the results of the sex-specific subsetting
 
-```{r sex-specific-counts, echo=FALSE, message=FALSE, warning=FALSE, eval = FALSE}
-sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
-                                  sex = c(rep("M", 3),
-                                          rep("F", 3)),
-                                  num_genes = c(nrow(FL_sex_specific_genes$Gill_male_specific),
-                                                nrow(FL_sex_specific_genes$Gonad_male_specific),
-                                                nrow(FL_sex_specific_genes$Liver_male_specific),
-                                                nrow(FL_sex_specific_genes$Gill_female_specific),
-                                                nrow(FL_sex_specific_genes$Gonad_female_specific),
-                                                nrow(FL_sex_specific_genes$Liver_female_specific))
-                                  )
-
-sex_specific_counts %>% 
-  group_by(tissue, sex) %>% 
-  summarise("Number of Sex-specific Genes" = sum(num_genes)) %>%
-  kable(caption = "Sex-specific Genes", format = "html",
-        col.names = c("Tissue Type", "Sex", "Number of Sex-specific Genes")) %>% 
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
-```
-
-
 ## Creating categories and binning the sex-biased genes based on degree of logFC
 
-```{r bin-sex-bias}
+``` r
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
@@ -872,24 +1035,59 @@ outer_legend("right",
        pt.cex=2)
 
 dev.off()
-
 ```
 
+    ## png 
+    ##   2
 
 ## Gene Ontology Analysis
 
 ### Using BLAST in command line
 
-```{bash blast_pipeline, file = 'bash/blast_pipeline.sh', eval = FALSE}
+``` bash
+#!/bin/bash
 
+#Create the arguements
+input_dir_TR=$1 #Location of the .txt files that contain the trinity gene IDs
+subset_fasta=$2 #Path to the subset_fasta_file script
+assembly_file=$3 #Name/location of the de novo assembly
+blast_database=$4
+output_dir=$5 #Desired output directory for .fasta and BLAST files
 
+## Loop through all the Trinity gene ID .txt files
+for file in $input_dir_TR/*TRgenes.txt
+    do
+
+    #Extract the sample name from the file name
+    sample=$(basename $file .txt)
+
+    #Get the corresponding sequences for the Trinity Gene IDs
+    echo "Running subset_fasta_file for ${sample}..."
+    $subset_fasta -c -f $assembly_file -l $input_dir_TR/${sample}.txt
+
+    #Rename the automated output from the subset_fasta_file script
+    fasta_out=$(basename $assembly_file fasta)
+    mv $fasta_out.subset.fasta ${sample}.fasta
+
+    #Blast the sequences
+    echo "Running BLAST for ${sample}..."
+    blastn -db $blast_database -query ${sample}.fasta -out ${sample}_blast.txt \
+        -evalue 0.001 \
+        -num_threads 12 \
+        -outfmt "6 qseqid qstart qend stitle sstart send evalue bitscore length pident gaps"
+
+    #Move the outputs into desired output directory
+    mv ${sample}* $output_dir
+
+done
 ```
 
 ### Blasting against the Zebrafish genome
-A BLAST database was generated with the _D. reiro_ proteome as:
+
+A BLAST database was generated with the *D. reiro* proteome as:
 `makeblastdb -in ../ncbi_dataset/data/GCF_000002035.6/protein.faa -out d_rerio_prot -dbtyp prot`
 
-```{r biased-trin-ids, eval=FALSE}
+``` r
 write.table(cbind(rownames(gill_fem_biased)),
             'FL_femG_biased_TRgenes.txt', 
             sep = "", 
@@ -930,7 +1128,7 @@ write.table(cbind(rownames(liver_mal_biased)),
 
 The `blast_pipeline.sh` script was then used.
 
-```{r readin_blast_results_dreiro2, eval=FALSE}
+``` r
 #Specify the directory where BLAST results are located
 blast_path <- "data/floridae_BLAST/"
 
@@ -955,10 +1153,9 @@ for(file_name in FL_blast_files){
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
   FL_blast_list[[blast_name]] <- file_data
 }
-
 ```
 
-```{r filter-BLAST-dreiro, eval=FALSE}
+``` r
 #Use lapply to apply the function to each dataset stored in the list created above
 blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
  
@@ -995,11 +1192,9 @@ blast_output_filtered <- lapply(FL_blast_list, function(data_frame){
   
   return(output)
 })
-
 ```
 
-
-```{r gff-gene-names, eval = FALSE}
+``` r
 #Read in the GFF file for zebrafish that has info about the geneID
 reiro_gff <- read.delim("data/d_reiro_genomic.gff",
                         header = FALSE,
@@ -1023,10 +1218,9 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
   
    return(output)
 })
-
 ```
 
-```{r, eval=FALSE}
+``` r
 write.table(c(blast_output_merged$FL_femG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_femL_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malG_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malGon_biased_TRgenes_blast$gene_name, blast_output_merged$FL_malL_biased_TRgenes_blast$gene_name),
            'FL_GOnames.txt', 
             sep = " ", 
@@ -1047,7 +1241,7 @@ write.table(rbind(blast_output_merged$FL_femG_biased_TRgenes_blast[,c("gene_name
             col.names = FALSE)
 ```
 
-```{r panther-results, eval = FALSE}
+``` r
 panther <- read.delim("data/pantherGeneList.txt", header = FALSE)
 colnames(panther) <- c("GeneID", "MappedID", "GeneName", "pantherFAM", 
                        "panther_prot_class", "species")
@@ -1090,7 +1284,7 @@ blast_output_merged$FL_malL_biased_TRgenes_blast <-
         all.x = TRUE)
 ```
 
-```{r, eval = FALSE}
+``` r
 go_tabs <- lapply(blast_output_merged, function(dat){
 
   tab <- data.frame(table(dat$panther_prot_class) )
@@ -1154,8 +1348,7 @@ ggplot(all_go_sums,
 
 ## Combination Figure Assembly
 
-```{r fig3, message=FALSE}
-
+``` r
 fig3a <- image_ggplot(image_read_pdf('imgs/Fig3A_logFC_boxplots.pdf'),
                       interpolate = TRUE)
 fig3b <- image_ggplot(image_read_pdf('imgs/Fig3B_biasCat_counts.pdf'),
@@ -1179,11 +1372,10 @@ fig3 <- fig3 + plot_annotation(tag_levels = 'A')
 
 ggsave("imgs/Fig3.pdf",fig3, height=6, width=8)
 ggsave("imgs/Fig3.png",fig3, height=6, width=8)
-
 ```
 
-```{r showAssembledFig3, eval=TRUE}
-
+``` r
 fig3
-
 ```
+
+![](floridae_diff_expr_analysis_no_FLT8M7_files/figure-gfm/showAssembledFig3-1.png)<!-- -->
