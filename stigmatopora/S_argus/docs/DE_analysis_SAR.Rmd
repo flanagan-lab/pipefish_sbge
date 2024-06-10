@@ -11,7 +11,7 @@ header-includes: >
   \usepackage{float}
   \floatplacement{figure}{H}
 editor_options:
-  chunk_output_type: inline
+  chunk_output_type: console
 always_allow_html: true
 ---
 
@@ -36,6 +36,7 @@ library(tidyverse)
 library(knitr)
 library(magick)
 library(multcompView)
+library(spfTools)
 ```
 
 ``` {r read-data}
@@ -146,7 +147,7 @@ col_order <- c(rownames(df[df$sex=="F" & df$organ=="GILL",]),
 
 #Pull out the top 20 rows with the most expression
 select <- order(rowMeans(counts(dds_SA_exp, normalized = TRUE)),
-                decreasing = TRUE)[1:20]
+                decreasing = TRUE)[1:100]
 
 
 #Transform the data
@@ -638,14 +639,14 @@ pheatmap(assay(vsd_MF)[select_fem_gill, col_order],
 
 ```
 
-```{r heatmap_gills, echo=FALSE}
+```{r heatmap_liver, echo=FALSE}
 
 #Pull out the male-biased genes
-select_mal_gill <- rownames(gill_mal_biased[order(gill_mal_biased$log2FoldChange,
+select_mal_liver <- rownames(liver_mal_biased[order(liver_mal_biased$log2FoldChange,
                                                          decreasing = TRUE),])
 
 
-pheatmap(assay(vsd_MF)[select_mal_gill, col_order], 
+pheatmap(assay(vsd_MF)[select_mal_liver, col_order], 
               cluster_rows = FALSE, 
               show_rownames = FALSE, 
               cluster_cols = FALSE, 
@@ -653,28 +654,411 @@ pheatmap(assay(vsd_MF)[select_mal_gill, col_order],
               annotation_col = df[1:3],
               annotation_colors=ann_colors,
               fontsize = 15,
+         border_color = NA,
               annotation_legend = TRUE,
-              main = "Male-biased genes in the Gills")
+              main = "Male-biased genes in the Liver")
 
 #Pull out the top female-biased genes
-select_fem_gill <- rownames(gill_fem_biased[order(gill_fem_biased$log2FoldChange,
+select_fem_liver <- rownames(liver_fem_biased[order(liver_fem_biased$log2FoldChange,
                                                          decreasing = FALSE),])
 
-pheatmap(assay(vsd_MF)[select_fem_gill, col_order], 
+pheatmap(assay(vsd_MF)[select_fem_liver, col_order], 
               cluster_rows = FALSE, 
               show_rownames = FALSE, 
               cluster_cols = FALSE, 
               show_colnames = FALSE,
               annotation_col = df[1:3],
               annotation_colors=ann_colors,
+         border_color = NA,
               fontsize = 15,
               annotation_legend = TRUE,
-              main = "Female-biased genes in the Gills")
+              main = "Female-biased genes in the Liver")
 
 
 ```
 
+# Running a single factor analysis between males and females WITHIN each organ
+## Liver M-F differential expression
+
+```{r liver-sf-analysis, message=FALSE}
+#Create a subset of the DESeq dataset that only includes the liver samples
+dds_SA_liver <- ddsMF_SA[, ddsMF_SA$organ == "LIVER"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_SA_liver)) >= 10
+dds_SA_liver <- dds_SA_liver[keep, ]
+
+design(dds_SA_liver) <- ~ sex
+
+#Run the differential expression analysis
+dds_SA_liver_exp <- DESeq(dds_SA_liver)
+
+#Compiling the results
+res_liver <- results(dds_SA_liver_exp, alpha = 0.05)
+
+summary(res_liver)
+
+```
+
+The single factor analysis from the liver showed `r sum(res_liver$padj <= 0.05 & res_liver$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(res_liver$padj <= 0.05 & res_liver$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes. I am going to pull out all of the female- and male-biased genes to store them in their own objects as well as genes that are non-biased. Non-biased genes will be categorized as genes with a p-value > 0.05, regardless of what the logFC may be.
+
+```{r liver-sf-sexbiased}
+#Removing the rows where padj. is NA in results
+liver_res_noNA <- res_liver[!is.na(res_liver$padj),]
+summary(liver_res_noNA) #We can now see that there are no outliers or 
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(liver_res_noNA), "data/liver_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+liver_mal_biased <- liver_res_noNA[which(liver_res_noNA$log2FoldChange >= 2
+                                             & liver_res_noNA$padj <= 0.05),]
+liver_fem_biased <- liver_res_noNA[which(liver_res_noNA$log2FoldChange <= -2 
+                                             & liver_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+liver_non_biased <- liver_res_noNA[which(liver_res_noNA$padj > 0.05),]
+```
+
+## Gonad M-F differential expression
+
+```{r gonad-sf-analysis, message=FALSE}
+#Create a subset of the DESeq dataset that only includes the gonad samples
+dds_SA_gonad <- ddsMF_SA[, ddsMF_SA$organ == "GONAD"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_SA_gonad)) >= 10
+dds_SA_gonad <- dds_SA_gonad[keep, ]
+
+design(dds_SA_gonad) <- ~ sex
+
+#Run the differential expression analysis
+dds_SA_gonad_exp <- DESeq(dds_SA_gonad)
+
+#Compiling the results
+res_gonad <- results(dds_SA_gonad_exp, alpha = 0.05)
+
+summary(res_gonad)
+
+```
+
+The single factor analysis from the gonad showed `r sum(res_gonad$padj <= 0.05 & res_gonad$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(res_gonad$padj <= 0.05 & res_gonad$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes. I am going to pull out all of the female- and male-biased genes to store them in their own objects as well as genes that are non-biased. Non-biased genes will be categorized as genes with a p-value > 0.05, regardless of what the logFC may be.
+
+```{r gonad-sf-sexbiased}
+#Removing the rows where padj. is NA in results
+gonad_res_noNA <- res_gonad[!is.na(res_gonad$padj),]
+summary(gonad_res_noNA) #We can now see that there are no outliers or 
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(gonad_res_noNA), "data/gonad_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+gonad_mal_biased <- gonad_res_noNA[which(gonad_res_noNA$log2FoldChange >= 2
+                                             & gonad_res_noNA$padj <= 0.05),]
+gonad_fem_biased <- gonad_res_noNA[which(gonad_res_noNA$log2FoldChange <= -2 
+                                             & gonad_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+gonad_non_biased <- gonad_res_noNA[which(gonad_res_noNA$padj > 0.05),]
+```
+
+## Gill M-F differential expression
+
+```{r gill-sf-analysis, message=FALSE}
+#Create a subset of the DESeq dataset that only includes the gill samples
+dds_SA_gill <- ddsMF_SA[, ddsMF_SA$organ == "GILL"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_SA_gill)) >= 10
+dds_SA_gill <- dds_SA_gill[keep, ]
+
+design(dds_SA_gill) <- ~ sex
+
+#Run the differential expression analysis
+dds_SA_gill_exp <- DESeq(dds_SA_gill)
+
+#Compiling the results
+res_gill <- results(dds_SA_gill_exp, alpha = 0.05)
+
+summary(res_gill)
+
+```
+
+The single factor analysis from the gill showed `r sum(res_gill$padj <= 0.05 & res_gill$log2FoldChange >= 2, na.rm = TRUE)` male-biased genes and `r sum(res_gill$padj <= 0.05 & res_gill$log2FoldChange <= -2, na.rm = TRUE)` female-biased genes. I am going to pull out all of the female- and male-biased genes to store them in their own objects as well as genes that are non-biased. Non-biased genes will be categorized as genes with a p-value > 0.05, regardless of what the logFC may be.
+
+```{r gill-sf-sexbiased}
+#Removing the rows where padj. is NA in results
+gill_res_noNA <- res_gill[!is.na(res_gill$padj),]
+summary(gill_res_noNA) #We can now see that there are no outliers or 
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(gill_res_noNA), "data/gill_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+gill_mal_biased <- gill_res_noNA[which(gill_res_noNA$log2FoldChange >= 2
+                                             & gill_res_noNA$padj <= 0.05),]
+gill_fem_biased <- gill_res_noNA[which(gill_res_noNA$log2FoldChange <= -2 
+                                             & gill_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+gill_non_biased <- gill_res_noNA[which(gill_res_noNA$padj > 0.05),]
+```
 
 
+## Re-looking at variation in logFC across both sex-bias categories and tissue types
+I want to now re-create the plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types to see if the weird patterns are still there. To do this I first need to re-generate the "long" style dataset with the new information:
 
+```{r logFC-long-dataset-SFanalysis}
+logFC_long <- data.frame(
+  tissue=c(rep("Gill",nrow(gill_fem_biased)),
+           rep("Gill", nrow(gill_mal_biased)),
+           rep("Gill", nrow(gill_non_biased)),
+           rep("Gonad", nrow(gonad_fem_biased)),
+           rep("Gonad", nrow(gonad_mal_biased)),
+           rep("Gonad", nrow(gonad_non_biased)),
+           rep("Liver", nrow(liver_fem_biased)),
+           rep("Liver", nrow(liver_mal_biased)),
+           rep("Liver", nrow(liver_non_biased))
+         ),
+  bias=c(rep("FB",nrow(gill_fem_biased)),
+         rep("MB",nrow(gill_mal_biased)),
+         rep("NB", nrow(gill_non_biased)),
+         rep("FB", nrow(gonad_fem_biased)),
+         rep("MB", nrow(gonad_mal_biased)),
+         rep("NB", nrow(gonad_non_biased)),
+         rep("FB", nrow(liver_fem_biased)),
+         rep("MB", nrow(liver_mal_biased)),
+         rep("NB", nrow(liver_non_biased))
+         ),
+  logFC=c(gill_fem_biased$log2FoldChange,
+          gill_mal_biased$log2FoldChange,
+          gill_non_biased$log2FoldChange,
+          gonad_fem_biased$log2FoldChange,
+          gonad_mal_biased$log2FoldChange,
+          gonad_non_biased$log2FoldChange,
+          liver_fem_biased$log2FoldChange,
+          liver_mal_biased$log2FoldChange,
+          liver_non_biased$log2FoldChange
+          ),
+  geneID=c(rownames(gill_fem_biased),
+           rownames(gill_mal_biased),
+           rownames(gill_non_biased),
+           rownames(gonad_fem_biased),
+           rownames(gonad_mal_biased),
+           rownames(gonad_non_biased),
+           rownames(liver_fem_biased),
+           rownames(liver_mal_biased),
+           rownames(liver_non_biased)
+           )
+)
+#Exporting this data, run once and then commented out
+#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+```
+After re-creating the long version of the dataset I can re-generate the plot.
+
+```{r FC-var-plot-SFanalysis, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters."}
+pdf("figs/FigSF_logFC_boxplots.pdf", width = 10, height=4)
+sex_bias_colors <- c("FB" = "#7FC97F",
+                     "MB" = "#BEAED4",
+                     "UB" = "darkgray")
+ymax <- max(abs(logFC_long$logFC),
+            na.rm = TRUE) + 5
+organs <- levels(as.factor(logFC_long$tissue))
+par(mfrow=c(1,3),
+    oma=c(4,5,2,8),
+    mar=c(1,1,1,0))
+for(organ in organs){
+   # add jittered points
+   plot(abs(logFC_long$logFC[logFC_long$tissue==organ]) ~
+            jitter(as.numeric(as.factor(logFC_long$bias[logFC_long$tissue==organ]))),
+        col="#00000075",
+        axes=FALSE,
+        cex.main=2,
+        xlim=c(0,4),
+        ylim=c(0,ymax)
+        )
+   # make the boxplot
+   boxplot(abs(logFC_long$logFC[logFC_long$tissue==organ]) ~
+             logFC_long$bias[logFC_long$tissue==organ],
+           col=scales::alpha(sex_bias_colors,0.75),
+           add = TRUE,
+           yaxt='n',
+           las=1,
+           cex.axis=1.75,
+           frame=FALSE,
+           lwd=1.5,
+           outline=FALSE# do not plot outliers
+           )
+   # make the axis lines longer and thicker
+   axis(1, labels=NA,
+        at=-1:4,
+        lwd=2,
+        lwd.ticks=0,
+        las = 3,
+        cex.axis = 1.5)
+   axis(2, labels=seq(-5,ymax,10),
+        line=NA,
+        at=seq(-5,ymax,10),
+        lwd=2,
+        ylim=c(0,ymax),
+        cex.axis=2,
+        las=2)
+   mtext(organ, cex=1.5,outer=FALSE, line=-1)
+}
+# add x axis label
+mtext("Bias level",side = 1,cex=1.5, outer=TRUE, line=2)
+# add y axis label
+mtext(expression("|log"[2]*"FC|"),side = 2,cex=1.5, outer=TRUE, line=2.25)
+# add legend
+spfTools::outer_legend("right",
+                       legend=c("Female\nbiased",
+                                "Male\nbiased",
+                                "Unbiased"),
+                       pt.bg=sex_bias_colors,
+                       pch=22,
+                       bty='n',
+                       ncol=1,
+                       cex=2,
+                       y.intersp = 1.5,
+                       pt.cex=2)
+dev.off()
+```
+
+## Investigating expression across samples in the sex-biased genes
+For each organ type I am going to pull out either all of the sex-biased genes, or just the top 200 if there are more than that, and look at the expression levels of those genes across all of the samples.
+
+```{r heatmap_gonads, echo=FALSE}
+#Set the colors used for the heatmap labeling
+sex_cols <- c("F" = "#7FC97F", "M" = "#BEAED4" )
+ann_colors = list(sex=sex_cols)
+
+#Transform the data
+vsd_gonad <- vst(dds_SA_gonad_exp, blind=FALSE)
+
+#Set the information for how you want the columns to show up
+df_gonad <- as.data.frame(colData(dds_SA_gonad_exp))
+col_order_gonad <- c(
+  rownames(df_gonad[df_gonad$sex=="F",]),
+  rownames(df_gonad[df_gonad$sex=="M",])
+)
+#Pull out the top 200 male-biased genes
+select_mal_gonad <- rownames(head(gonad_mal_biased[order(gonad_mal_biased$log2FoldChange,
+                                                         decreasing = TRUE),],
+                                  n=200))
+gonadM_HM <- pheatmap(assay(vsd_gonad)[select_mal_gonad, col_order_gonad],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              annotation_col = df_gonad[2],
+              annotation_colors=ann_colors,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              border_color = NA,
+              main = "Male-biased genes in the Testes")
+#Pull out the top 200 female-biased genes
+select_fem_gonad <- rownames(head(gonad_fem_biased[order(gonad_fem_biased$log2FoldChange,
+                                                         decreasing = FALSE),],
+                                  n=200))
+gonadF_HM <- pheatmap(assay(vsd_gonad)[select_fem_gonad, col_order_gonad],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              annotation_col = df_gonad[2],
+              annotation_colors=ann_colors,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              border_color = NA,
+              main = "Female-biased genes in the Ovaries")
+
+pheatmap(assay(vsd_gonad)[, col_order_gonad],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              annotation_col = df_gonad[2],
+              annotation_colors=ann_colors,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              border_color = NA,
+              main = "Expression in Gonads")
+```
+```{r heatmap_liver, echo=FALSE}
+#Transform the data
+vsd_liver <- vst(dds_SA_liver_exp, blind=FALSE)
+#Set the information for how you want the columns to show up
+df_liver <- as.data.frame(colData(dds_SA_liver_exp))
+col_order_liver <- c(
+  rownames(df_liver[df_liver$sex=="F",]),
+  rownames(df_liver[df_liver$sex=="M",])
+)
+#Pull out the male-biased genes
+select_mal_liver <- rownames(head(liver_mal_biased[order(liver_mal_biased$log2FoldChange,
+                                                         decreasing = TRUE),],
+                                  n=200))
+liverM_HM <- pheatmap(assay(vsd_liver)[select_mal_liver, col_order_liver],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              border_color=NA,
+              annotation_col = df_liver[2],
+              annotation_colors=ann_colors,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              main = "Male-biased genes in the Liver")
+#Pull out the female-biased genes
+select_fem_liver <- rownames(head(liver_fem_biased[order(liver_fem_biased$log2FoldChange,
+                                                         decreasing = FALSE),],
+                                  n=200))
+liverF_HM <- pheatmap(assay(vsd_liver)[select_fem_liver, col_order_liver],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              annotation_col = df_liver[2],
+              annotation_colors=ann_colors,
+              border_color=NA,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              main = "Female-biased genes in the Liver")
+```
+```{r heatmap_gill, echo=FALSE}
+#Transform the data
+vsd_gill <- vst(dds_SA_gill_exp, blind=FALSE)
+#Set the information for how you want the columns to show up
+df_gill <- as.data.frame(colData(dds_SA_gill_exp))
+col_order_gill <- c(
+  rownames(df_gill[df_gill$sex=="F",]),
+  rownames(df_gill[df_gill$sex=="M",])
+)
+#Pull out the male-biased genes
+select_mal_gill <- rownames(head(gill_mal_biased[order(gill_mal_biased$log2FoldChange,
+                                                         decreasing = TRUE),],
+                                  n=200))
+gillM_HM <- pheatmap(assay(vsd_gill)[select_mal_gill, col_order_gill],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              border_color=NA,
+              annotation_col = df_gill[2],
+              annotation_colors=ann_colors,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              main = "Male-biased genes in the gill")
+#Pull out the female-biased genes
+select_fem_gill <- rownames(head(gill_fem_biased[order(gill_fem_biased$log2FoldChange,
+                                                         decreasing = FALSE),],
+                                  n=200))
+gillF_HM <- pheatmap(assay(vsd_gill)[select_fem_gill, col_order_gill],
+              cluster_rows = FALSE,
+              show_rownames = FALSE,
+              cluster_cols = FALSE,
+              show_colnames = FALSE,
+              annotation_col = df_gill[2],
+              annotation_colors=ann_colors,
+              border_color=NA,
+              fontsize = 15,
+              annotation_legend = FALSE,
+              main = "Female-biased genes in the gill")
+```
 
