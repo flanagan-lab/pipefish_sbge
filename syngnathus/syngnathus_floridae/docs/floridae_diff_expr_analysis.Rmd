@@ -91,7 +91,8 @@ res <- results(dds_FL_exp)
 res
 ```
 
-Once that has finished we can now start exploring some of the single-factor analysis results
+Once that has finished we can now start exploring some of the single-factor analysis results.
+
 ```{r investigate-DESeq-results-SF}
 ##Ordering our results based on p-value
 resOrdered <- res[order(res$pvalue),]
@@ -109,11 +110,11 @@ sum(res05$padj < 0.05, na.rm = TRUE)
 
 ```
 
-## Visualizing the results {.tabset}
-### MA-plot - MvF Diff. {-}
+## Visualizing the results 
+### MA-plot - MvF Difference
 Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
 
-```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
+```{r MA-plot, echo=FALSE, fig.cap="_LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit._"}
 
 par(mfrow=c(1,2))
 plotMA(res, ylim = c(-2,2))
@@ -121,10 +122,10 @@ plotMA(res)
 
 ```
 
-### Heatmap - overall expression {-}
+### Heatmap - overall expression
 We can also generate a heat map to look ar overall expression levels across our samples. Note, this is not differentially expressed genes.
 
-```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
+```{r heatmap, echo=FALSE, fig.cap= "_Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels._", fig.width=15}
 #Pull out the top 20 rows with the most expression
 select <- order(rowMeans(counts(dds_FL_exp, normalized = TRUE)),
                 decreasing = TRUE)[1:20]
@@ -156,10 +157,10 @@ heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
   #          col.names = FALSE)
 ```
 
-### Sample-dist Heatmap {-}
+### Sample-dist Heatmap 
 We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples
 
-```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the color, the more similar the samples are. The diagonal line of very dark blue represents the comparissons between the same samples.", warning=FALSE}
+```{r sample-dist, echo=FALSE, fig.cap="_Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the color, the more similar the samples are. The diagonal line of very dark blue represents the comparissons between the same samples._", warning=FALSE, fig.width=15, fig.height= 10}
 #Calculate the sample-to-sample distances from the transformed count matrix
 sampleDists <- dist(t(assay(vsd)))
 
@@ -178,10 +179,10 @@ pheatmap(sampleDistsMatrix,
 
 We can see that the highest similarities (aside from same samples comparisons) is between samples from the same organ. After that, the next highest similarities can be seen between the male and female gonads. There is one gill sample that appears to be quite different from the rest, sample FLG4M4, definitely a sample to be paying attention to as we move through with the rest of the analysis.
 
-### PCA plots {-}
+### PCA plots
 Next we can look at PCA plots for our samples to see how our different samples are grouping. The size of the points for these plots will be scaled by the mating success of the individual to see if that may be at all correlated with the sample grouping.
 
-```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+```{r pca-scaled-organ, echo=FALSE, fig.cap="_Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads._", fig.width=15, fig.height= 10, warning=FALSE}
 
 #Generate the PCA dataframe
 pca <- prcomp(t(assay(vsd)))
@@ -215,7 +216,7 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = Organ, shape = Sex)) +
         axis.line = element_line(colour = "black"))
 ```
 
-```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with color now representing sex and shape representing organ type (left) as well as the comparisson of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
+```{r pca-scaled-sex, echo=FALSE, fig.cap="_The same Principal Components Analysis as above but with color now representing sex and shape representing organ type (left) as well as the comparisson of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis._", fig.width=15, fig.height= 10}
 
 par(mfrow=c(1,2))
 my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
@@ -276,15 +277,15 @@ resultsNames(ddsMF_FL_exp)
 
 ```
 
-## Invesitgate the results of the differential expression {.tabset}
-Thanks to the multi-factor analysis we can now explore differential expression between all of the different combinations: \  
+## Invesitgate the results of the differential expression
+Thanks to the multi-factor analysis we can now explore differential expression between all of the different combinations:   
 
-  - Male Liver v. Female Liver \  
-  - Male Gill v. Female Gill \  
-  - Male Gonad v. Female Gonad \  
-  - All of the within sex tissue comparisons (e.g. Male Liver v. Male Gill, etc.) \  
+  - Male Liver v. Female Liver 
+  - Male Gill v. Female Gill  
+  - Male Gonad v. Female Gonad 
+  - All of the within sex tissue comparisons (e.g. Male Liver v. Male Gill, etc.)
 
-### M-F Liver Comparisson {-}
+### M-F Liver Comparisson
 ```{r m-f-liver-results}
 ##Pulling out the liver M-F results with an alpha of 0.05
 liver_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MLiver", "FLiver"), 
@@ -342,7 +343,7 @@ top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(liver_con
 ```
 
 
-### M-F Gill Comparisson {-}
+### M-F Gill Comparisson
 ```{r m-f-gill}
 ##Pulling out the gill M-F results
 gill_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGill", "FGill"), alpha = 0.5)
@@ -396,7 +397,7 @@ top21_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(gill_con_re
  #           col.names = FALSE)
 ```
 
-### M-F Gonad Comparisson {-}
+### M-F Gonad Comparisson
 ```{r m-f-gonads}
 ##Pulling out the gonad M-F results
 gonad_con_res <- results(ddsMF_FL_exp, contrast = c("group", "MGonad", "FGonad"), alpha = 0.05)
@@ -450,7 +451,7 @@ top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con
  #           col.names = FALSE)
 ```
 
-### MA Plots {-}
+### MA Plots
 ```{r MA-plot-MF, echo=FALSE, fig.height= 15, fig.width=8, fig.cap="MA-plots generated for each organ type that compares logFC to the mean expression. Female-biased and Male-biased genes are represented by color (green and purple correspondingly) and are determing with a fc cutoff of 2 and a p-value cutoff of 0.05."}
 liver_MA <- ggmaplot(liver_con_res,
          fdr = 0.05, fc = 2,
@@ -628,7 +629,7 @@ logFC_long<- data.frame(
 ```
 
 With the dataset in the proper format now, we can generate the plot
-```{r FC-var-plot, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters."}
+```{r FC-var-plot, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters.", fig.width=15, fig.height= 10}
 
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "NB" = "darkgray")
 
@@ -787,7 +788,7 @@ for(organ in organs){
 
 ### Investigating the results of the sex-specific subsetting
 Let's now take a look at how many sex-specific genes we have in each tissue type:
-```{r sex-specific-counts, echo=FALSE, message=FALSE, warning=FALSE, eval = FALSE}
+```{r sex-specific-counts, message=FALSE, warning=FALSE, eval = FALSE}
 sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
                                   sex = c(rep("M", 3),
                                           rep("F", 3)),
@@ -880,7 +881,7 @@ for(gene in gill_fem_biased_geneIDS){
 
 
 ## Creating categories and binning the sex-biased genes based on degree of logFC
-This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:  \
+This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:
 
     1. Low - biased = LFC 2 - 3
     2. Medium - biased = LFC 3 - 5
@@ -889,7 +890,7 @@ This binned was only done on the sex-biased genes, will not have a category for 
 
 Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
 
-```{r bin-sex-bias}
+```{r bin-sex-bias, fig.width=15}
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
@@ -1333,7 +1334,7 @@ for (i in 1:length(blast_output_filtered_SS)) {
 
 ```
 
-```{r long_BLAST}
+```{r long_BLAST, eval=FALSE}
 #Create a long format dataset that has the tissue information, BLAST gene and protein, 
 #geneID, and sex 
 blast_long_SS <- data.frame(

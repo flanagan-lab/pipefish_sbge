@@ -1,66 +1,43 @@
 Differential Expression Analysis in *Syngnathus floridae*
 ================
 
-- <a href="#single-factor-analysis---comparing-males-v-females"
-  id="toc-single-factor-analysis---comparing-males-v-females">Single
-  factor analysis - Comparing Males v Females</a>
-  - <a href="#visualizing-the-results"
-    id="toc-visualizing-the-results">Visualizing the results</a>
-    - <a href="#ma-plot---mvf-diff" id="toc-ma-plot---mvf-diff">MA-plot - MvF
-      Diff.</a>
-    - <a href="#heatmap---overall-expression"
-      id="toc-heatmap---overall-expression">Heatmap - overall expression</a>
-    - <a href="#sample-dist-heatmap" id="toc-sample-dist-heatmap">Sample-dist
-      Heatmap</a>
-    - <a href="#pca-plots" id="toc-pca-plots">PCA plots</a>
-- <a
-  href="#multifactor-design---comparing-m-v-f-across-the-diff-tissue-types"
-  id="toc-multifactor-design---comparing-m-v-f-across-the-diff-tissue-types">Multifactor
-  design - Comparing M v F across the diff tissue types</a>
-  - <a href="#invesitgate-the-results-of-the-differential-expression"
-    id="toc-invesitgate-the-results-of-the-differential-expression">Invesitgate
-    the results of the differential expression</a>
-    - <a href="#m-f-liver-comparisson" id="toc-m-f-liver-comparisson">M-F
-      Liver Comparisson</a>
-    - <a href="#m-f-gill-comparisson" id="toc-m-f-gill-comparisson">M-F Gill
-      Comparisson</a>
-    - <a href="#m-f-gonad-comparisson" id="toc-m-f-gonad-comparisson">M-F
-      Gonad Comparisson</a>
-    - <a href="#ma-plots" id="toc-ma-plots">MA Plots</a>
-  - <a href="#creating-an-upset-plot"
-    id="toc-creating-an-upset-plot">Creating an Upset Plot</a>
-  - <a href="#variation-in-fc-across-sex-bias-and-tissue-type"
-    id="toc-variation-in-fc-across-sex-bias-and-tissue-type">Variation in FC
-    across sex-bias and tissue type</a>
-  - <a href="#categorizing-sex-specific-genes"
-    id="toc-categorizing-sex-specific-genes">Categorizing sex-specific
-    genes</a>
-    - <a href="#investigating-the-results-of-the-sex-specific-subsetting"
-      id="toc-investigating-the-results-of-the-sex-specific-subsetting">Investigating
-      the results of the sex-specific subsetting</a>
-    - <a href="#pulling-out-the-gene-ids-for-all-of-the-sex-specific-genes"
-      id="toc-pulling-out-the-gene-ids-for-all-of-the-sex-specific-genes">Pulling
-      out the gene IDs for all of the sex-specific genes</a>
-  - <a
-    href="#creating-categories-and-binning-the-sex-biased-genes-based-on-degree-of-logfc"
-    id="toc-creating-categories-and-binning-the-sex-biased-genes-based-on-degree-of-logfc">Creating
-    categories and binning the sex-biased genes based on degree of logFC</a>
-  - <a href="#gene-ontology-analysis" id="toc-gene-ontology-analysis">Gene
-    Ontology Analysis</a>
-    - <a href="#using-blast-in-command-line"
-      id="toc-using-blast-in-command-line">Using BLAST in command line</a>
-    - <a href="#filtering-blast-results"
-      id="toc-filtering-blast-results">Filtering Blast results</a>
-    - <a
-      href="#merging-the-blast-filtered-data-frames-with-the-sex-biased-information"
-      id="toc-merging-the-blast-filtered-data-frames-with-the-sex-biased-information">Merging
-      the BLAST filtered Data frames with the sex-biased information</a>
-    - <a href="#blasting-the-sex-specific-genes-against-the-s-scovelli-genome"
-      id="toc-blasting-the-sex-specific-genes-against-the-s-scovelli-genome">Blasting
-      the sex-specific genes against the <em>S. scovelli</em> genome</a>
-    - <a href="#blasting-against-the-zebrafish-genome"
-      id="toc-blasting-against-the-zebrafish-genome">Blasting against the
-      Zebrafish genome</a>
+- [Single factor analysis - Comparing Males v
+  Females](#single-factor-analysis---comparing-males-v-females)
+  - [Visualizing the results](#visualizing-the-results)
+    - [MA-plot - MvF Difference](#ma-plot---mvf-difference)
+    - [Heatmap - overall expression](#heatmap---overall-expression)
+    - [Sample-dist Heatmap](#sample-dist-heatmap)
+    - [PCA plots](#pca-plots)
+- [Multifactor design - Comparing M v F across the diff tissue
+  types](#multifactor-design---comparing-m-v-f-across-the-diff-tissue-types)
+  - [Invesitgate the results of the differential
+    expression](#invesitgate-the-results-of-the-differential-expression)
+    - [M-F Liver Comparisson](#m-f-liver-comparisson)
+    - [M-F Gill Comparisson](#m-f-gill-comparisson)
+    - [M-F Gonad Comparisson](#m-f-gonad-comparisson)
+    - [MA Plots](#ma-plots)
+  - [Creating an Upset Plot](#creating-an-upset-plot)
+  - [Variation in FC across sex-bias and tissue
+    type](#variation-in-fc-across-sex-bias-and-tissue-type)
+  - [Categorizing sex-specific genes](#categorizing-sex-specific-genes)
+    - [Investigating the results of the sex-specific
+      subsetting](#investigating-the-results-of-the-sex-specific-subsetting)
+    - [Pulling out the gene IDs for all of the sex-specific
+      genes](#pulling-out-the-gene-ids-for-all-of-the-sex-specific-genes)
+  - [Creating categories and binning the sex-biased genes based on
+    degree of
+    logFC](#creating-categories-and-binning-the-sex-biased-genes-based-on-degree-of-logfc)
+  - [Sex-bias across expression
+    levels](#sex-bias-across-expression-levels)
+  - [Gene Ontology Analysis](#gene-ontology-analysis)
+    - [Using BLAST in command line](#using-blast-in-command-line)
+    - [Filtering Blast results](#filtering-blast-results)
+    - [Merging the BLAST filtered Data frames with the sex-biased
+      information](#merging-the-blast-filtered-data-frames-with-the-sex-biased-information)
+    - [Blasting the sex-specific genes against the *S. scovelli*
+      genome](#blasting-the-sex-specific-genes-against-the-s-scovelli-genome)
+    - [Blasting against the Zebrafish
+      genome](#blasting-against-the-zebrafish-genome)
 
 ``` r
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
@@ -94,7 +71,7 @@ To analyze your data with DESeq2 you must first generate the
 DESeqDataSet. In order to do this we need the abundance matrix generated
 with `tximport` and a `samples` file that lays out all of the
 conditions. The model for this single factor analysis was run as counts
-\~ Sex.
+~ Sex.
 
 ``` r
 #Create the DESeq dataset
@@ -114,7 +91,7 @@ all samples.
 
 ``` r
 #only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_FL)) >= 10
+keep <- rowSums(counts(dds_FL)) >= 10 & rowSums(counts(dds_FL)) < 1e6
 dds_FL <- dds_FL[keep, ]
 ```
 
@@ -132,36 +109,36 @@ res
 
     ## log2 fold change (MLE): Sex M vs F 
     ## Wald test p-value: Sex M vs F 
-    ## DataFrame with 175095 rows and 6 columns
-    ##                        baseMean log2FoldChange     lfcSE       stat    pvalue
-    ##                       <numeric>      <numeric> <numeric>  <numeric> <numeric>
-    ## TRINITY_DN0_c0_g1     1801.1920      0.2673823  0.197183   1.356008  0.175097
-    ## TRINITY_DN0_c0_g2     2573.3828      0.7634647  0.581650   1.312585  0.189323
-    ## TRINITY_DN0_c1_g1        9.1754      0.9097093  0.530020   1.716367  0.086095
-    ## TRINITY_DN1_c0_g1     1292.0108     -0.1941494  0.158366  -1.225957  0.220215
-    ## TRINITY_DN1_c0_g2      114.9169     -0.0871335  0.419554  -0.207681  0.835478
-    ## ...                         ...            ...       ...        ...       ...
-    ## TRINITY_DN99992_c0_g1  1.308178      1.4606597  1.082334  1.3495467  0.177161
-    ## TRINITY_DN99993_c0_g2  0.772193     -0.6254412  1.154951 -0.5415307  0.588142
-    ## TRINITY_DN99995_c0_g1  1.277924     -0.0108875  0.780664 -0.0139464  0.988873
-    ## TRINITY_DN99997_c0_g1  2.179808     -0.0575813  1.686240 -0.0341478  0.972759
-    ## TRINITY_DN99999_c0_g1  0.251955      1.6312941  2.971355  0.5490068  0.583001
+    ## DataFrame with 175012 rows and 6 columns
+    ##                         baseMean log2FoldChange     lfcSE       stat    pvalue
+    ##                        <numeric>      <numeric> <numeric>  <numeric> <numeric>
+    ## TRINITY_DN0_c0_g1     1801.03718      0.2680054  0.196995   1.360466 0.1736824
+    ## TRINITY_DN0_c0_g2     2569.63955      0.7644264  0.581023   1.315656 0.1882897
+    ## TRINITY_DN0_c1_g1        9.17112      0.9101476  0.529836   1.717793 0.0858344
+    ## TRINITY_DN1_c0_g1     1292.66804     -0.1935821  0.159514  -1.213575 0.2249099
+    ## TRINITY_DN1_c0_g2      114.92732     -0.0878233  0.419601  -0.209302 0.8342127
+    ## ...                          ...            ...       ...        ...       ...
+    ## TRINITY_DN99992_c0_g1   1.306300      1.4608860   1.08203  1.3501306  0.176974
+    ## TRINITY_DN99993_c0_g2   0.771501     -0.6243968   1.15489 -0.5406552  0.588745
+    ## TRINITY_DN99995_c0_g1   1.278021     -0.0105806   0.78075 -0.0135519  0.989188
+    ## TRINITY_DN99997_c0_g1   2.186372     -0.0583447   1.68728 -0.0345791  0.972415
+    ## TRINITY_DN99999_c0_g1   0.251364      1.6308059   2.97134  0.5488448  0.583112
     ##                            padj
     ##                       <numeric>
-    ## TRINITY_DN0_c0_g1      0.532694
-    ## TRINITY_DN0_c0_g2      0.555717
-    ## TRINITY_DN0_c1_g1      0.353179
-    ## TRINITY_DN1_c0_g1      0.603156
-    ## TRINITY_DN1_c0_g2      0.969274
+    ## TRINITY_DN0_c0_g1      0.529839
+    ## TRINITY_DN0_c0_g2      0.553891
+    ## TRINITY_DN0_c1_g1      0.352959
+    ## TRINITY_DN1_c0_g1      0.610501
+    ## TRINITY_DN1_c0_g2      0.968509
     ## ...                         ...
     ## TRINITY_DN99992_c0_g1        NA
     ## TRINITY_DN99993_c0_g2        NA
     ## TRINITY_DN99995_c0_g1        NA
-    ## TRINITY_DN99997_c0_g1  0.995694
+    ## TRINITY_DN99997_c0_g1  0.995842
     ## TRINITY_DN99999_c0_g1        NA
 
 Once that has finished we can now start exploring some of the
-single-factor analysis results
+single-factor analysis results.
 
 ``` r
 ##Ordering our results based on p-value
@@ -171,14 +148,14 @@ resOrdered
 
     ## log2 fold change (MLE): Sex M vs F 
     ## Wald test p-value: Sex M vs F 
-    ## DataFrame with 175095 rows and 6 columns
+    ## DataFrame with 175012 rows and 6 columns
     ##                        baseMean log2FoldChange     lfcSE      stat      pvalue
     ##                       <numeric>      <numeric> <numeric> <numeric>   <numeric>
-    ## TRINITY_DN3756_c0_g1   918.7630        28.7244   2.07255   13.8595 1.11511e-43
-    ## TRINITY_DN21727_c0_g2   68.6867        25.1027   1.91953   13.0775 4.42515e-39
-    ## TRINITY_DN7854_c0_g1   138.4769        26.0705   2.01975   12.9078 4.06857e-38
-    ## TRINITY_DN31591_c0_g1   47.3757       -25.3123   2.08364  -12.1481 5.86888e-34
-    ## TRINITY_DN25251_c0_g2   83.2229        23.9277   1.97962   12.0870 1.23683e-33
+    ## TRINITY_DN3756_c0_g1   917.4512        28.7314   2.07237   13.8640 1.04651e-43
+    ## TRINITY_DN21727_c0_g2   68.5858        25.1038   1.91927   13.0799 4.29023e-39
+    ## TRINITY_DN7854_c0_g1   138.2916        26.0503   2.01955   12.8991 4.55345e-38
+    ## TRINITY_DN25251_c0_g2   83.0923        23.9536   1.97936   12.1017 1.03474e-33
+    ## TRINITY_DN1255_c0_g1    21.7807        23.4056   1.94739   12.0190 2.82439e-33
     ## ...                         ...            ...       ...       ...         ...
     ## TRINITY_DN99802_c0_g1         0              0         0         0           1
     ## TRINITY_DN99802_c0_g2         0              0         0         0           1
@@ -187,11 +164,11 @@ resOrdered
     ## TRINITY_DN99888_c0_g3         0              0         0         0           1
     ##                              padj
     ##                         <numeric>
-    ## TRINITY_DN3756_c0_g1  7.46547e-39
-    ## TRINITY_DN21727_c0_g2 1.48128e-34
-    ## TRINITY_DN7854_c0_g1  9.07942e-34
-    ## TRINITY_DN31591_c0_g1 9.82275e-30
-    ## TRINITY_DN25251_c0_g2 1.65607e-29
+    ## TRINITY_DN3756_c0_g1  7.00286e-39
+    ## TRINITY_DN21727_c0_g2 1.43542e-34
+    ## TRINITY_DN7854_c0_g1  1.01566e-33
+    ## TRINITY_DN25251_c0_g2 1.73102e-29
+    ## TRINITY_DN1255_c0_g1  3.77994e-29
     ## ...                           ...
     ## TRINITY_DN99802_c0_g1          NA
     ## TRINITY_DN99802_c0_g2          NA
@@ -204,12 +181,12 @@ summary(res)
 ```
 
     ## 
-    ## out of 167170 with nonzero total read count
+    ## out of 167090 with nonzero total read count
     ## adjusted p-value < 0.1
-    ## LFC > 0 (up)       : 4406, 2.6%
-    ## LFC < 0 (down)     : 3698, 2.2%
+    ## LFC > 0 (up)       : 4407, 2.6%
+    ## LFC < 0 (down)     : 3679, 2.2%
     ## outliers [1]       : 0, 0%
-    ## low counts [2]     : 108147, 65%
+    ## low counts [2]     : 108096, 65%
     ## (mean count < 2)
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
@@ -219,7 +196,7 @@ summary(res)
 sum(res$padj < 0.1, na.rm = TRUE)
 ```
 
-    ## [1] 8104
+    ## [1] 8086
 
 ``` r
 #Looking at  an alpha=0.05, the default is 0.1
@@ -228,13 +205,13 @@ summary(res05)
 ```
 
     ## 
-    ## out of 167170 with nonzero total read count
+    ## out of 167090 with nonzero total read count
     ## adjusted p-value < 0.05
-    ## LFC > 0 (up)       : 3196, 1.9%
-    ## LFC < 0 (down)     : 2729, 1.6%
+    ## LFC > 0 (up)       : 3021, 1.8%
+    ## LFC < 0 (down)     : 2537, 1.5%
     ## outliers [1]       : 0, 0%
-    ## low counts [2]     : 111380, 67%
-    ## (mean count < 2)
+    ## low counts [2]     : 98402, 59%
+    ## (mean count < 1)
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
 
@@ -242,30 +219,38 @@ summary(res05)
 sum(res05$padj < 0.05, na.rm = TRUE)
 ```
 
-    ## [1] 5925
+    ## [1] 5558
 
 ## Visualizing the results
 
-### MA-plot - MvF Diff.
+### MA-plot - MvF Difference
 
 Generate an MA-plot to show the log2 fold changes attributable to sex
 over the mean of normalized counts for all of the samples in the `dds`.
 Points will be colored if the adjusted p-value is less that 0.1.
 
-![LogFC versus the mean normalized count for all of the genes. Points
-that are blue have a p-value less than 0.1. The two plots are the same
-with the only difference coming from an adjusted y-limit. Points that
-are triangles represent genes with a fold change higher/lower than the
-y-limit.](floridae_diff_expr_analysis_files/figure-gfm/MA-plot-1.png)
+<figure>
+<img src="floridae_diff_expr_analysis_files/figure-gfm/MA-plot-1.png"
+alt="LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit." />
+<figcaption aria-hidden="true"><em>LogFC versus the mean normalized
+count for all of the genes. Points that are blue have a p-value less
+than 0.1. The two plots are the same with the only difference coming
+from an adjusted y-limit. Points that are triangles represent genes with
+a fold change higher/lower than the y-limit.</em></figcaption>
+</figure>
 
 ### Heatmap - overall expression
 
 We can also generate a heat map to look ar overall expression levels
 across our samples. Note, this is not differentially expressed genes.
 
-![Heatmap showing the expression level across all organs for the top 20
-genes with the highest expression
-levels.](floridae_diff_expr_analysis_files/figure-gfm/heatmap-1.png)
+<figure>
+<img src="floridae_diff_expr_analysis_files/figure-gfm/heatmap-1.png"
+alt="Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels." />
+<figcaption aria-hidden="true"><em>Heatmap showing the expression level
+across all organs for the top 20 genes with the highest expression
+levels.</em></figcaption>
+</figure>
 
 From the heatmap we can see that for all of these top 20 expressed genes
 the highest expression in found in the liver. There are also a few genes
@@ -292,11 +277,16 @@ heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
 We can then generate a sample-to-sample distances heatmap that will give
 an overview of the similarities and differences between our samples
 
-![Sample-to-sample distances heatmap showing the similarities and
-differences between all of the samples. The darker the color, the more
-similar the samples are. The diagonal line of very dark blue represents
-the comparissons between the same
-samples.](floridae_diff_expr_analysis_files/figure-gfm/sample-dist-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/sample-dist-1.png"
+alt="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the color, the more similar the samples are. The diagonal line of very dark blue represents the comparissons between the same samples." />
+<figcaption aria-hidden="true"><em>Sample-to-sample distances heatmap
+showing the similarities and differences between all of the samples. The
+darker the color, the more similar the samples are. The diagonal line of
+very dark blue represents the comparissons between the same
+samples.</em></figcaption>
+</figure>
 
 We can see that the highest similarities (aside from same samples
 comparisons) is between samples from the same organ. After that, the
@@ -312,43 +302,58 @@ samples are grouping. The size of the points for these plots will be
 scaled by the mating success of the individual to see if that may be at
 all correlated with the sample grouping.
 
-![Principal components analysis reflects that most variation corresponds
-to differences in expression between organs (green: gill; yellow: gonad;
-pink: liver), rather than variation due to sex (circle = female;
-triangle = male) or mating status (the size of points reflects an
-individual’s mating success). The first axis explains 32% of variation
-in the dataset, with gills and liver, two types of somatic tissues,
-sitting on opposite ends of that axis. The second axis explains 23% of
-the variation in gene expression, with somatic tissues on the opposite
-side of the axis from the
-gonads.](floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-organ-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-organ-1.png"
+alt="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads." />
+<figcaption aria-hidden="true"><em>Principal components analysis
+reflects that most variation corresponds to differences in expression
+between organs (green: gill; yellow: gonad; pink: liver), rather than
+variation due to sex (circle = female; triangle = male) or mating status
+(the size of points reflects an individual’s mating success). The first
+axis explains 32% of variation in the dataset, with gills and liver, two
+types of somatic tissues, sitting on opposite ends of that axis. The
+second axis explains 23% of the variation in gene expression, with
+somatic tissues on the opposite side of the axis from the
+gonads.</em></figcaption>
+</figure>
 
     ## Warning: Using size for a discrete variable is not advised.
 
-![The same Principal Components Analysis as above but with color now
-representing sex and shape representing organ type (left) as well as the
-comparisson of PC1 and PC3 which shows variation in expression patterns
-between males and females, particularly in the gonads, explains
-approximately 10% of the variance in gene expression data, as reflected
-by the third principal components
-axis.](floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-sex-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-sex-1.png"
+alt="The same Principal Components Analysis as above but with color now representing sex and shape representing organ type (left) as well as the comparisson of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis." />
+<figcaption aria-hidden="true"><em>The same Principal Components
+Analysis as above but with color now representing sex and shape
+representing organ type (left) as well as the comparisson of PC1 and PC3
+which shows variation in expression patterns between males and females,
+particularly in the gonads, explains approximately 10% of the variance
+in gene expression data, as reflected by the third principal components
+axis.</em></figcaption>
+</figure>
 
     ## Warning: Using size for a discrete variable is not advised.
 
-![The same Principal Components Analysis as above but with color now
-representing sex and shape representing organ type (left) as well as the
-comparisson of PC1 and PC3 which shows variation in expression patterns
-between males and females, particularly in the gonads, explains
-approximately 10% of the variance in gene expression data, as reflected
-by the third principal components
-axis.](floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-sex-2.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/pca-scaled-sex-2.png"
+alt="The same Principal Components Analysis as above but with color now representing sex and shape representing organ type (left) as well as the comparisson of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis." />
+<figcaption aria-hidden="true"><em>The same Principal Components
+Analysis as above but with color now representing sex and shape
+representing organ type (left) as well as the comparisson of PC1 and PC3
+which shows variation in expression patterns between males and females,
+particularly in the gonads, explains approximately 10% of the variance
+in gene expression data, as reflected by the third principal components
+axis.</em></figcaption>
+</figure>
 
 # Multifactor design - Comparing M v F across the diff tissue types
 
 If we investigate the column data of our DESeq dataset we can see that
 each sample has both a sex and organ type attached to it, we will be
 using these two factors in our multi-factor analysis. In this
-multi-factor analysis the model was run as counts \~ group, where group
+multi-factor analysis the model was run as counts ~ group, where group
 included both the sex and the organ type (i.e. MLiver, FLiver, etc.).
 The sample “FLG4M4” appeared to a bit of an outlier in the above
 analysis, particularly clear in the sample-dist heatmap and the PCA, so
@@ -381,13 +386,13 @@ resultsNames(ddsMF_FL_exp)
 ## Invesitgate the results of the differential expression
 
 Thanks to the multi-factor analysis we can now explore differential
-expression between all of the different combinations:  
+expression between all of the different combinations:
 
-- Male Liver v. Female Liver  
-- Male Gill v. Female Gill  
-- Male Gonad v. Female Gonad  
+- Male Liver v. Female Liver
+- Male Gill v. Female Gill  
+- Male Gonad v. Female Gonad
 - All of the within sex tissue comparisons (e.g. Male Liver v. Male
-  Gill, etc.)  
+  Gill, etc.)
 
 ### M-F Liver Comparisson
 
@@ -715,11 +720,15 @@ top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(gonad_con
 
 ### MA Plots
 
-![MA-plots generated for each organ type that compares logFC to the mean
-expression. Female-biased and Male-biased genes are represented by color
-(green and purple correspondingly) and are determing with a fc cutoff of
-2 and a p-value cutoff of
-0.05.](floridae_diff_expr_analysis_files/figure-gfm/MA-plot-MF-1.png)
+<figure>
+<img src="floridae_diff_expr_analysis_files/figure-gfm/MA-plot-MF-1.png"
+alt="MA-plots generated for each organ type that compares logFC to the mean expression. Female-biased and Male-biased genes are represented by color (green and purple correspondingly) and are determing with a fc cutoff of 2 and a p-value cutoff of 0.05." />
+<figcaption aria-hidden="true">MA-plots generated for each organ type
+that compares logFC to the mean expression. Female-biased and
+Male-biased genes are represented by color (green and purple
+correspondingly) and are determing with a fc cutoff of 2 and a p-value
+cutoff of 0.05.</figcaption>
+</figure>
 
 From the MA plots we can see the highest number of biased genes are
 found in the gonads and then the liver and lastly the gills. The liver
@@ -729,17 +738,29 @@ sex-role-reversed nature of these fish.
 
 ## Creating an Upset Plot
 
-![Upset plots to show the number of shared sex-biased genes across the
-organs in
-males.](floridae_diff_expr_analysis_files/figure-gfm/upset-plot-mal-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/upset-plot-mal-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs in males." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs in males.</figcaption>
+</figure>
 
-![Upset plots to show the number of shared sex-biased genes across the
-organs in
-females.](floridae_diff_expr_analysis_files/figure-gfm/upset-plot-fem-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/upset-plot-fem-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs in females." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs in females.</figcaption>
+</figure>
 
-![Upset plots to show the number of shared sex-biased genes across the
-organs across both
-sexes.](floridae_diff_expr_analysis_files/figure-gfm/upset-plot-all-1.png)
+<figure>
+<img
+src="floridae_diff_expr_analysis_files/figure-gfm/upset-plot-all-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs across both sexes." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs across both sexes.</figcaption>
+</figure>
 
 In both males and females the highest number of shared sex-biased genes
 is found between the gonads and the liver. There are no genes that are
@@ -840,8 +861,8 @@ tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), mean)
 ```
 
     ##          Gill    Gonad     Liver
-    ## FB 14.8387724 4.270561 4.6797827
-    ## MB  9.2086113 4.574899 4.1798810
+    ## FB 14.8387755 4.270575 4.6797832
+    ## MB  9.2086116 4.574899 4.1798844
     ## NB  0.7851771 1.239521 0.5915606
 
 ``` r
@@ -849,8 +870,8 @@ tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
 ```
 
     ##        Gill    Gonad     Liver
-    ## FB 8.046450 2.620606 3.8078443
-    ## MB 6.428323 2.371041 4.0775662
+    ## FB 8.046453 2.620675 3.8078452
+    ## MB 6.428323 2.371041 4.0775676
     ## NB 1.022652 1.430086 0.7336214
 
 ``` r
@@ -872,10 +893,10 @@ anova(fc_var_aov)
     ## 
     ## Response: abs(logFC_long$logFC)
     ##                                       Df Sum Sq Mean Sq  F value    Pr(>F)    
-    ## logFC_long$bias                        2 165851   82926 46055.71 < 2.2e-16 ***
-    ## logFC_long$tissue                      2  10646    5323  2956.31 < 2.2e-16 ***
-    ## logFC_long$bias:logFC_long$tissue      4   4212    1053   584.86 < 2.2e-16 ***
-    ## Residuals                         175132 315334       2                       
+    ## logFC_long$bias                        2 165852   82926 46055.60 < 2.2e-16 ***
+    ## logFC_long$tissue                      2  10646    5323  2956.30 < 2.2e-16 ***
+    ## logFC_long$bias:logFC_long$tissue      4   4212    1053   584.85 < 2.2e-16 ***
+    ## Residuals                         175132 315335       2                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -1068,6 +1089,26 @@ for(organ in organs){
 Let’s now take a look at how many sex-specific genes we have in each
 tissue type:
 
+``` r
+sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
+                                  sex = c(rep("M", 3),
+                                          rep("F", 3)),
+                                  num_genes = c(nrow(FL_sex_specific_genes$Gill_male_specific),
+                                                nrow(FL_sex_specific_genes$Gonad_male_specific),
+                                                nrow(FL_sex_specific_genes$Liver_male_specific),
+                                                nrow(FL_sex_specific_genes$Gill_female_specific),
+                                                nrow(FL_sex_specific_genes$Gonad_female_specific),
+                                                nrow(FL_sex_specific_genes$Liver_female_specific))
+                                  )
+
+sex_specific_counts %>% 
+  group_by(tissue, sex) %>% 
+  summarise("Number of Sex-specific Genes" = sum(num_genes)) %>%
+  kable(caption = "Sex-specific Genes", format = "html",
+        col.names = c("Tissue Type", "Sex", "Number of Sex-specific Genes")) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+```
+
 To get a better idea what is going on between the sex-specific genes vs
 the sex-biased genes I first determined how many overlaps there were
 between our sex-biased and sex-specific genes and then used plotCounts
@@ -1151,7 +1192,7 @@ for(gene in gill_fem_biased_geneIDS){
 
 This binned was only done on the sex-biased genes, will not have a
 category for the unbiased genes. The cutoffs for the different groups
-are as follows:  
+are as follows:
 
     1. Low - biased = LFC 2 - 3
     2. Medium - biased = LFC 3 - 5
@@ -1168,7 +1209,7 @@ biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
 #Create a new column in the dataset and use ifelse statements to set the category limits
 #abs(logFC) was used to account for the fem-biased genes possessing negative values
-logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
+logFC_long$bias_cat <- ifelse(logFC_long$bias == "NB",
                               biased_bins[1],
                               ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3,
                                      biased_bins[2],
@@ -1251,6 +1292,112 @@ legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f
 ```
 
 ![](floridae_diff_expr_analysis_files/figure-gfm/bin-sex-bias-1.png)<!-- -->
+
+## Sex-bias across expression levels
+
+``` r
+cats <- c("FLG.*F", "FLG.*M",
+          "FLL.*F", "FLL.*M",
+          "FLO", "FLT")
+
+new_cats <- c("FLG.*",
+              "FLL.*",
+              "FL[OT].*")
+
+
+
+vsd_assay <- assay(vsd)
+
+
+cat_meds <- do.call(cbind,
+                    lapply(new_cats, 
+                           function(label){
+                            this_set <- vsd_assay[,
+                                                  grep(label,
+                                                       colnames(vsd_assay))]
+                            gene_meds <- apply(this_set, 1, median)
+                            return(gene_meds)
+                            }
+                           )
+                    )
+
+colnames(cat_meds) <- c("Gill",
+                        "Liver",
+                        "Gonad")
+
+cat_meds <- as.data.frame(cat_meds)
+
+# add gene id as column
+cat_meds$geneID <- rownames(cat_meds)
+
+# make cat_meds long
+library(tidyr)
+cat_meds_long <- cat_meds %>% pivot_longer(cols = c("Gill", 
+                                                    "Liver", 
+                                                    "Gonad"),
+                                           names_to = "tissue",
+                                           values_to = "med_expression")
+
+meds_bias <- merge(logFC_long, cat_meds_long, by=c("geneID","tissue"),
+                   all.x = TRUE)
+
+#Create an empty dataframe to store the data
+sb_props <- data.frame(matrix(ncol = 5,
+                              nrow = 0))
+colnames(sb_props) <- c("organ", "q1", "q2", "q3", "q4")
+
+for (organ in unique(meds_bias$tissue)) {
+  
+  #Subset dataset for one organ
+  tmp <- meds_bias[meds_bias$tissue == organ &
+                     !(is.na(meds_bias$med_expression)), ]
+  
+  #Calculate the quartiles of expression for that organ
+  quants <- quantile(tmp$med_expression,
+                     prob = c(0.25, 0.5, 0.75),
+                     type = 1,
+                     na.rm = TRUE)
+  
+  #For each quartile, calculate the number of MB, FB, and UB genes
+  q1 <- tapply(tmp[tmp$med_expression <= quants[[1]],]$geneID,
+         tmp[tmp$med_expression <= quants[[1]],]$bias,
+         length)
+  
+  q2 <- tapply(tmp[tmp$med_expression > quants[[1]] & 
+               tmp$med_expression <= quants[[2]],]$geneID,
+         tmp[tmp$med_expression > quants[[1]] & 
+               tmp$med_expression <= quants[[2]],]$bias,
+         length)
+  
+  q3 <- tapply(tmp[tmp$med_expression > quants[[2]] & 
+               tmp$med_expression <= quants[[3]],]$geneID,
+         tmp[tmp$med_expression > quants[[2]] & 
+               tmp$med_expression <= quants[[3]],]$bias,
+         length)
+  
+  q4 <- tapply(tmp[tmp$med_expression > quants[[3]],]$geneID,
+         tmp[tmp$med_expression > quants[[3]],]$bias,
+         length)
+  
+  quartiles <- list(q1, q2, q3, q4)
+  
+  #For each quartile, calculate the percentage of sex-biased genes
+  pers <- t(lapply(quartiles, function(quart){
+    
+    per_SB <- (sum(quart[names(quart) != "NB"])/sum(quart))*100
+    
+    return(per_SB)
+  }))
+  
+  #Add the organ information to the quartile data
+  tmp2 <- cbind(organ, pers)
+  colnames(tmp2) <- c("organ", "q1", "q2", "q3", "q4")
+  
+  #Save the data
+  sb_props <- rbind(sb_props, tmp2)
+  
+}
+```
 
 ## Gene Ontology Analysis
 
