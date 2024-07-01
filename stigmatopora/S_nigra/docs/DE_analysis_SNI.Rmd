@@ -126,7 +126,7 @@ sum(res05$padj < 0.05, na.rm = TRUE)
 ### MA-plot - MvF Differntial expression
 Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
 
-```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
+```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalised count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
 
 par(mfrow=c(1,2))
 plotMA(res, ylim = c(-2,2))
@@ -154,7 +154,7 @@ pheatmap(assay(vsd)[select,],
          annotation_col = df)
 ```
 
-From the heatmap we can see that for all of these top 20 expressed genes the highest expression in found in the liver. S34 (female liver) is showing expression patterns that are different from the other livers. There are also a few genes that appear to be highly expressed across all of the tissue types. With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
+From the heatmap we can see that for all of these top 20 expressed genes the highest expression is found in the liver. S34 (female liver) is showing expression patterns that are different from the other livers. There are also a few genes that appear to be highly expressed across all of the tissue types. With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
 
 ```{r heatmap_genes}
 #Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
@@ -172,7 +172,7 @@ heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
 
 We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples.
 
-```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the color, the more similar the samples are. The diagonal line of very dark blue represents the comparissons between the same samples.", warning=FALSE}
+```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences among all of the samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparissons within the same samples.", warning=FALSE}
 #Calculate the sample-to-sample distances from the transformed count matrix
 sampleDists <- dist(t(assay(vsd)))
 
@@ -218,7 +218,7 @@ pairsplot(p,
 
 From the pairs plot we can see that PC1 appears to be explaining differences between the liver and the other tissues (we can see the one problematic liver sample from above sticking out from all the rest), PC2 appears to be explaining differences between gonadal and somatic tissues, PC3 seems to account for differences between male and female samples, especially in the gonads and in PC4 we can see the one problematic liver sample again sticking out from all the rest. I am going to plot all of PC2 - 4 against PC1 below for a clearer picture.
 
-```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male). The first axis explains 27% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 22% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
 
 #Generate the PCA dataframe
 pca <- prcomp(t(assay(vsd)))
@@ -633,7 +633,11 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(color = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 ```
 
 ```{r pca-scaled-sex2, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
@@ -651,7 +655,11 @@ pc1v2 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v2
 
@@ -665,7 +673,11 @@ pc1v3 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v3
 
@@ -982,7 +994,7 @@ all_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
 ```
 
 ### MA Plots
-```{r MA-plot-MF, echo=FALSE, fig.height= 15, fig.width=8, fig.cap="MA-plots generated for each organ type that compares logFC to the mean expression. Female-biased and Male-biased genes are represented by color (green and purple correspondingly) and are determing with a fc cutoff of 2 and a p-value cutoff of 0.05."}
+```{r MA-plot-MF, echo=FALSE, fig.height= 15, fig.width=8, fig.cap="MA-plots generated for each organ type that compares logFC to the mean expression. Female-biased and male-biased genes are represented by colour (female: green; male: purple) and are determined with a fold change cutoff of 2 and a p-value cutoff of 0.05"}
 liver_MA <- ggmaplot(liver_con_res,
          fdr = 0.05, fc = 2,
          size = 1.4,
@@ -1028,7 +1040,7 @@ plot_grid(liver_MA, gill_MA, gonad_MA,
 
 ```
 
-From the MA plots we can see the highest number of biased genes are found in the gonads (Fig. \@ref(fig:MA-plot-MF)) and then the liver and lastly the gills. The liver appears to be the only organ where there are more female-biased genes than male-biased genes, which is initially surprising due to the sex-role-reversed nature of these fish.
+From the MA plots we can see the highest number of biased genes are found in the gonads (Fig. \@ref(fig:MA-plot-MF)) and then the liver and lastly the gills. In both the liver and the gonads there are more female-biased genes than male-biased genes.
 
 ## Creating an Upset Plot
 ```{r upset-plot-mal, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in males."}
@@ -1219,6 +1231,17 @@ model <- glm.nb(abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
 linear_model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
 ```
 
+Analysis of Variance Table
+
+Response: abs(logFC_long$logFC)
+                                     Df Sum Sq Mean Sq  F value    Pr(>F)    
+logFC_long$bias                       2 100708   50354 25056.36 < 2.2e-16 ***
+logFC_long$tissue                     2   7980    3990  1985.45 < 2.2e-16 ***
+logFC_long$bias:logFC_long$tissue     4   4527    1132   563.17 < 2.2e-16 ***
+Residuals                         93273 187444       2                       
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+---
 
 ## Categorizing sex-specific genes
 Now that we have investigated what the sex-bias is like across the different tissue types I want to dive further into genes with **sex-specific expression**. These are genes expressed only in one sex or the other. I am classifying a sex-specific genes within each tissue as ones where the expression of that gene is less than 10 for all of one sex and there is a median of $\ge 20$ in the other sex. 
@@ -1451,8 +1474,7 @@ logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
                                      )
                               )
 
-#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their 
-#bias cat. in the dataset
+#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their bias cat. in the dataset
 organs <- c("Gill", "Gill", "Gonad", "Gonad", "Liver", "Liver")
 bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
 
