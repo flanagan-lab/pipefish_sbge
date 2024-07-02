@@ -749,36 +749,8 @@ liver_non_biased <- liver_con_res_noNA[which(liver_con_res_noNA$padj > 0.05),]
 
 ```
 
-I will be generating a table that outlines the genes that are the most male or female biased in each organ type. To do this I need to pull the top 50 differentially expressed genes in males or females, get the Trinity gene IDs and then BLAST the corresponding sequences. Here I am pulling out the Trinity gene IDs for those genes.
+I will be generating a table that outlines the genes that are the most male or female biased in each organ type. To do this I need to pull all differentially expressed genes in males or females, get the Trinity gene IDs and then BLAST the corresponding sequences. Here I am pulling out the Trinity gene IDs for those genes.
 
-```{r top50-liver}
-#Creating a subset of the results where the p-value is less than 0.05
-liver_con_res_p05 <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05, ]
-
-
-#Pulling the top 50 diff expressed genes in Males
-top50_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
-  liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
-#Run once to create the file and then commented out
-#write.table(top50_MLiver_trin_genes,
- #          'SN_maleL_top50TRgenes.txt', 
-  #         sep = "", 
-   #        quote=FALSE, 
-    #         row.names = FALSE, 
-     #        col.names = FALSE)
-
-#Pulling the top 50 diff expressed genes in Females
-top50_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
-  liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
-
-#Run once to create the file and then commented out
-#write.table(top50_Fliver_trin_genes,
- #           'SN_femL_top50TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-```
 
 ```{r all-liver}
 #Creating a subset of the results where the p-value is less than 0.05
@@ -841,36 +813,7 @@ gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -
 gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
 ```
 
-Here I am getting the trinity gene IDs that correspond to the top 50 differentially expressed genes for males and females. Because there are only 27 female-biased and male-biased genes I will only use those.
-
-```{r top50-gill}
-#Creating a subset of results where p-value is less than 0.05
-gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
-
-#Pulling the top 27 diff expressed genes in Males
-top27_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=27)))
-
-#Run once to create the file and then commented out
-#write.table(top27_MGill_trin_genes,
- #           'SN_maleG_top27TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-
-#Pulling the top 27 diff expressed genes in Females 
-top27_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=27)))
-
-#Run once to create the file and then commented out
-#write.table(top27_FGill_trin_genes,
- #           'SN_femG_top27TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-```
+Here I am getting the trinity gene IDs that correspond to all differentially expressed genes for males and females. Because there are only 22 female-biased and male-biased genes I will only use those.
 
 ```{r all-gill}
 #Creating a subset of results where p-value is less than 0.05
@@ -934,35 +877,8 @@ gonad_fem_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange <
 gonad_non_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$padj > 0.05),]
 ```
 
-I then pulled out the trinity gene IDs that corresponded to the top 50 differentially expressed genes in males and females so that I could BLAST the sequences.
-```{r top50-gonad}
-#Creating a subset of the results where the p-value is less than 0.05
-gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
+I then pulled out the trinity gene IDs that corresponded to all differentially expressed genes in males and females so that I could BLAST the sequences.
 
-#Pulling the top 50 diff expressed genes in Males
-top50_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=50)))
-
-#Run once to create the file and then commented out
-#write.table(top50_MGonad_trin_genes,
- #        'SN_maleGon_top50TRgenes.txt', 
-  #        sep = "", 
-   #       quote=FALSE, 
-    #      row.names = FALSE, 
-     #     col.names = FALSE)
-
-#Pulling the top 50 diff expressed genes in Females
-top50_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=50)))
-
-#Run once to create the file and then commented out
-#write.table(top50_FGonad_trin_genes,
- #           'SN_femGon_top50TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-```
 
 ```{r all-gonad}
 #Creating a subset of the results where the p-value is less than 0.05

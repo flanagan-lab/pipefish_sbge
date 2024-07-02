@@ -103,9 +103,7 @@ tpms <- do.call(cbind, lapply(files, function(file){
 }))
 
 #Remove the sample that was removed in the differential expression analysis 
-tpms <- tpms[, !(colnames(tpms) %in% c("S34",
-                                        "S44",
-                                        "S54"))]
+tpms <- tpms[, !(colnames(tpms) %in% c("S34"))]
 ```
 
 ## Filtering the TPM dataset
@@ -126,10 +124,8 @@ dds_SN <- DESeqDataSetFromTximport(txi.nigra,
                                    colData = samples,
                                    design = ~ group)
 
-##Remove all S34 organs from the dataset
-dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34",
-                                      "S44",
-                                      "S54"))]
+##Remove S34 from the dataset
+dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(dds_SN)) >= 10 
@@ -206,9 +202,7 @@ I then applied that function across each row in the TPMs matrix with my metadata
 I ran the $\tau$ function with the whole dataset, and then for just males and just females.
 
 ```{r calcTau}
-colData <- colData[!(colData$ID %in% c("S34",
-                                       "S44",
-                                       "S54")),]
+colData <- colData[!(colData$ID %in% c("S34")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
 
@@ -242,7 +236,7 @@ hist(tau,
      main="All samples")
 ```
 
-We can see that the distribution of $\tau$ doesn't vary drastically when looking at only male/female samples versus when we included all of the samples in the calculation (Fig. \@ref(fig:tauHist)). Because of this, I can be confident in using the $\tau$ with all the samples moving forward.
+We can see that the distribution of $\tau$ varies slightly when looking at only male/female samples versus when we included all of the samples in the calculation (Fig. \@ref(fig:tauHist)). Because of this, I can be confident in using the $\tau$ with all the samples moving forward.
 
 ## Validating the $\tau$ calculations
 To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
