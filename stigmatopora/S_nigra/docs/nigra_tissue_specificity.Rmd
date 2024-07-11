@@ -1142,7 +1142,7 @@ cor.test(gill_FB_UB_tau$tau_fem, abs(gill_FB_UB_tau$log2FoldChange), method = "s
 
 ## Let's investigate the samples with a tau value of 0 but some degree of sex bias
 
-```{r explore-tau-sb}
+```{r explore-tau-fb}
 ##Looking at genes that have a high bias and tau in the gonads
 #Getting list of genes with the greatest Tau
 gonad_FB_notau <- gonad_FB_UB_tau[sqrt(abs(gonad_FB_UB_tau$log2FoldChange)) > 2 & gonad_FB_UB_tau$tau == 0, ]
@@ -1163,6 +1163,287 @@ tpms[rownames(tpms)== gonad_FB_notau$Row.names[12],]
 
 ```
 
+## Categories of sex bias vs $\tau$
+
+To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorised the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
+
+### Within the sex-biased genes
+
+```{r bias-bin-cats-fem, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_fem <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau_fem)),
+           rep("Gonad", nrow(gonad_bias_tau_fem)),
+           rep("Liver", nrow(liver_bias_tau_fem))),
+  logFC=c(gill_bias_tau_fem$log2FoldChange,
+          gonad_bias_tau_fem$log2FoldChange,
+          liver_bias_tau_fem$log2FoldChange),
+  geneID=c(gill_bias_tau_fem$Row.names,
+           gonad_bias_tau_fem$Row.names,
+           liver_bias_tau_fem$Row.names),
+  tau=c(gill_bias_tau_fem$tau_fem,
+        gonad_bias_tau_fem$tau_fem,
+        liver_bias_tau_fem$tau_fem)
+  )
+
+#Add a column to denote female-biased or male biased
+logFC_long_fem$bias <- ifelse(logFC_long_fem$logFC < 0, paste0("FB"), paste0("MB"))
+
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_fem$bias_cat <- ifelse(abs(logFC_long_fem$logFC) >= 2 & abs(logFC_long_fem$logFC) < 3, biased_bins[1],
+                                   ifelse(abs(logFC_long_fem$logFC) >= 3 & abs(logFC_long_fem$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long_fem$logFC) >= 5 & abs(logFC_long_fem$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Making sure the ordering stays correct
+logFC_long_fem$bias_cat <- factor(logFC_long_fem$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long, "data/logFC_long_taubiasFB.csv", row.names = FALSE)
+
+```
+
+```{r tau-v-biascat-plot-fem, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
+
+plotdat<-ggplot(logFC_long_fem,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(axis.line = element_blank(),
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_fem[logFC_long$bias == "MB",], 
+           aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          )+ 
+geom_point(data = logFC_long_fem[logFC_long_fem$bias == "FB",], 
+           aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          )
+
+```
+
+### Across all significantly expressed genes
+I want to see how $\tau$ in unbiased genes compares to these categories as well. To do that I recreated the long-style dataset to include all of the sig. expressed genes rather than just the sex-biased genes.
+
+```{r bias-bin-cats-FBUB, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_FBUB <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_FB_UB_tau)),
+           rep("Gonad", nrow(gonad_FB_UB_tau)),
+           rep("Liver", nrow(liver_FB_UB_tau))
+         ),
+  logFC=c(gill_FB_UB_tau$log2FoldChange,
+          gonad_FB_UB_tau$log2FoldChange,
+          liver_FB_UB_tau$log2FoldChange
+          ),
+  geneID=c(gill_FB_UB_tau$Row.names,
+           gonad_FB_UB_tau$Row.names,
+           liver_FB_UB_tau$Row.names
+           ),
+  tau=c(gill_FB_UB_tau$tau,
+        gonad_FB_UB_tau$tau,
+        liver_FB_UB_tau$tau
+        ),
+  padj=c(gill_FB_UB_tau$padj,
+         gonad_FB_UB_tau$padj,
+         liver_FB_UB_tau$padj)
+  
+)
+
+#Add a column to denote female-biased or male biased
+logFC_long_FBUB$bias <- ifelse(logFC_long_FBUB$logFC <= -2 & 
+                                logFC_long_FBUB$padj <= 0.05,
+                              paste0("FB"),
+                              ifelse(logFC_long_FBUB$logFC >= 2 &
+                                       logFC_long_FBUB$padj <= 0.05,
+                                     paste0("MB"),
+                                     paste0("UB")
+                                     )
+                              )
+  
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_FBUB$bias_cat <- ifelse(logFC_long_FBUB$bias == "UB", 
+                              biased_bins[1],
+                              ifelse(abs(logFC_long_FBUB$logFC) >= 2 &
+                                       abs(logFC_long_FBUB$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long_FBUB$logFC) >= 3 &
+                                              abs(logFC_long_FBUB$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long_FBUB$logFC) >= 5 &
+                                                     abs(logFC_long_FBUB$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+  
+
+#Making sure the ordering stays correct
+logFC_long_FBUB$bias_cat <- factor(logFC_long_FBUB$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+logFC_long_FBUB$tissue <- factor(logFC_long_FBUB$tissue, levels = c("Gonad", "Liver", "Gill"), ordered = TRUE)
+
+#write.csv(logFC_long_FBUB, "data/logFC_long_FBUB.csv", row.names = FALSE)
+
+```
+
+
+
+```{r cat-sex-specific-FB}
+#Changing the bias category for the genes we just labeled as sex-specific
+organs <- c("Gill", "Gonad", "Liver",
+            "Gill", "Gonad", "Liver")
+bias <- c("FB", "FB", "FB",  
+          "MB", "MB", "MB")
+
+for(i in 1:length(SN_sex_specific_genes)){
+
+  tmp <- SN_sex_specific_genes[[i]]
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    if (one_gene %in% names(tau)){
+      
+    if(one_gene %in%
+       logFC_long_FBUB[logFC_long_FBUB$tissue == organs[[i]] &
+                      logFC_long_FBUB$bias == bias[[i]],"gene_ID"]){
+       
+       logFC_long_FBUB[logFC_long_FBUB$geneID == one_gene &
+                      logFC_long_FBUB$tissue == organs[[i]] &
+                      logFC_long_FBUB$bias == bias[[i]],"bias_cat"
+                      ] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long_FBUB),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long_FBUB)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene
+      one_gene_dat$tau <- tau[names(tau) == one_gene]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long_FBUB <- rbind(one_gene_dat, logFC_long_all)
+      
+      rownames(logFC_long_all) <- NULL
+    }
+    }  
+  }
+}
+
+#Making sure the ordering stays correct
+logFC_long_FBUB$bias_cat <- factor(logFC_long_FBUB$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias_SS_FB.csv", row.names = FALSE)
+```
+
+```{r tau-v-biascat-plot-all-fb-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_FBUB,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_FBUB[logFC_long_FBUB$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_FBUB[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_FBUB[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.2),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+
+
+```
+
+```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_all,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+```
 
 ## Let's look at males now 
 
