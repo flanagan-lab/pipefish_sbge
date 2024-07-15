@@ -179,7 +179,7 @@ pheatmap(sampleDistsMatrix,
 Here we can see that the highest similarities (aside from same samples comparisons) is between samples from the same organ. Again, S34 is showing unexpected patterns - I may end up removing all organs related to S34. 
 
 ### PCA plots
-Next we can look at PCA plots for our samples to see how our different samples are grouping. The size of the points for these plots will be scaled by the mating success of the individual to see if that may be at all correlated with the sample grouping.
+Next we can look at PCA plots for our samples to see how our different samples are grouping. 
 
 ```{r pca-pairs-plot, echo=FALSE, fig.cap="Principal components analysis pairsplot showing PCA axis 1 - 4."}
 #Generate the PCA data to create the pairs plot, using the PCAtools package
@@ -461,6 +461,7 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC1")
 
+
 save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
                   width=6,
                   height=6)
@@ -481,9 +482,9 @@ pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order],
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC2")
 
-save_pheatmap_pdf(pc2, "figs/Fig_pc2_heatmap.pdf",
-                  width=6,
-                  height=6)
+#save_pheatmap_pdf(pc2, "figs/Fig_pc2_heatmap.pdf",
+ #                 width=6,
+  #                height=6)
 
 ```
 
@@ -501,9 +502,9 @@ pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order],
                 border_color = NA,
                 main = "Top loading genes on PC3")
 
-save_pheatmap_pdf(pc3, "figs/Fig_pc3_heatmap.pdf",
-                  width=6,
-                  height=6)
+#save_pheatmap_pdf(pc3, "figs/Fig_pc3_heatmap.pdf",
+ #                 width=6,
+  #                height=6)
 
 ```
 
@@ -521,9 +522,9 @@ pc4 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,4]) >= 0.02), col_order],
                 border_color = NA,
                 main = "Top loading genes on PC4")
 
-save_pheatmap_pdf(pc4, "figs/Fig_pc4_heatmap.pdf",
-                  width=6,
-                  height=6)
+#save_pheatmap_pdf(pc4, "figs/Fig_pc4_heatmap.pdf",
+ #                 width=6,
+  #                height=6)
 
 ```
 
@@ -578,7 +579,7 @@ In the single-factor analyses we have established that sample S34 is an outlier.
 ##Remove S34 from the dataset
 dds_SN <- dds_SN[, dds_SN$ID != "S34"]
 
-#only keeping rows that have at lead 10 reads total
+#only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(dds_SN)) >= 10
 dds_SN <- dds_SN[keep, ]
 
@@ -609,7 +610,7 @@ pheatmap(assay(vsd)[select,],
 ```
 
 
-```{r heatmap_genes}
+```{r heatmap_genes_2}
 #Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
 heatmap_TG_no34 <- cbind(row.names(assay(vsd)[select,]))
 #Run once to create the file and then commented out
