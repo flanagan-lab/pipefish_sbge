@@ -107,26 +107,13 @@ summary(res05)
 sum(res05$padj < 0.05, na.rm = TRUE)
 
 ```
-out of 92491 with nonzero total read count
-adjusted p-value < 0.05
-LFC > 0 (up)       : 1389, 1.5%
-LFC < 0 (down)     : 1525, 1.6%
-outliers [1]       : 0, 0%
-low counts [2]     : 61344, 66%
-(mean count < 2)
-[1] see 'cooksCutoff' argument of ?results
-[2] see 'independentFiltering' argument of ?results
-
-> sum(res05$padj < 0.05, na.rm = TRUE)
-[1] 2914
-
 
 
 ## Visualizing the results
 ### MA-plot - MvF Differntial expression
 Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
 
-```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
+```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalised count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
 
 par(mfrow=c(1,2))
 plotMA(res, ylim = c(-2,2))
@@ -172,7 +159,7 @@ heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
 
 We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples.
 
-```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the color, the more similar the samples are. The diagonal line of very dark blue represents the comparissons between the same samples.", warning=FALSE}
+```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparisons between the same samples.", warning=FALSE}
 #Calculate the sample-to-sample distances from the transformed count matrix
 sampleDists <- dist(t(assay(vsd)))
 
@@ -189,10 +176,35 @@ pheatmap(sampleDistsMatrix,
          col = colors)
 ```
 
-### PCA plots
-Next we can look at PCA plots for our samples to see how our different samples are grouping. The size of the points for these plots will be scaled by the mating success of the individual to see if that may be at all correlated with the sample grouping.
+We can see that the highest similarities (aside from same samples comparisons) is between samples from the same organ. After that, the next highest similarities can be seen between male and female livers. 
 
-```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 23% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+### PCA plots
+Next we can look at PCA plots for our samples to see how our different samples are grouping. 
+
+
+```{r pca-pairs-plot, echo=FALSE, fig.cap="Principal components analysis pairsplot showing PCA axis 1 - 4."}
+#Generate the PCA data to create the pairs plot, using the PCAtools package
+p <- pca(assay(vsd), 
+         metadata = colData(dds_SM))
+
+#Create the pairs plot
+pairsplot(p,
+          components = getComponents(p, c(1:4)),
+          colby = "organ",
+          triangle = FALSE,
+          hline = 0, vline = 0,
+          colkey = c("Gill" = "#6E8B3D75", 
+                     "Gonad" = "#EEB42275", 
+                     "Liver" = "#EE826275"),
+          shape = "sex",
+          shapekey = c(16, 17),
+          pointSize = 3,
+          margingaps = unit(c(0.01, 0.01, 0.01, 0.01), 'cm'),
+          legendPosition = "left", legendIconSize = 3, legendLabSize = 10)
+
+```
+
+```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 32% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 20% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
 #Remove 23 and 30 ID rows from sample sheet
 samples2 <- samples[!(samples$ID %in% c("S23", "S30")), ]
 
@@ -223,7 +235,11 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 ```
 
 ```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
@@ -241,7 +257,11 @@ pc1v2 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v2
 
@@ -255,15 +275,19 @@ pc1v3 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v3
 
 ```
 
 In the single-factor analyses we have established that sample S10 is an outlier. Here, we will remove it and re-run the PCA plots.
-```{r remove outlier S34 and then re-run PCA plots}
-##Remove S34 from the dataset
+```{r remove-outlier-S10}
+#Remove S10 from the dataset
 dds_SM <- dds_SM[, dds_SM$ID != "S10"]
 
 #only keeping rows that have at lead 10 reads total
@@ -279,18 +303,48 @@ vsd <- vst(dds_SM_exp, blind=FALSE)
 
 ```
 
-```{r pca-scaled-organ, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 31% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 20% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
+```{r heatmap2, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels. S10 excluded."}
+#Pull out the top 20 rows with the most expression
+select <- order(rowMeans(counts(dds_SM_exp, normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+df <- as.data.frame(colData(dds_SM)[,c("sex", "organ")]) 
+
+#Transform the data
+vsd <- vst(dds_SM_exp, blind=FALSE)
+
+#Run the heat map with the function pheatmap
+pheatmap(assay(vsd)[select,], 
+         cluster_rows = FALSE, 
+         show_rownames = TRUE, 
+         cluster_cols = FALSE, 
+         annotation_col = df)
+```
+
+```{r heatmap_genes2}
+#Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
+heatmap_TG_no10 <- cbind(row.names(assay(vsd)[select,]))
+#Run once to create the file and then commented out
+#write.table(heatmap_TG_no10,
+ #           'heatmap_trinitygenes_no10.txt',
+  #          sep = "",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
+```
+
+```{r pca-scaled-organ2, echo=FALSE, fig.cap="Principal components analysis reflects that most variation corresponds to differences in expression between organs (green: gill; yellow: gonad; pink: liver), rather than variation due to sex (circle = female; triangle = male) or mating status (the size of points reflects an individual’s mating success). The first axis explains 31% of variation in the dataset, with gills and liver, two types of somatic tissues, sitting on opposite ends of that axis. The second axis explains 20% of the variation in gene expression, with somatic tissues on the opposite side of the axis from the gonads.", warning=FALSE}
 
 #Generate the PCA dataframe
 pca <- prcomp(t(assay(vsd)))
 pca_plotting_data<-as.data.frame(pca$x)
 
 #Add the metadata to the PCA dataset
-pca_plotting_data$organ <- samples2$organ[samples2$ID != "S10"]
-pca_plotting_data$sex <- samples2$sex[samples2$ID != "S10"]
+#####something went wrong here send help#####
+pca_plotting_data$organ <- samples$organ[, samples$ID != "S10"]
+pca_plotting_data$sex <- samples$sex[, samples$ID != "S10"]
 
 #Calculate the percent variation attributed to each axis 
-pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SM))
+pcaData <- plotPCA(vsd, intgroup = c("organ", "sex"), returnData = TRUE, ntop = nrow(dds_SN))
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
 
@@ -308,10 +362,14 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(color = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 ```
 
-```{r pca-scaled-sex, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
+```{r pca-scaled-sex2, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with colour now representing sex and shape representing organ type (left) as well as the comparison of PC1 and PC3 which shows variation in expression patterns between males and females, particularly in the gonads, explains approximately 10% of the variance in gene expression data, as reflected by the third principal components axis."}
 
 par(mfrow=c(1,2))
 my_colors2 <- c("F" = "#7fc97f75", "M" = "#beaed475" )
@@ -326,7 +384,11 @@ pc1v2 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v2
 
@@ -340,7 +402,11 @@ pc1v3 <- ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = sex, shape = organ)
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed')
 
 pc1v3
 
