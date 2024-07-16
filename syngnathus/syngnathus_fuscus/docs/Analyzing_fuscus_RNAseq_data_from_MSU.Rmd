@@ -3,11 +3,13 @@ title: "Analyzing *Syngnathus fuscus* RNAseq Data from MSU"
 author: "Coley Tosto"
 date: "`r Sys.Date()`"
 output:
-    html_document:
-        code_folding: show
-        toc: yes
-        toc_float: yes
-        number_sections: yes
+  github_document:
+    toc: true
+    #html_document:
+        #code_folding: show
+        #toc: yes
+        #toc_float: yes
+        #number_sections: yes
 ---
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
@@ -92,60 +94,6 @@ This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_cor
 From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 42 &pm; 6.2 million reads per sample for a total of 2.54 billion reads.
 
 # De novo transcriptome assembly
-## The Oyster River Protocol
-### Installing the ORP using Docker
-To work through the pipeline, the docker image was used following the instructions on their [website](https://oyster-river-protocol.readthedocs.io/en/latest/docker_install.html):
-
-  1. Pull the image from DockerHub:
-      `sudo docker pull macmaneslab/orp:2.3.3`
-
-  2. Run the image:
-```
-      sudo docker run -it \
-      --mount type=bind,source=/home/rccuser/shared,target=/home/orp/docker \
-      macmaneslab/orp:2.3.3 bash
-```
-      
-  3. Test the installation: \
-```
-      cd $HOME/Oyster_River_Protocol/sampledata
-
-      conda activate orp
-
-      $HOME/Oyster_River_Protocol/oyster.mk \
-      STRAND=RF \
-      TPM_FILT=1 \
-      MEM=5 \
-      CPU=4 \
-      READ1=test.1.fq.gz \
-      READ2=test.2.fq.gz \
-      RUNOUT=test
-```
-Installation test was successful.
-
-### Running the ORP
-It appears the the ORP is unable to receive multiple files for the forward and reverse reads, however, I wanted to use all of the reads across my samples in order to build the assemblies. To get around this, all of the R1 and R2 reads across all the samples were concatenated into one file respectively.
-```
-cd fuscus_kmer_corrected/
-cat *R1.fq.gz > FUall_R1.fq.gz
-cat *R2.fq.gz > FUall_R2.fq.gz
-
-#Check that it worked by looking at the size of the new files
-ls -h -l
-  -rw-rw-r--  1 rccuser rccuser  84G Oct  3 14:59 FUall_R1.fq.gz
-  -rw-rw-r--  1 rccuser rccuser  87G Oct  3 15:17 FUall_R2.fq.gz
-
-```
-
-
-The `oyster.mk` file was used to run the entire ORP in one go. Before running the below script the orp environment was activated with `source activate orp`.
-
-```{bash orp_script, file='bash/orp.sh', eval=FALSE}
-
-```
-
-This whole process was done inside of a screen environment. After entering the docker (see above section **step 2**) the script was run as `bash $HOME/docker/coley_files/bash_scripts/orp_merged.sh $HOME/Oyster_River_Protocol/oyster.mk $HOME/docker/coley_files/fuscus_kmer_corrected/FUall_R1.fq.gz $HOME/docker/coley_files/fuscus_kmer_corrected/FUall_R2.fq.gz fuscus_orp`.
-
 ## Running Trinity
 Due to the timeline, and to ensure all three species of _Syngnathus_ are processed in the same way, the assembly was also generated with Trinity as I did for _Syngnathus floridae_.
 
