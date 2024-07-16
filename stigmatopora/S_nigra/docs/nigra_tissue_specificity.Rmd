@@ -112,7 +112,7 @@ I want to filter the TPM dataset to remove a few things. These include similar t
   
   1. Keeping only rows that weren't filtered out in the DEseq2 dataset due to low counts (rowSum $\le$ 10).
   2. Removing the rows that corresponded to genes that were "outliers" in the DEseq2 analysis.
-  3. Removing the samples related to individual SNT8F2 (sample S34).
+  3. Removing the sample related to individual SNT8F2 (sample S34).
 
 This will be imperfect filtering in this case because I did individual single-factor analysis within each organ type. To try and make life easier, I am going to run the multi-factor analysis on the DESeq2 dataset and then apply the filtering from that onto the TPM dataset. 
 
@@ -206,14 +206,14 @@ I ran the $\tau$ function with the whole dataset, and then for just males and ju
 colData <- colData[!(colData$ID %in% c("S34")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
-
+#write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
 
 tau_fem<-apply(tpms[,which(colData$sex=="F")], 1, est_tau,
                colData[which(colData$sex=="F"),])
-
+#write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
 tau_mal<-apply(tpms[,which(colData$sex=="M")], 1, est_tau,
                colData[which(colData$sex=="M"),])
-
+#write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
 ```
 
 ```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
@@ -338,7 +338,7 @@ A gene was determined to be sex-biased if it had a log-fold change $\ge |2|$ AND
 
 From these datasets I can pull out the female- and male-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
 
-```{r tau-v-bias, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, skin, and brain."}
+```{r tau-v-bias, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and gills."}
 
 #Pull out the sex-biased genes (based on FC of >= |2| and padj of < 0.05) for each organ
 liver_biased <- liver_res[which(abs(liver_res$log2FoldChange) >= 2 & liver_res$padj <= 0.05),]
