@@ -1145,7 +1145,7 @@ cor.test(gill_FB_UB_tau$tau_fem, abs(gill_FB_UB_tau$log2FoldChange), method = "s
 ```{r explore-tau-fb}
 ##Looking at genes that have a high bias and tau in the gonads
 #Getting list of genes with the greatest Tau
-gonad_FB_notau <- gonad_FB_UB_tau[sqrt(abs(gonad_FB_UB_tau$log2FoldChange)) > 2 & gonad_FB_UB_tau$tau == 0, ]
+gonad_FB_notau <- gonad_FB_UB_tau[sqrt(abs(gonad_FB_UB_tau$log2FoldChange)) > 2 & gonad_FB_UB_tau$tau_fem == 0, ]
 
 #Looking at the TPMS
 tpms[rownames(tpms)== gonad_FB_notau$Row.names[1],] 
