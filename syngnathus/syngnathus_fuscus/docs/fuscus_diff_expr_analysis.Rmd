@@ -1476,3 +1476,61 @@ summary(model)
 ```
 
 The summary statistics confirm the assumptions made from the boxplots, female-biased genes in the liver and gill have a higher logFC compared to the male-biased genes, but male-biased genes in the gonads have a higher logFC compared to the female-biased. In all three organs, unbiased genes possess the lowest logFC. Interestingly, the highest logFC across tissues can be found in the liver, followed by the gill, and lastly the gonads.
+
+## Looking at shared sex-biased genes with an Upset plot
+I now want to see if there are genes that are female/male-biased in multiple organs or if there are genes that are female-biased in one organ and then male-biased in a different organ, etc. In order to do this I will be creating upset plots first for the sexes individually and then across all biased genes.
+
+```{r upset-plot-mal, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in males."}
+
+#Male-biased genes
+listInputMB <- list("Testis" = rownames(gonad_mal_biased),
+                  "Male Gill"=rownames(gill_mal_biased), 
+                  "Male Liver"=rownames(liver_mal_biased)
+                  )
+
+upset(fromList(listInputMB),
+      mainbar.y.label = "Number of Shared Male-Biased Genes",
+      sets.x.label = "Total Number of Male-Biased Genes",
+      point.size = 3)
+```
+
+
+```{r upset-plot-fem, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in females."}
+#Female
+listInputFB <- list("Ovaries" = rownames(gonad_fem_biased),
+                  "Female Gill"=rownames(gill_fem_biased), 
+                  "Female Liver"=rownames(liver_fem_biased)
+                  )
+upset(fromList(listInputFB),
+      mainbar.y.label = "Number of Shared Female-Biased Genes",
+      sets.x.label = "Total Number of Female-Biased Genes",
+      point.size = 3)
+```
+
+```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
+
+#Checking there is no overlap between the two sexes
+listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
+                     "MB Gill" = rownames(gill_mal_biased), 
+                     "MB Liver" = rownames(liver_mal_biased),
+                     "FB Gonad" = rownames(gonad_fem_biased),
+                     "FB Gill" = rownames(gill_fem_biased), 
+                     "FB Liver" = rownames(liver_fem_biased))
+
+#Plot exported and color added via illustrator
+#pdf("docs/figs/FigSB_sexbias_upset.pdf",width = 10, height=7)
+upset(fromList(listInputall),
+      mainbar.y.label = "# Shared Sex-Biased Genes",
+      sets.x.label = "# Sex-Biased Genes",
+      point.size = 3,
+      nsets = 6,
+      nintersects = NA,
+      text.scale = c(2, 2, 2, 1.5, 2, 1.5)
+)
+
+#dev.off()
+
+```
+
+In females, the highest number of shared sex-biased genes is found between the gonads and the liver, but in males, the highest number of shared sex-biased genes is found between the gills and the gonads. There are no genes that are shared across the same organ between males and females (i.e. biased in males and females in the liver) which is good. There are 3 and 2 genes that are biased in all three organs for males and females respectively. Overall, however, there is not a high amount of genes that are sex-biased in more than one organ type.
+
