@@ -1534,3 +1534,187 @@ upset(fromList(listInputall),
 
 In females, the highest number of shared sex-biased genes is found between the gonads and the liver, but in males, the highest number of shared sex-biased genes is found between the gills and the gonads. There are no genes that are shared across the same organ between males and females (i.e. biased in males and females in the liver) which is good. There are 3 and 2 genes that are biased in all three organs for males and females respectively. Overall, however, there is not a high amount of genes that are sex-biased in more than one organ type.
 
+## Categorizing sex-specific genes
+Now that we have investigated what the sex-bias is like across the different tissue types I want to dive further into genes with **sex-specific expression**. These are genes expressed only in one sex or the other. I am classifying a sex-specific genes within each tissue as ones where the expression of that gene is less than 10 for all of one sex and there is a median of $\ge 20$ in the other sex. 
+
+Prior to running the for loop, any "outliers" that were determined by DESeq were removed from the pool of genes. Additionally, normalized counts were used for the classification of sex-specific genes as DESeq2 uses the moralized counts for all of the logFC/sexbias calculations.
+
+```{r sex-specific-for-loop}
+#Store all of the single factor analysis outputs in a list
+DE_models <- list(dds_FU_gill_exp, 
+                  dds_FU_gonad_exp, 
+                  dds_FU_liver_exp)
+
+#Create an empty list to store my sex-specific datasets in
+FU_sex_specific_genes <- list()
+
+#For each DESeq dataset in DE_models pull out the Mspecific and Fspecific
+#genes based on medians
+for (dataset in DE_models) {
+  
+  #Pull out the geneIDs for genes that were categorized as "outliers" by DESeq2
+  ##Calculate the Cooks threshold that would have been used
+  np <- length(resultsNames(dataset))
+  nsamp <- ncol(dataset)
+  cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp - np)
+  
+  ##Apply threshold calculated above to the cooks values in the dataset
+  out_ids <- names(mcols(dataset)$maxCooks[mcols(dataset)$maxCooks >
+                                                cooks_thresh])
+  
+  #Filtering the dds dataset to remove the outliers identified by DESeq
+  dataset_filtered <- dataset[!(rownames(dataset) %in% out_ids), ]
+  
+  
+  #Male-specific Genes
+  ##Pull out all of the rows where fem count <=10 in every female sample
+  fem10_organ_names <- which(rowSums(t(apply(counts(dataset_filtered,
+                                                    normalized = TRUE)[, dataset_filtered$Sex == "F"],
+                                             1,
+                                             function(x) x <= 10)
+                                       )
+                                     ) == ncol(counts(dataset_filtered, 
+                                                      normalized = TRUE)[, dataset_filtered$Sex == "F"])
+                             )
+  
+  fem10_organ <- counts(dataset_filtered,
+                        normalized = TRUE)[rownames(counts(dataset_filtered,
+                                                          normalized = TRUE)) %in%
+                                            names(fem10_organ_names),]
+  
+  ##Pull out the rows where median of male count >=50  
+  mal50_organ <- apply(counts(dataset_filtered,
+                              normalized = TRUE)[, dataset_filtered$Sex == "M"],
+                       1,
+                       function(x) median(x) >= 50)
+  
+  ##Keep only rows where all female samples <=10 and the male median >= 50
+  fem10_mal50_organ <- fem10_organ[rownames(fem10_organ) %in%
+                                     names(mal50_organ[mal50_organ == TRUE]),
+                                   ]
+  
+  ##Create a new object with a name based on the organ type
+  organ_malsp <- sub("$", "_male_specific", dataset$Organ[1])
+  FU_sex_specific_genes[[organ_malsp]] <- fem10_mal50_organ
+  
+  
+  #Female-specific Genes
+  ##Pull out ll the rows where male count is <=10 in every male sample
+  mal10_organ_names <- which(rowSums(t(apply(counts(dataset_filtered,
+                                                    normalized = TRUE)[, dataset_filtered$Sex == "M"],
+                                             1,
+                                             function(x) x <= 10)
+                                       )
+                                     ) == ncol(counts(dataset_filtered,
+                                                      normalized = TRUE)[, dataset_filtered$Sex == "M"])
+                             )
+  
+  mal10_organ <- counts(dataset_filtered,
+                        normalized = TRUE)[rownames(counts(dataset_filtered,
+                                                           normalized = TRUE)) %in%
+                                             names(mal10_organ_names), ]
+  
+  ##Pull out rows where median of female count is >=50 
+  fem50_organ <- apply(counts(dataset_filtered,
+                              normalized = TRUE)[, dataset_filtered$Sex == "F"],
+                       1,
+                       function(x) median(x) >= 50)
+  
+  ##keep only the rows where male <=10 and fem median >= 50
+  mal10_fem50_organ <- mal10_organ[rownames(mal10_organ) %in%
+                                     names(fem50_organ[fem50_organ == TRUE]),
+                                   ]
+  
+  ##Create a new object with a name based on the organ type
+  organ_femsp <- sub("$", "_female_specific", dataset$Organ[1])
+  FU_sex_specific_genes[[organ_femsp]] <- mal10_fem50_organ
+  
+}
+```
+
+### Investigating the results of the sex-specific subsetting
+Let's now take a look at how many sex-specific genes we have in each tissue type:
+
+```{r sex-specific-counts, eval = FALSE, echo = FALSE}
+FU_sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
+                                  sex = c(rep("M", 3),
+                                          rep("F", 3)),
+                                  num_genes = c(nrow(FU_sex_specific_genes$Gill_male_specific),
+                                                nrow(FU_sex_specific_genes$Gonad_male_specific),
+                                                nrow(FU_sex_specific_genes$Liver_male_specific),
+                                                nrow(FU_sex_specific_genes$Gill_female_specific),
+                                                nrow(FU_sex_specific_genes$Gonad_female_specific),
+                                                nrow(FU_sex_specific_genes$Liver_female_specific))
+                                  )
+
+output_table <- FU_sex_specific_counts %>% 
+  group_by(tissue, sex) %>% 
+  summarise("Number of Sex-specific Genes" = sum(num_genes)) %>%
+  kable(caption = "Sex-specific Genes", format = "html",
+        col.names = c("Tissue Type", "Sex", "Number of Sex-specific Genes")) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+
+# Save the table to a temporary HTML file
+html_file <- tempfile(fileext = ".html")
+save_kable(output_table, file = html_file)
+
+# Ensure you have PhantomJS installed (required by webshot)
+#webshot::install_phantomjs()
+
+# Capture the HTML file as a PNG
+webshot(html_file, file = "sex_specific_genes_table.png")
+
+```
+
+```{r show-ss-table}
+
+ss_genes <- image_ggplot(image_read('docs/figs/sex_specific_genes_table.png'),interpolate = TRUE)
+
+ss_genes
+
+```
+
+To get a better idea what is going on between the sex-specific genes vs the sex-biased genes I first determined how many overlaps there were between our sex-biased and sex-specific genes and then used plotCounts to plot the counts for each gene separately. 
+
+In the **Male Gills** there are `r nrow(FU_gill_mal_biased[rownames(FU_gill_mal_biased) %in% rownames(FU_sex_specific_genes$Gill_male_specific),])` genes that overlap between sex-biased and sex-specific, there are `r nrow(FU_sex_specific_genes$Gonad_male_specific[rownames(FU_sex_specific_genes$Gonad_male_specific) %in% rownames(FU_gonad_mal_biased),])` overlapping in the **gonads** and `r nrow(FU_sex_specific_genes$Liver_male_specific[rownames(FU_sex_specific_genes$Liver_male_specific) %in% rownames(FU_liver_mal_biased),])` overlapping in the **liver**. For females we have `r nrow(FU_gill_fem_biased[rownames(FU_gill_fem_biased) %in% rownames(FU_sex_specific_genes$Gill_female_specific),])` overlapping sex-specific and sex-biased genes in the **gills**, `r nrow(FU_sex_specific_genes$Gonad_female_specific[rownames(FU_sex_specific_genes$Gonad_female_specific) %in% rownames(FU_gonad_fem_biased),])` genes in the **gonads**, and `r nrow(FU_sex_specific_genes$Liver_female_specific[rownames(FU_sex_specific_genes$Liver_female_specific) %in% rownames(FU_liver_fem_biased),])` genes in the **liver**.
+
+### Pulling out the gene IDs for all of the sex-specific genes
+```{r SS-geneIDs, eval=FALSE}
+#Run once to create the file and then commented out
+write.table(cbind(rownames(FU_sex_specific_genes$Gill_male_specific)),
+            'data/FU_malG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gill_female_specific)),
+            'data/FU_femG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gonad_male_specific)),
+            'data/FU_malGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gonad_female_specific)),
+            'data/FU_femGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Liver_male_specific)),
+            'data/FU_malL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Liver_female_specific)),
+            'data/FU_femL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+
