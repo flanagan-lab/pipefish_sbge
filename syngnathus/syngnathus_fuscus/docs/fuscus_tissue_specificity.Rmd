@@ -1,0 +1,340 @@
+---
+title: "Tissue Specificity in _Syngnathus fuscus_"
+author: "Coley Tosto"
+date: "`r Sys.Date()`"
+output:
+  github_document: 
+    toc: true 
+  #bookdown::pdf_document2:
+    #fig_caption: yes
+    #keep_tex: yes
+    #number_sections: no
+    #toc: false
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="../imgs/")
+```
+
+``` {r library, message = FALSE, warning = FALSE}
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(spfTools)
+```
+
+``` {r read-data, message = FALSE, warning = FALSE}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.salmon <- readRDS("data/txi.salmon_FU.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("FU_samples.txt", header = TRUE)
+
+samples$group <- factor(paste0(samples$Sex, samples$Organ))
+
+#Changing "Gonad" to be more specific to testis or ovaries
+samples$Organ <- ifelse(samples$Sex == "F" & samples$Organ =="Gonad",
+                        paste0("Ovaries"),
+                        ifelse(samples$Sex == "M" & samples$Organ == "Gonad",
+                               paste0("Testis"),
+                               paste0(samples$Organ))
+                        )
+
+#Make sure the conditions are in the samples file as a factor
+samples$Sex <- as.factor(samples$Sex)
+samples$Organ <- as.factor(samples$Organ)
+
+#Format colData to be used in the tau function
+colData <- as.data.frame(samples)
+rownames(colData) <- samples$ID
+
+```
+
+# Differential Expression Analysis
+The main goal of this analysis is to relate measure of pleiotropic constraints (tissue specificity) to sex bias. In order to do that I need to combine my sex-bias data that I generated in a separate .Rmd (`fuscus_diff_expr_analysis.Rmd`) with the tau values I will be generating in this document.
+
+Here I am reading in the sex-bias datasets that correspond to each of the organ's single-factor analysis. These datasets include all of the genes where the p-value was not equal to "NA".
+
+```{r read-in-sb-datasets}
+liver_res <- read.csv("data/liver_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+gill_res <- read.csv("data/gill_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+gonad_res <- read.csv("data/gonad_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+```
+
+# Calculating Tissue Specificity
+To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
+
+```
+Name | Length | EffectiveLength | TPM | NumReads
+
+```
+
+## Pulling out TPM values
+From the salmon outputs I pulled out the TPM values for each sample. All of the necessary .sf files are stored in a folder called `fuscus_expression_files`. 
+
+The function below is pulling out the TPMs for each of the samples into a column and then binding them together into one dataset. I then remove the three samples that were not included in the differential expression analysis.
+
+```{r getTPMs}
+#Get the list of file names/paths for all of the quant.sf files
+files <- list.files(pattern = ".sf", path = "data/fuscus_expression_files", 
+                    full.names = TRUE)
+
+#For each quant.sf file pull out the TPM column
+tpms <- do.call(cbind, lapply(files, function(file){
+
+  dat <- read.delim(file, row.names = "Name")
+  tpm <- dat["TPM"]
+  colnames(tpm) <- gsub("data/fuscus_expression_files/(.*)_quant.sf","\\1",file)
+  
+  return(tpm)
+}))
+
+#Remove the samples that were removed in the diff. expression analysis
+tpms <- tpms[, !(colnames(tpms) %in% c("FUT11M4",
+                                       "FUG11M4",
+                                       "FUL11M4"))]
+```
+
+## Filtering the TPM dataset
+I know want to filter the TPM dataset to remove a few things. These include similar things that I filtered out of the DESeq2 datasets prior to performing the differential expression analysis. This includes:
+
+  1. Keeping only the rows that weren't filtered out in the DESeq2 dataset due to low counts (rowSum $\le$ 10).
+  
+  2. Removing the rows that corresponded to genes that were "outliers" in the DESeq2 analysis.
+  
+  3. Removing the samples related to individual 11M4 that were removed in the differential expression analysis (see above).
+
+This will be imperfect filtering in this case because I did an individual single-factor analysis within each organ type. To try and make life easier I am going to run the multi-factor analysis on the DESeq dataset and then apply the filtering from that onto the TPM dataset. 
+
+It should also be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
+
+```{r filterTPMs}
+#Running the MF diff. expr. analysis
+#Create the DESeq dataset
+dds_FU <- DESeqDataSetFromTximport(txi.salmon,
+                                   colData = samples,
+                                   design = ~ group)
+
+##Remove all 11M4 organs from the dataset
+dds_FU <- dds_FU[, !(dds_FU$ID %in% c("FUT11M4", "FUG11M4", "FUL11M4"))]
+
+##Filter the dataset, only keeping rows that have at least 10 reads total
+keep <- rowSums(counts(dds_FU)) >= 10 
+dds_FU <- dds_FU[keep, ]
+
+#Generate the expression values
+dds_FU_exp <- DESeq(dds_FU)
+
+#Filtering the tpm dataset
+#Only keeping the rows that weren't filtered out due to low counts
+tpms <- tpms[rownames(tpms) %in% rownames(dds_FU), ]
+
+#Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
+#Calculating the Cooks threshold that would have been used
+np <- length(resultsNames(dds_FU_exp))
+nsamp <- ncol(dds_FU_exp)
+cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
+
+out_ids <- names(mcols(dds_FU_exp)$maxCooks[mcols(dds_FU_exp)$maxCooks > cooks_thresh])
+
+#Removing the rows in the tpm dataset that were deemed "outliers" by DESeq2
+tpms <- tpms[!(rownames(tpms) %in% out_ids), ]
+
+```
+
+
+## Generating $\tau$
+These filtered TPM estimates can then be used to estimate $\tau$, a tissue specificity estimator that can range from 0 to 1. $\tau$ is calculated for each tissue, $i$, as follows:
+
+$$
+\tau=\frac{\sum_i{[1-ln(TPM_i)/ln(TPM_{max})]}}{N-1}
+$$
+
+where $TPM_{max}$ is the maximum **average** TPM for a given tissue type, and $TPM_i$ is the **average** TPM for tissue $i$. If $\tau = 0$, that gene is evenly expressed across tissues; if $\tau=1$, the gene is expressed in an entirely tissue-specific fashion. Because TPM values approach 0 are impacted by sampling stochasticity, any genes that had an expression approaching 0 were set to $TPM=2$. 
+
+```{r est_tauFXN}
+#Function for estimating tau given the TPM matrix and metadata file
+est_tau <- function(geneDat,colDat){
+  
+  #For each row in the TPM matrix cbind it with the metadata file,
+  #this attaches organ type information to the TPM values
+  tissue_dat<-data.frame(cbind(colDat,
+                               geneDat))
+  
+  #For the TPM values approaching 0, set them to 2
+  tissue_dat$geneDat[tissue_dat$geneDat < 2] <- 2
+  
+  
+  #Get the average TPM for each tissue type (TPMi)
+  tissue_avgs <- tapply(tissue_dat$geneDat,tissue_dat$Organ,mean)
+  
+  #Get the maximum value from the average TPMS (TPMmax)
+  tpmMax <- max(tissue_avgs, na.rm=TRUE)
+    
+  #IF running tau on JUST males of JUST females, this accounts for the
+  #fact that ovary or testis will return an NA in the averaging
+  if(length(unique(tissue_dat$Organ)) == 3){
+    
+    #calcualte tau
+    tau <- sum(1-(log(tissue_avgs[unique(tissue_dat$Organ)])/log(tpmMax)))/
+      (length(unique(tissue_dat$Organ))-1)
+    
+    #pull out appropriate organ
+    if(tau == 0){
+    
+    organ <- paste0(NA)
+    
+    }else{
+    
+    organ <- names(tissue_avgs[tissue_avgs == tpmMax])
+    
+    }
+  
+  #Combine tau and the organ information together
+  tau_organ <- data.frame(tau = tau, organ = organ)
+  
+  return(tau_organ)
+    
+  }
+  
+  #IF using the WHOLE dataset, calculate tau
+  tau <- sum(1-(log(tissue_avgs)/log(tpmMax)))/(length(unique(tissue_dat$Organ))-1)
+  
+  #Pull out the information about WHICH tissue the expression is specific in
+  ##If tau == 0 (not tissue specific) then return NA, but if above zero
+  ##pull out the name of the organ with the highest expression
+  if(tau == 0){
+    
+    organ <- paste0(NA)
+    
+  }else{
+    
+    organ <- names(tissue_avgs[tissue_avgs == tpmMax])
+    
+  }
+  
+  #Combine tau and the organ information together
+  tau_organ <- data.frame(tau = tau, organ = organ)
+  
+  return(tau_organ)
+}
+
+```
+
+I then applied that function across each row in the TPMs matrix with my metadata stored in the object `colData`. The metadata file includes the sample ID, Sex, and Organ type for every column present in the TPM matrix.
+
+I ran the $\tau$ function with the whole dataset, and then for just males and just females.
+
+```{r calcTau}
+colData <- colData[!(colData$ID %in% c("FUT11M4", "FUG11M4", "FUL11M4")),]
+
+tau <- do.call(rbind, apply(tpms, 1, est_tau, colDat=colData))
+
+
+tau_fem <- do.call(rbind, apply(tpms[,which(colData$Sex=="F")], 1, est_tau,
+                                colData[which(colData$Sex=="F"),]))
+
+tau_mal <- do.call(rbind, apply(tpms[,which(colData$Sex=="M")], 1, est_tau,
+                                colData[which(colData$Sex=="M"),]))
+
+```
+
+```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
+par(mfrow=c(1,3))
+hist(tau_mal$tau,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="Male-only")
+
+hist(tau_fem$tau,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="Female-only")
+
+hist(tau$tau,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="All samples")
+```
+
+We can see that the distribution of $\tau$ doesn't vary drastically when looking at only male/female samples versus when we included all of the samples in the calculation. Because of this, I can be confident in using the $\tau$ with all the samples moving forward.
+
+## Validating the $\tau$ calculations
+To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
+
+I also want to make sure that the organ classification I implemented in the tissue specificity function is accurate.
+
+```{r ts-plot-counts-high, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the highest tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+top_tau <- head(tau[order(tau$tau, decreasing = TRUE), ], 
+                n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== rownames(top_tau[1,]),] #Gill-specific
+tpms[rownames(tpms)== rownames(top_tau[2,]),] #Ovary-specific
+tpms[rownames(tpms)== rownames(top_tau[3,]),] #Gill-specific
+tpms[rownames(tpms)== rownames(top_tau[4,]),] #Ovary-specific
+tpms[rownames(tpms)== rownames(top_tau[5,]),] #Gill-specific
+tpms[rownames(tpms)== rownames(top_tau[6,]),] #Ovary-specific
+tpms[rownames(tpms)== rownames(top_tau[7,]),] #Ovary-specific
+tpms[rownames(tpms)== rownames(top_tau[8,]),] #Ovary-specific
+tpms[rownames(tpms)== rownames(top_tau[9,]),] #Liver-specific
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_FU, gene= rownames(top_tau[1]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[2]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[3]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[4]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[5]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[6]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[7]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[8]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[9]), intgroup="Organ")
+```
+
+```{r ts-plot-counts-low, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
+#Getting list of genes with the lowest Tau
+bot_tau <- head(sort(tau, decreasing = FALSE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== rownames(bot_tau[1]),]
+tpms[rownames(tpms)== rownames(bot_tau[2]),]
+tpms[rownames(tpms)== rownames(bot_tau[3]),]
+tpms[rownames(tpms)== rownames(bot_tau[4]),]
+tpms[rownames(tpms)== rownames(bot_tau[5]),]
+tpms[rownames(tpms)== rownames(bot_tau[6]),]
+tpms[rownames(tpms)== rownames(bot_tau[7]),]
+tpms[rownames(tpms)== rownames(bot_tau[8]),]
+tpms[rownames(tpms)== rownames(bot_tau[9]),]
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_FU, gene= names(bot_tau[1]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[2]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[3]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[4]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[5]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[6]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[7]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[8]), intgroup="Organ")
+plotCounts(dds_FU, gene= names(bot_tau[9]), intgroup="Organ")
+
+```
+
+We can see that for the genes that have high tau values the plots of the normalized counts show higher expression in just that tissue, whereas for the plots of the lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
