@@ -284,6 +284,8 @@ I also want to make sure that the organ classification I implemented in the tiss
 top_tau <- head(tau[order(tau$tau, decreasing = TRUE), ], 
                 n=9)
 
+top_tau
+
 #Looking at the TPMS
 tpms[rownames(tpms)== rownames(top_tau[1,]),] #Gill-specific
 tpms[rownames(tpms)== rownames(top_tau[2,]),] #Ovary-specific
@@ -297,44 +299,267 @@ tpms[rownames(tpms)== rownames(top_tau[9,]),] #Liver-specific
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_FU, gene= rownames(top_tau[1]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[2]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[3]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[4]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[5]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[6]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[7]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[8]), intgroup="Organ")
-plotCounts(dds_FU, gene= rownames(top_tau[9]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[1,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[2,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[3,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[4,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[5,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[6,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[7,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[8,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(top_tau[9,]), intgroup="Organ")
 ```
 
 ```{r ts-plot-counts-low, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
 #Getting list of genes with the lowest Tau
-bot_tau <- head(sort(tau, decreasing = FALSE), n=9)
+bot_tau <- head(tau[order(tau$tau, decreasing = FALSE), ], 
+                n=9)
+
+bot_tau
 
 #Looking at the TPMS
-tpms[rownames(tpms)== rownames(bot_tau[1]),]
-tpms[rownames(tpms)== rownames(bot_tau[2]),]
-tpms[rownames(tpms)== rownames(bot_tau[3]),]
-tpms[rownames(tpms)== rownames(bot_tau[4]),]
-tpms[rownames(tpms)== rownames(bot_tau[5]),]
-tpms[rownames(tpms)== rownames(bot_tau[6]),]
-tpms[rownames(tpms)== rownames(bot_tau[7]),]
-tpms[rownames(tpms)== rownames(bot_tau[8]),]
-tpms[rownames(tpms)== rownames(bot_tau[9]),]
+tpms[rownames(tpms)== rownames(bot_tau[1,]),]
+tpms[rownames(tpms)== rownames(bot_tau[2,]),]
+tpms[rownames(tpms)== rownames(bot_tau[3,]),]
+tpms[rownames(tpms)== rownames(bot_tau[4,]),]
+tpms[rownames(tpms)== rownames(bot_tau[5,]),]
+tpms[rownames(tpms)== rownames(bot_tau[6,]),]
+tpms[rownames(tpms)== rownames(bot_tau[7,]),]
+tpms[rownames(tpms)== rownames(bot_tau[8,]),]
+tpms[rownames(tpms)== rownames(bot_tau[9,]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_FU, gene= names(bot_tau[1]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[2]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[3]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[4]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[5]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[6]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[7]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[8]), intgroup="Organ")
-plotCounts(dds_FU, gene= names(bot_tau[9]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[1,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[2,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[3,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[4,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[5,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[6,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[7,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[8,]), intgroup="Organ")
+plotCounts(dds_FU, gene= rownames(bot_tau[9,]), intgroup="Organ")
 
 ```
 
-We can see that for the genes that have high tau values the plots of the normalized counts show higher expression in just that tissue, whereas for the plots of the lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
+We can see that for the genes that have high tau values the plots of the normalized counts show higher expression in just that tissue, whereas for the plots of the lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate. We can also see that the assignment of the tissues from the est_tau function match the outputs from looking at the raw counts.
+
+# Sex Bias and Tissue Specificity
+Now that I have calculated $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type.
+
+## $\tau$ and logFC in sex-biased genes for each organ
+A gene was determined to be sex-biased if it had a log-fold change $\ge |2|$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e. the genes that were not given a p-value of NA from DESeq). 
+
+From these datasets I can pull out the female- and male-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
+
+```{r tau-v-bias, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, skin, and brain."}
+
+#Pull out the sex-biased genes (based on FC of >= |2| and padj of < 0.05) for each organ
+liver_biased <- liver_res[which(abs(liver_res$log2FoldChange) >= 2 & liver_res$padj <= 0.05),]
+gonad_biased <- gonad_res[which(abs(gonad_res$log2FoldChange) >= 2 & gonad_res$padj <= 0.05),]
+gill_biased <- gill_res[which(abs(gill_res$log2FoldChange) >= 2 & gill_res$padj <= 0.05),]
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_bias_tau <- merge(as.data.frame(liver_biased), tau, by = "row.names")
+gonad_bias_tau <- merge(as.data.frame(gonad_biased), tau, by = "row.names")
+gill_bias_tau <- merge(as.data.frame(gill_biased), tau, by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
+     gonad_bias_tau$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]))
+points(sqrt(abs(liver_bias_tau$log2FoldChange)),
+     liver_bias_tau$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau$log2FoldChange)),
+     gill_bias_tau$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```
+
+The absolute value of the log2 fold change was square root transformed. There appears to be a relationship between $\tau$ and sex bias for the gonads, but potentially not for the liver and the gills. This may be due to a low number of sex-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-bias-cor, echo=FALSE, message=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau$tau, sqrt(abs(gonad_bias_tau$log2FoldChange)), method = "spearman")
+cor.test(liver_bias_tau$tau, sqrt(abs(liver_bias_tau$log2FoldChange)), method = "spearman")
+cor.test(gill_bias_tau$tau, sqrt(abs(gill_bias_tau$log2FoldChange)), method = "spearman")
+
+```
+
+The liver and gonad both show a significant correlation. This isn't super obvious from just looking at the plot.
+
+## $\tau$ and logFC for all the signficantly expressed genes in each organ
+Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
+
+I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
+
+```{r tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are signifcantly expressed in the gonads, liver, and gills."}
+#Merge the datasets that include all of the sex-biased and non-sex-biased genes with the tau datasets
+liver_bias_tau_all <- merge(liver_res, tau, by = "row.names")
+#write.csv(liver_bias_tau_all, "data/liver_bias_tau.csv", row.names = FALSE)
+
+gonad_bias_tau_all <- merge(gonad_res, tau, by = "row.names")
+#write.csv(gonad_bias_tau_all, "gonad_bias_tau.csv", row.names = FALSE)
+
+gill_bias_tau_all <- merge(gill_res, tau, by = "row.names")
+#write.csv(brain_bias_tau_all, "data/brain_bias_tau.csv", row.names = FALSE)
+
+#Plot logFC against Tau for all of the organs
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau_all$log2FoldChange)),
+     gonad_bias_tau_all$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]),
+     xlim = c(0, 5.5),
+     ylim = c(0, 1))
+points(sqrt(abs(liver_bias_tau_all$log2FoldChange)),
+     liver_bias_tau_all$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau_all$log2FoldChange)),
+     gill_bias_tau_all$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau_all$tau ~ sqrt(abs(gonad_bias_tau_all$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau_all$tau ~ sqrt(abs(liver_bias_tau_all$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau_all$tau ~ sqrt(abs(gill_bias_tau_all$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
+
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             #pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+outer_legend("right",
+             c("              ", "             ", "            "),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             #lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             #lty = 1:3,
+             ncol = 1)
+
+
+```
+
+The absolute value of the log2 fold change was square root transformed. We can see similar patterns as when we only plotted the sex biased genes with the strongest relationship showing up in the gonads. When we add in all of the points, however, it seems that the best fit line for the liver and gills now points downward. Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman")
+
+```
+
+All correlations are now significant, however, for the gills and the liver there is a significantly negative correlation between $\tau$ and the degree of sex bias. 
+
+## Investigating genes with high tau and high logFC`
+
+Because we have information about which tissue each gene is specific in, I was to see if genes that are very sex-biased in a tissue are also tissue-specific in that same tissue.
+
+### Gonads
+
+```{r gonad-tau-logFC, echo=FALSE, fig.cap="_Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex-biased in the gonads. Color represents the tissue that it is specific in which may be either the testis or ovaries (yellow), the liver (pink), the gills (blue), or none (black)._"}
+
+plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
+     gonad_bias_tau$tau,
+     pch=19,
+     col = ifelse(gonad_bias_tau$organ %in% c("Ovaries", "Testis"),
+                  "#EEB42275",
+                  ifelse(gonad_bias_tau$organ == "Liver",
+                         "#EE826275",
+                         ifelse(gonad_bias_tau$organ == "Gill",
+                                "#20B2AA75",
+                                "#00000075")
+                         )
+                  ),
+     xlab="sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]),
+     ylim = c(0, 1))
+
+```
+
+In the gonads it looks like a lot of the genes that are extremely sex-biased are also tissue specific in the gonads (whether that is tissue-specific in the testis or in the ovaries).
+
+### Liver
+
+```{r liver-tau-logFC, echo=FALSE, fig.cap="_Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex-biased in the liver. Color represents the tissue that it is specific in which may be either the testis or ovaries (yellow), the liver (pink), the gills (blue), or none (black)._"}
+
+plot(sqrt(abs(liver_bias_tau$log2FoldChange)),
+     liver_bias_tau$tau,
+     pch=19,
+     col = ifelse(liver_bias_tau$organ %in% c("Ovaries", "Testis"),
+                  "#EEB42275",
+                  ifelse(liver_bias_tau$organ == "Liver",
+                         "#EE826275",
+                         ifelse(liver_bias_tau$organ == "Gill",
+                                "#20B2AA75",
+                                "#00000075")
+                         )
+                  ),
+     xlab="sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]),
+     ylim = c(0, 1))
+
+```
+
+Similar to the gonads, most of the extremely biased genes in the liver are also tissue specific in the liver, expect for a few cases. It looks like some of the  most biased genes in the liver are showing more expression in the gonads and there are two cases where tau is 0. Other than that, many of the more intermediately sex-biased genes show the highest expression in gonads.
+
+### Gills
+
+```{r gills-tau-logFC, echo=FALSE, fig.cap="_Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex-biased in the gills. Color represents the tissue that it is specific in which may be either the testis or ovaries (yellow), the liver (pink), the gills (blue), or none (black)._"}
+
+plot(sqrt(abs(gill_bias_tau$log2FoldChange)),
+     gill_bias_tau$tau,
+     pch=19,
+     col = ifelse(gill_bias_tau$organ %in% c("Ovaries", "Testis"),
+                  "#EEB42275",
+                  ifelse(gill_bias_tau$organ == "Liver",
+                         "#EE826275",
+                         ifelse(gill_bias_tau$organ == "Gill",
+                                "#20B2AA75",
+                                "#00000075")
+                         )
+                  ),
+     xlab="sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]),
+     ylim = c(0, 1))
+
+```
+
+There aren't many biased genes in the gills, however, of the ones that are there is quite a mix in terms of which tissue is showing the highest overall expression.
