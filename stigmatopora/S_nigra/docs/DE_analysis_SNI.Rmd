@@ -2107,10 +2107,10 @@ blast_output_filtered_SS <- lapply(SN_blast_list_sex_specific, function(data_fra
     # keep only one of multiple identical rows
     uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
 
-    # check that there is a single gene ID in scovelli, if not, only first row is kept
+    # check that there is a single gene ID in C. intestinalis, if not, only first row is kept
     if(length(gsub("^.*(GeneID:\\d+)\\].*$",
                    "\\1",
-                   uni_gene_subset_lowe_highpid$scov_gene_info))>1){
+                   uni_gene_subset_lowe_highpid$cory_gene_info))>1){
       
       uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe_highpid[1,]
     }
