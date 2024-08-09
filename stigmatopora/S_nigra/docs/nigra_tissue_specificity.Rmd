@@ -237,7 +237,7 @@ hist(tau,
      main="All samples")
 ```
 
-We can see that the distribution of $\tau$ varies quite a bit between males, females, and all of the samples in the calculation (Fig. \@ref(fig:tauHist)). Because of this, I will likely have to run $\tau$ separately with male and female samples moving forward.
+We can see that the distribution of $\tau$ varies quite a bit between males, females, and all of the samples in the calculation (Fig. \@ref(fig:dist_tau)). Because of this, I will likely have to run $\tau$ separately with male and female samples moving forward.
 
 ## Validating the $\tau$ calculations
 To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
