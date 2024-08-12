@@ -807,7 +807,7 @@ library(tximport)
 samples <- read.table("SA_sample_ID_new.txt", header=TRUE)
 
 #Create list of quant.sf files from salmon
-files <- list.files("/home/rccuser/shared/emily_filesS_argus_2024/SAR_identity/super_salmon_quant/expression_files", full.names = TRUE)
+files <- list.files("/home/rccuser/shared/emily_files/S_argus_2024/SAR_identity/super_salmon_quant/expression_files", full.names = TRUE)
 names(files) <- paste0(samples$ID)
 all(file.exists(files))
   ## [1] TRUE
@@ -819,8 +819,8 @@ tx2gene <- unique(tx2gene)
 colnames(tx2gene) <- c("gene_id", "transcript_id")
 
 #Building the matrix
-new.txi.salmon.SA <- tximport(files, type = "salmon", tx2gene = tx2gene)
-head(new.txi.salmon.SA$counts)
-saveRDS(new.txi.salmon.SA, "new.txi.salmon_SA.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
+txi.salmon.SA <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.SA$counts)
+saveRDS(txi.salmon.SA, "txi.salmon_SA.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
 
 ```
