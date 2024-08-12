@@ -1,0 +1,1787 @@
+---
+title: "Tissue Specificity in _Stigmatopora nigra_"
+author: "Emily Beasley"
+date: "`r Sys.Date()`"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: no
+    toc: false
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="figs/")
+```
+
+``` {r library, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_nigra")
+
+#This is a cohesive list of all the libraries used in this document
+
+library(DESeq2)
+library(spfTools)
+library(ggplot2)
+
+
+```
+
+``` {r read-data, message = FALSE, warning = FALSE}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.nigra <- readRDS("data/txi.salmon_SN.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/SN_samples.txt", header = TRUE)
+
+samples$group <- factor(paste0(samples$sex, samples$organ))
+
+#Changing "Gonad" to be more descriptive --> testes or ovaries
+samples$organ <- ifelse(samples$sex == "F" & samples$organ == "Gonad",
+                        paste0("Ovaries"),
+                        ifelse(samples$sex == "M" & samples$organ == "Gonad",
+                            paste0("Testes"),
+                            paste0(samples$organ))
+                  )
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+#Format colData to be used in the tau function
+colData <- as.data.frame(samples)
+rownames(colData) <- samples$ID
+```
+
+# Differential Expression Analysis
+The main goal of this analysis is to relate measure of pleiotropic constraints (tissue specificity) to sex bias. In order to do that I need to combine my sex-bias data that I generated in a separate .Rmd with the tau values I will be generating in this document.
+
+Here I am reading in the sex-bias datasets that correspond to each of the organ's single-factor analysis. These datasets include all of the genes where the p-value was not equal to "NA".
+
+```{r read-in-sb-datasets}
+liver_res <- read.csv("data/liver_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+gill_res <- read.csv("data/gill_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+gonad_res <- read.csv("data/gonad_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+```
+
+# Calculating Tissue Specificity
+To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
+
+```
+Name | Length | EffectiveLength | TPM | NumReads
+
+```
+
+## Pulling out TPM values 
+From the Salmon outputs I pulled out the TPM values from each sample.
+
+```{r getTPMs}
+
+#Get the list of file names/paths for all of the quant.sf files
+files <- list.files(pattern = ".sf", path = "data/nigra_expression_files",
+                    full.names = TRUE)
+
+#For each quant.sf file pull out the TPM column
+tpms <- do.call(cbind, lapply(files, function(file){
+
+  dat <- read.delim(file, row.names = "Name")
+  tpm <- dat["TPM"]
+  colnames(tpm) <- gsub("data/nigra_expression_files/(.*)_quant.sf","\\1",file)
+  
+  return(tpm)
+}))
+
+#Remove the sample that was removed in the differential expression analysis 
+tpms <- tpms[, !(colnames(tpms) %in% c("S34"))]
+```
+
+## Filtering the TPM dataset
+I want to filter the TPM dataset to remove a few things. These include similar things that I filtered out in the DESeq2 datasets prior to performing the differential expression analysis. This includes:
+  
+  1. Keeping only rows that weren't filtered out in the DEseq2 dataset due to low counts (rowSum $\le$ 10).
+  2. Removing the rows that corresponded to genes that were "outliers" in the DEseq2 analysis.
+  3. Removing the sample related to individual SNT8F2 (sample S34).
+
+This will be imperfect filtering in this case because I did individual single-factor analysis within each organ type. To try and make life easier, I am going to run the multi-factor analysis on the DESeq2 dataset and then apply the filtering from that onto the TPM dataset. 
+
+It should also be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
+
+```{r filterTPMs}
+#Running the MF diff. expr. analysis
+#Create the DESeq dataset
+dds_SN <- DESeqDataSetFromTximport(txi.nigra,
+                                   colData = samples,
+                                   design = ~ group)
+
+##Remove S34 from the dataset
+dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34"))]
+
+##Filter the dataset, only keeping rows that have at least 10 reads total
+keep <- rowSums(counts(dds_SN)) >= 10 
+dds_SN <- dds_SN[keep, ]
+
+#Generate the expression values
+dds_SN_exp <- DESeq(dds_SN)
+
+#Filtering the tpm dataset
+#Only keeping the rows that weren't filtered out due to low counts
+tpms <- tpms[rownames(tpms) %in% rownames(dds_SN), ]
+
+#Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
+#Calculating the Cooks threshold that would have been used
+np <- length(resultsNames(dds_SN_exp))
+nsamp <- ncol(dds_SN_exp)
+cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
+
+out_ids <- names(mcols(dds_SN_exp)$maxCooks[mcols(dds_SN_exp)$maxCooks > cooks_thresh])
+
+#Removing the rows in the tpm dataset that were deemed "outliers" by DESeq2
+tpms <- tpms[!(rownames(tpms) %in% out_ids), ]
+
+```
+
+## Generating $\tau$
+These filtered TPM estimates can then be used to estimate $\tau$, a tissue specificity estimator that can range from 0 to 1. $\tau$ is calculated for each tissue, $i$, as follows:
+
+$$
+\tau=\frac{\sum_i{[1-ln(TPM_i)/ln(TPM_{max})]}}{N-1}
+$$
+
+where $TPM_{max}$ is the maximum **average** TPM for a given tissue type, and $TPM_i$ is the **average** TPM for tissue $i$. If $\tau = 0$, that gene is evenly expressed across tissues; if $\tau=1$, the gene is expressed in an entirely tissue-specific fashion. Because TPM values approach 0 are impacted by sampling stochasticity, any genes that had an expression approaching 0 were set to $TPM=2$. 
+
+```{r est_tauFXN}
+#Function for estimating tau given the TPM matrix and metadata file
+est_tau<-function(geneDat,colDat){
+  
+  #For each row in the TPM matrix cbind it with the metadata file,
+  #this attaches organ type information to the TPM values
+  tissue_dat<-data.frame(cbind(colDat,
+                               geneDat))
+  
+  #For the TPM values approaching 0, set them to 2
+  tissue_dat$geneDat[tissue_dat$geneDat < 2] <- 2
+  
+  
+  #Get the average TPM for each tissue type (TPMi)
+  tissue_avgs<-tapply(tissue_dat$geneDat,tissue_dat$organ,mean)
+  
+  #Get the maximum value from the average TPMS (TPMmax)
+  tpmMax <- max(tissue_avgs, na.rm=TRUE)
+    
+  #IF running tau on JUST males of JUST females, this accounts for the
+  #fact that ovary or testis will return an NA in the averaging
+  if(length(unique(tissue_dat$organ)) == 3){
+    tau <- sum(1-(log(tissue_avgs[unique(tissue_dat$organ)])/log(tpmMax)))/
+      (length(unique(tissue_dat$organ))-1)
+    
+    return(tau)
+  }
+  
+  #IF using the WHOLE dataset, calculate tau
+  tau<-sum(1-(log(tissue_avgs)/log(tpmMax)))/(length(unique(tissue_dat$organ))-1)
+  
+  return(tau)
+}
+
+```
+
+
+I then applied that function across each row in the TPMs matrix with my metadata stored in the object `colData`. The metadata file includes the sample ID, Sex, and Organ type for every column present in the TPM matrix.
+
+I ran the $\tau$ function with the whole dataset, and then for just males and just females.
+
+```{r calcTau}
+colData <- colData[!(colData$ID %in% c("S34")),]
+
+tau <- apply(tpms, 1, est_tau, colDat=colData)
+#write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
+
+tau_fem<-apply(tpms[,which(colData$sex=="F")], 1, est_tau,
+               colData[which(colData$sex=="F"),])
+#write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
+tau_mal<-apply(tpms[,which(colData$sex=="M")], 1, est_tau,
+               colData[which(colData$sex=="M"),])
+#write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
+```
+
+```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
+par(mfrow=c(1,3))
+hist(tau_mal,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="Male-only")
+
+hist(tau_fem,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="Female-only")
+
+hist(tau,
+     col="grey",
+     xlab=expression(tau),
+     ylab="Number of genes",
+     main="All samples")
+```
+
+We can see that the distribution of $\tau$ varies quite a bit between males, females, and all of the samples in the calculation (Fig. \@ref(fig:dist_tau)). Because of this, I will likely have to run $\tau$ separately with male and female samples moving forward.
+
+## Validating the $\tau$ calculations
+To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
+
+```{r ts-plot-counts-high, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the highest tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+top_tau <- head(sort(tau, decreasing = TRUE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(top_tau[1]),] 
+tpms[rownames(tpms)== names(top_tau[2]),] 
+tpms[rownames(tpms)== names(top_tau[3]),] 
+tpms[rownames(tpms)== names(top_tau[4]),] 
+tpms[rownames(tpms)== names(top_tau[5]),] 
+tpms[rownames(tpms)== names(top_tau[6]),] 
+tpms[rownames(tpms)== names(top_tau[7]),] 
+tpms[rownames(tpms)== names(top_tau[8]),] 
+tpms[rownames(tpms)== names(top_tau[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(top_tau[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau[9]), intgroup="organ")
+```
+
+```{r ts-plot-counts-med, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with medium values of tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+med_tau <- head(tau[tau > 0.4 & tau< 0.6], n=15)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(med_tau[1]),] 
+tpms[rownames(tpms)== names(med_tau[2]),] 
+tpms[rownames(tpms)== names(med_tau[3]),] 
+tpms[rownames(tpms)== names(med_tau[4]),] 
+tpms[rownames(tpms)== names(med_tau[5]),] 
+tpms[rownames(tpms)== names(med_tau[6]),] 
+tpms[rownames(tpms)== names(med_tau[7]),] 
+tpms[rownames(tpms)== names(med_tau[8]),] 
+tpms[rownames(tpms)== names(med_tau[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(med_tau[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau[9]), intgroup="organ")
+
+```
+
+```{r ts-plot-counts-low, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
+#Getting list of genes with the lowest Tau
+bot_tau <- head(sort(tau, decreasing = FALSE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(bot_tau[1]),]
+tpms[rownames(tpms)== names(bot_tau[2]),]
+tpms[rownames(tpms)== names(bot_tau[3]),]
+tpms[rownames(tpms)== names(bot_tau[4]),]
+tpms[rownames(tpms)== names(bot_tau[5]),]
+tpms[rownames(tpms)== names(bot_tau[6]),]
+tpms[rownames(tpms)== names(bot_tau[7]),]
+tpms[rownames(tpms)== names(bot_tau[8]),]
+tpms[rownames(tpms)== names(bot_tau[9]),]
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(bot_tau[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau[9]), intgroup="organ")
+
+```
+
+We can see that, for the most part, the genes that have high tau values the plots of the normalised counts show higher expression in just that tissue, whereas for the plots of the lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
+
+# Sex Bias and Tissue Specificity
+Now that I have calculated $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type.
+
+## $\tau$ and logFC in sex-biased genes for each organ
+A gene was determined to be sex-biased if it had a log-fold change $\ge |2|$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e. the genes that were not given a p-value of NA from DESeq). 
+
+From these datasets I can pull out the female- and male-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
+
+```{r tau-v-bias, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and gills."}
+
+#Pull out the sex-biased genes (based on FC of >= |2| and padj of < 0.05) for each organ
+liver_biased <- liver_res[which(abs(liver_res$log2FoldChange) >= 2 & liver_res$padj <= 0.05),]
+gonad_biased <- gonad_res[which(abs(gonad_res$log2FoldChange) >= 2 & gonad_res$padj <= 0.05),]
+gill_biased <- gill_res[which(abs(gill_res$log2FoldChange) >= 2 & gill_res$padj <= 0.05),]
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_bias_tau <- merge(as.data.frame(liver_biased), as.data.frame(tau), by = "row.names")
+gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "row.names")
+gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
+     gonad_bias_tau$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]))
+points(sqrt(abs(liver_bias_tau$log2FoldChange)),
+     liver_bias_tau$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau$log2FoldChange)),
+     gill_bias_tau$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```
+
+The absolute value of the log2 fold change was square root transformed. There appears to be a positive relationship between $\tau$ and sex bias for the gonads, liver, and gills (Fig. \@ref(fig:tau-v-bias)). We can look further into these relationships with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-bias-cor, echo=FALSE, message=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau$tau, sqrt(abs(gonad_bias_tau$log2FoldChange)), method = "spearman")
+cor.test(liver_bias_tau$tau, sqrt(abs(liver_bias_tau$log2FoldChange)), method = "spearman")
+cor.test(gill_bias_tau$tau, sqrt(abs(gill_bias_tau$log2FoldChange)), method = "spearman")
+
+```
+
+All three organs show significant positive correlations:
+
+Spearman's rank correlation rho
+
+gonad_bias_tau$tau and sqrt(abs(gonad_bias_tau$log2FoldChange))
+S = 8.1313e+10, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3809588
+
+liver_bias_tau$tau and sqrt(abs(liver_bias_tau$log2FoldChange))
+S = 496932263, p-value = 1.125e-14
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.1946629
+
+gill_bias_tau$tau and sqrt(abs(gill_bias_tau$log2FoldChange))
+S = 1083418, p-value = 7.389e-09
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+     rho 
+0.381095
+
+## $\tau$ and logFC for all the signficantly expressed genes in each organ
+Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
+
+I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
+
+```{r tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed in the gonads, liver, and gills."}
+#Merge the datasets that include all of the sex-biased and non-sex-biased genes with the tau datasets
+liver_bias_tau_all <- merge(as.data.frame(liver_res), as.data.frame(tau), by = "row.names")
+#write.csv(liver_bias_tau_all, "data/liver_bias_tau.csv", row.names = FALSE)
+
+gonad_bias_tau_all <- merge(as.data.frame(gonad_res), as.data.frame(tau), by = "row.names")
+#write.csv(gonad_bias_tau_all, "gonad_bias_tau.csv", row.names = FALSE)
+
+gill_bias_tau_all <- merge(as.data.frame(gill_res), as.data.frame(tau), by = "row.names")
+#write.csv(brain_bias_tau_all, "data/gill_bias_tau.csv", row.names = FALSE)
+
+#Plot logFC against Tau for all of the organs
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau_all$log2FoldChange)),
+     gonad_bias_tau_all$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]),
+     xlim = c(0, 5.5),
+     ylim = c(0, 1))
+points(sqrt(abs(liver_bias_tau_all$log2FoldChange)),
+     liver_bias_tau_all$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau_all$log2FoldChange)),
+     gill_bias_tau_all$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau_all$tau ~ sqrt(abs(gonad_bias_tau_all$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau_all$tau ~ sqrt(abs(liver_bias_tau_all$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau_all$tau ~ sqrt(abs(gill_bias_tau_all$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
+
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             #pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+outer_legend("right",
+             c("              ", "             ", "            "),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             #lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             #lty = 1:3,
+             ncol = 1)
+
+
+```
+
+The absolute value of the log2 fold change was square root transformed. We can see similar patterns as when we only plotted the sex biased genes (Fig. \@ref(fig:tau-v-bias)) with the strongest relationship showing up in the gonads. When we add in all of the points, however, it seems that the best fit line for the liver and gills now points downward (Fig. \@ref(fig:tau-v-FC)). Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman")
+
+```
+
+All correlations are still significant, but now the liver has a negative correlation between $\tau$ and the degree of sex bias. 
+
+gonad_bias_tau_all$tau and abs(gonad_bias_tau_all$log2FoldChange)
+S = 1.4507e+13, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3426831
+
+liver_bias_tau_all$tau and abs(liver_bias_tau_all$log2FoldChange)
+S = 3.2297e+12, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.09899651 
+
+gill_bias_tau_all$tau and abs(gill_bias_tau_all$log2FoldChange)
+S = 2.2462e+12, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.2356713
+
+I want to look into some of the genes that show a high bias and a high tau to see what is going on.
+
+```{r explore-tau-sb}
+##Looking at genes that have a high bias and tau in the gonads
+#Getting list of genes with the greatest Tau
+top_gonad <- gonad_bias_tau_all[sqrt(abs(gonad_bias_tau_all$log2FoldChange)) > 4 & gonad_bias_tau_all$tau > 0.7, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_gonad$Row.names[1],] 
+tpms[rownames(tpms)== top_gonad$Row.names[2],] 
+tpms[rownames(tpms)== top_gonad$Row.names[3],] 
+tpms[rownames(tpms)== top_gonad$Row.names[4],] 
+tpms[rownames(tpms)== top_gonad$Row.names[5],] 
+tpms[rownames(tpms)== top_gonad$Row.names[6],] 
+tpms[rownames(tpms)== top_gonad$Row.names[7],] 
+tpms[rownames(tpms)== top_gonad$Row.names[8],] 
+tpms[rownames(tpms)== top_gonad$Row.names[9],] 
+tpms[rownames(tpms)== top_gonad$Row.names[10],] 
+tpms[rownames(tpms)== top_gonad$Row.names[11],] 
+tpms[rownames(tpms)== top_gonad$Row.names[12],] 
+
+#Liver
+top_liver <- liver_bias_tau_all[sqrt(abs(liver_bias_tau_all$log2FoldChange)) > 4 & liver_bias_tau_all$tau > 0.7, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_liver$Row.names[1],] 
+tpms[rownames(tpms)== top_liver$Row.names[2],] 
+tpms[rownames(tpms)== top_liver$Row.names[3],] 
+tpms[rownames(tpms)== top_liver$Row.names[4],] 
+tpms[rownames(tpms)== top_liver$Row.names[5],] 
+tpms[rownames(tpms)== top_liver$Row.names[6],] 
+tpms[rownames(tpms)== top_liver$Row.names[7],] 
+tpms[rownames(tpms)== top_liver$Row.names[8],] 
+tpms[rownames(tpms)== top_liver$Row.names[9],] 
+tpms[rownames(tpms)== top_liver$Row.names[10],] 
+tpms[rownames(tpms)== top_liver$Row.names[11],] 
+tpms[rownames(tpms)== top_liver$Row.names[12],] 
+tpms[rownames(tpms)== top_liver$Row.names[13],] 
+tpms[rownames(tpms)== top_liver$Row.names[14],] 
+
+#Gill
+top_gill <- gill_bias_tau_all[sqrt(abs(gill_bias_tau_all$log2FoldChange)) > 3 & gill_bias_tau_all$tau > 0.7, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== top_gill$Row.names[1],] 
+tpms[rownames(tpms)== top_gill$Row.names[2],] 
+tpms[rownames(tpms)== top_gill$Row.names[3],] 
+
+
+```
+
+Most of the genes looked at above had a TPM of 0 in every sample, with a few exceptions in each tissue. 
+
+## Categories of sex bias vs $\tau$
+
+To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorised the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
+
+### Within the sex-biased genes
+
+```{r bias-bin-cats, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau)),
+           rep("Gonad", nrow(gonad_bias_tau)),
+           rep("Liver", nrow(liver_bias_tau))),
+  logFC=c(gill_bias_tau$log2FoldChange,
+          gonad_bias_tau$log2FoldChange,
+          liver_bias_tau$log2FoldChange),
+  geneID=c(gill_bias_tau$Row.names,
+           gonad_bias_tau$Row.names,
+           liver_bias_tau$Row.names),
+  tau=c(gill_bias_tau$tau,
+        gonad_bias_tau$tau,
+        liver_bias_tau$tau)
+  )
+
+#Add a column to denote female-biased or male biased
+logFC_long$bias <- ifelse(logFC_long$logFC < 0, paste0("FB"), paste0("MB"))
+
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3, biased_bins[1],
+                                   ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Making sure the ordering stays correct
+logFC_long$bias_cat <- factor(logFC_long$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long, "data/logFC_long_taubiasSB.csv", row.names = FALSE)
+
+```
+
+```{r tau-v-biascat-plot, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
+
+plotdat<-ggplot(logFC_long,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(axis.line = element_blank(),
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long[logFC_long$bias == "MB",], 
+           aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          )+ 
+geom_point(data = logFC_long[logFC_long$bias == "FB",], 
+           aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          )
+
+```
+
+### Across all significantly expressed genes
+I want to see how $\tau$ in unbiased genes compares to these categories as well. To do that I recreated the long-style dataset to include all of the sig. expressed genes rather than just the sex-biased genes.
+
+```{r bias-bin-cats-all, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_all <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau_all)),
+           rep("Gonad", nrow(gonad_bias_tau_all)),
+           rep("Liver", nrow(liver_bias_tau_all))
+         ),
+  logFC=c(gill_bias_tau_all$log2FoldChange,
+          gonad_bias_tau_all$log2FoldChange,
+          liver_bias_tau_all$log2FoldChange
+          ),
+  geneID=c(gill_bias_tau_all$Row.names,
+           gonad_bias_tau_all$Row.names,
+           liver_bias_tau_all$Row.names
+           ),
+  tau=c(gill_bias_tau_all$tau,
+        gonad_bias_tau_all$tau,
+        liver_bias_tau_all$tau
+        ),
+  padj=c(gill_bias_tau_all$padj,
+         gonad_bias_tau_all$padj,
+         liver_bias_tau_all$padj)
+  
+)
+
+#Add a column to denote female-biased or male biased
+logFC_long_all$bias <- ifelse(logFC_long_all$logFC <= -2 & 
+                                logFC_long_all$padj <= 0.05,
+                              paste0("FB"),
+                              ifelse(logFC_long_all$logFC >= 2 &
+                                       logFC_long_all$padj <= 0.05,
+                                     paste0("MB"),
+                                     paste0("UB")
+                                     )
+                              )
+  
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_all$bias_cat <- ifelse(logFC_long_all$bias == "UB", 
+                              biased_bins[1],
+                              ifelse(abs(logFC_long_all$logFC) >= 2 &
+                                       abs(logFC_long_all$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long_all$logFC) >= 3 &
+                                              abs(logFC_long_all$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long_all$logFC) >= 5 &
+                                                     abs(logFC_long_all$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+  
+
+#Making sure the ordering stays correct
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+```
+
+
+```{r readin-sex-specific-genes}
+#Specify the directory where Sex-specific gene files are located
+ss_genes_path <- "data"
+
+#Create a list of the files I want
+SN_sex_specific_genes_files <- list.files(ss_genes_path, 
+                                          pattern = "specific")
+
+#Create an empty list to store my datasets in
+SN_sex_specific_genes <- list()
+
+#Create a loop to read in all of the sex-specific genes
+for(file_name in SN_sex_specific_genes_files){
+  
+  # Read the file and store it in a new object
+  file_data <- read.table(file.path(ss_genes_path, file_name))
+  
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid")
+  
+  # Create a new object with a name based on the file name
+  ss_name <- sub("_TRgenes.txt$", "", file_name) #Removes the file extension
+  SN_sex_specific_genes[[ss_name]] <- file_data
+}
+```
+
+```{r cat-sex-specific}
+#Changing the bias category for the genes we just labeled as sex-specific
+organs <- c("Gill", "Gonad", "Liver",
+            "Gill", "Gonad", "Liver")
+bias <- c("FB", "FB", "FB",  
+          "MB", "MB", "MB")
+
+for(i in 1:length(SN_sex_specific_genes)){
+
+  tmp <- SN_sex_specific_genes[[i]]
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    if (one_gene %in% names(tau)){
+      
+    if(one_gene %in%
+       logFC_long_all[logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"gene_ID"]){
+       
+       logFC_long_all[logFC_long_all$geneID == one_gene &
+                      logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"bias_cat"
+                      ] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long_all),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long_all)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene
+      one_gene_dat$tau <- tau[names(tau) == one_gene]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long_all <- rbind(one_gene_dat, logFC_long_all)
+      
+      rownames(logFC_long_all) <- NULL
+    }
+    }  
+  }
+}
+
+#Making sure the ordering stays correct
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
+```
+
+```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_all,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.2),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+
+
+```
+
+```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_all,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+```
+
+## Exploring the relationship between $\tau$ and sex bias in a single-factor analysis
+Other papers have looked at the relationship between $\tau$ and sex bias across all tissue types together, without partitioning it out. To do this we need to get $log_2$ male/female expression levels across ALL of the tissues. I will be doing this by running a single-factor model with DESeq2 so instead of counts ~ group it will be counts ~ Sex.
+
+Once we have the results from the new DESeq2 model, $\tau$ can once again be plotted against sex bias ($log_2$ fold change).
+
+```{r tau-v-FC-MFbias, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed. The fold change in this plot is a difference between males and females regardless of tissue type.", message=FALSE}
+##Re-running the DESeq2 model to look at M-F diff expression across ALL tissues
+dds_SN_SF <- dds_SN
+
+##Remove S34 from the dataset
+dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34"))]
+
+design(dds_SN_SF) <- ~ sex
+dds_SN_SF_exp <- DESeq(dds_SN_SF)
+
+#Pulling out the results and removing NAs
+sex_con_res <- results(dds_SN_SF_exp, alpha = 0.05)
+sex_con_res_noNA <- sex_con_res[!is.na(sex_con_res$padj),]
+
+#Merge the noNA dataset with the tau datasets
+MFbias_tau_all <- merge(as.data.frame(sex_con_res_noNA), as.data.frame(tau), by = "row.names")
+
+#Plot logFC against Tau for all of the organs
+plot(sqrt(abs(MFbias_tau_all$log2FoldChange)),
+     MFbias_tau_all$tau,
+     pch=19,
+     col = "#20B2AA75",
+     xlab="sex bias (log2 fold change)",
+     ylab=expression(tau["TPM"]))
+
+#Add the best fit line
+abline(lm(MFbias_tau_all$tau ~ sqrt(abs(MFbias_tau_all$log2FoldChange))), col="black", lwd = 3, lty = 2)
+```
+
+After plotting the relationship, we can once again look at the Spearman's rank correlation.
+
+```{r tau-v-FC-MFbias-cor, echo=FALSE, message=FALSE, warning=FALSE}
+cor.test(MFbias_tau_all$tau, abs(MFbias_tau_all$log2FoldChange), method = "spearman")
+```
+
+	Spearman's rank correlation rho
+
+data:  MFbias_tau_all$tau and abs(MFbias_tau_all$log2FoldChange)
+S = 9.6989e+12, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3719997 
+
+There is a significant correlation between $\tau$ and abs(log2FoldChange). From the previous plots, we can presume that this significant correlation and rho is likely driven by the gonads.
+
+To get a better idea of what is going on I first grouped each gene into female-biased, male-biased, or unbiased based on the logFC and adjusted p-value. After creating the groups I can plot $\tau$ against the different biases.
+
+```{r MF-long, echo=FALSE, fig.cap="Tau across male-biased, female-biased, and unbiased genes."}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+MFlogFC_long <- data.frame(
+  logFC=c(MFbias_tau_all$log2FoldChange),
+  geneID=c(MFbias_tau_all$Row.names),
+  tau=c(MFbias_tau_all$tau),
+  padj=c(MFbias_tau_all$padj)
+  
+)
+
+#Add a column to denote female-biased or male biased
+MFlogFC_long$bias <- ifelse(MFlogFC_long$logFC <= -2 & MFlogFC_long$padj <= 0.05, paste0("FB"), 
+                            ifelse(MFlogFC_long$logFC >= 2 & MFlogFC_long$padj <= 0.05, paste0("MB"),
+                                   paste0("UB"))
+                            )
+
+#Plot tau versus the Bias group
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
+
+ggplot(MFlogFC_long,
+       aes(x = bias, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_point(data=MFlogFC_long, aes(x=bias, y=tau),
+             size=0.4, 
+             position = position_jitter(width = 0.15)) + 
+  labs(x="Bias Level", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+```
+
+The jitter points added on top represent the raw $\tau$ value. There is a large spread of $\tau$ for all of the bias groups, but from looking at the boxplot it does appear that the unbiased genes have lower $\tau$ than both the male-biased and the female-biased
+
+## Because the male and female tau distributions were so different, let's look at the males and females separately. We'll start with females.
+
+```{r tauHist-fem,fig.cap="Distribution of tissue specificity estimates for only the female samples.", echo=FALSE}
+par(mfrow=c(1,1))
+
+hist(tau_fem,
+     col="grey",
+     xlab=expression(tau_fem),
+     ylab="Number of genes",
+     main="Female-only")
+
+```
+
+## Validating the $\tau$ calculations for only female samples
+To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
+
+```{r ts-plot-counts-high-fem, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for fem genes with the highest tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+top_tau_fem <- head(sort(tau_fem, decreasing = TRUE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(top_tau_fem[1]),] 
+tpms[rownames(tpms)== names(top_tau_fem[2]),] 
+tpms[rownames(tpms)== names(top_tau_fem[3]),] 
+tpms[rownames(tpms)== names(top_tau_fem[4]),] 
+tpms[rownames(tpms)== names(top_tau_fem[5]),] 
+tpms[rownames(tpms)== names(top_tau_fem[6]),] 
+tpms[rownames(tpms)== names(top_tau_fem[7]),] 
+tpms[rownames(tpms)== names(top_tau_fem[8]),] 
+tpms[rownames(tpms)== names(top_tau_fem[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(top_tau_fem[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_fem[9]), intgroup="organ")
+```
+
+```{r ts-plot-counts-med-fem, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with medium values of tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+med_tau_fem <- head(tau_fem[tau_fem > 0.4 & tau_fem< 0.6], n=15)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(med_tau_fem[1]),] 
+tpms[rownames(tpms)== names(med_tau_fem[2]),] 
+tpms[rownames(tpms)== names(med_tau_fem[3]),] 
+tpms[rownames(tpms)== names(med_tau_fem[4]),] 
+tpms[rownames(tpms)== names(med_tau_fem[5]),] 
+tpms[rownames(tpms)== names(med_tau_fem[6]),] 
+tpms[rownames(tpms)== names(med_tau_fem[7]),] 
+tpms[rownames(tpms)== names(med_tau_fem[8]),] 
+tpms[rownames(tpms)== names(med_tau_fem[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(med_tau_fem[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_fem[9]), intgroup="organ")
+
+```
+
+```{r ts-plot-counts-low-fem, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
+#Getting list of genes with the lowest Tau
+bot_tau_fem <- head(sort(tau_fem, decreasing = FALSE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(bot_tau_fem[1]),]
+tpms[rownames(tpms)== names(bot_tau_fem[2]),]
+tpms[rownames(tpms)== names(bot_tau_fem[3]),]
+tpms[rownames(tpms)== names(bot_tau_fem[4]),]
+tpms[rownames(tpms)== names(bot_tau_fem[5]),]
+tpms[rownames(tpms)== names(bot_tau_fem[6]),]
+tpms[rownames(tpms)== names(bot_tau_fem[7]),]
+tpms[rownames(tpms)== names(bot_tau_fem[8]),]
+tpms[rownames(tpms)== names(bot_tau_fem[9]),]
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(bot_tau_fem[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_fem[9]), intgroup="organ")
+
+```
+
+We can see that for the fem genes that have high tau values the plots of the normalised counts are more consistently showing higher expression in just that tissue compared to when we included both male and female genes, whereas for the plots of the median and lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
+
+# Sex Bias and Tissue Specificity
+Now that I have calculated fem $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type. I'll only be looking at female-biased genes.
+
+## $\tau$ and logFC in female-biased genes for each organ
+A gene was determined to be sex-biased if it had a log-fold change $\le -2$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e., the genes that were not given a p-value of NA from DESeq). 
+
+From these datasets I can pull out the female-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
+
+```{r tau-v-bias-fem, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and skin."}
+
+#Pull out the sex-biased genes (based on FC of <= -2 and padj of < 0.05) for each organ
+liver_biased_fem <- liver_res[which(liver_res$log2FoldChange <= -2 & liver_res$padj <= 0.05),]
+gonad_biased_fem <- gonad_res[which(gonad_res$log2FoldChange <= -2 & gonad_res$padj <= 0.05),]
+gill_biased_fem <- gill_res[which(gill_res$log2FoldChange <= -2 & gill_res$padj <= 0.05),]
+
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_bias_tau_fem <- merge(as.data.frame(liver_biased_fem), as.data.frame(tau_fem), by = "row.names")
+gonad_bias_tau_fem <- merge(as.data.frame(gonad_biased_fem), as.data.frame(tau_fem), by = "row.names")
+gill_bias_tau_fem <- merge(as.data.frame(gill_biased_fem), as.data.frame(tau_fem), by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau_fem$log2FoldChange)),
+     gonad_bias_tau_fem$tau_fem,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Sex bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]))
+points(sqrt(abs(liver_bias_tau_fem$log2FoldChange)),
+     liver_bias_tau_fem$tau_fem,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau_fem$log2FoldChange)),
+     gill_bias_tau_fem$tau_fem,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau_fem$tau ~ sqrt(abs(gonad_bias_tau_fem$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau_fem$tau ~ sqrt(abs(liver_bias_tau_fem$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau_fem$tau ~ sqrt(abs(gill_bias_tau_fem$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```
+
+There appears to be a relationship between $\tau$ and female bias for the gonads and the liver, but potentially not for the gills. This may be due to a low number of female-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-bias-cor-fem, echo=FALSE, message=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau_fem$tau_fem, sqrt(abs(gonad_bias_tau_fem$log2FoldChange)), method = "spearman")
+cor.test(liver_bias_tau_fem$tau_fem, sqrt(abs(liver_bias_tau_fem$log2FoldChange)), method = "spearman")
+cor.test(gill_bias_tau_fem$tau_fem, sqrt(abs(gill_bias_tau_fem$log2FoldChange)), method = "spearman")
+
+```
+
+We can see a significant positive correlation in the gonads and liver, but no significant correlation in the gills.
+Spearman's rank correlation rho
+
+gonad_bias_tau_fem$tau_fem and sqrt(abs(gonad_bias_tau_fem$log2FoldChange))
+S = 1.961e+09, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.2751691 
+
+liver_bias_tau_fem$tau_fem and sqrt(abs(liver_bias_tau_fem$log2FoldChange))
+S = 40372060, p-value = 4.792e-06
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.1763016
+
+gill_bias_tau_fem$tau_fem and sqrt(abs(gill_bias_tau_fem$log2FoldChange))
+S = 1196264, p-value = 0.3932
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+0.06116173 
+
+## $\tau$ and logFC for all the signficantly expressed genes in each organ
+Only looking at the logFC for the female-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
+
+I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
+
+```{r tau-v-fem-bias-UB, echo=FALSE, fig.cap="Female bias versus tissue specificity (tau) for all genes that are female biased in the gonads, liver, and gills."}
+
+#Pull out both female-biased and unbiased 
+liver_FB_UB <- liver_res[
+  which((liver_res$log2FoldChange <= -2 & liver_res$padj <= 0.05) | 
+         (liver_res$padj > 0.05)), ]
+
+gonad_FB_UB <- gonad_res[
+  which((gonad_res$log2FoldChange <= -2 & gonad_res$padj <= 0.05) | 
+         (gonad_res$padj > 0.05)), ]
+
+gill_FB_UB <- gill_res[
+  which((gill_res$log2FoldChange <= -2 & gill_res$padj <= 0.05) | 
+         (gill_res$padj > 0.05)), ]
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_FB_UB_tau <- merge(as.data.frame(liver_FB_UB), as.data.frame(tau_fem), by = "row.names")
+gonad_FB_UB_tau <- merge(as.data.frame(gonad_FB_UB), as.data.frame(tau_fem), by = "row.names")
+gill_FB_UB_tau <- merge(as.data.frame(gill_FB_UB), as.data.frame(tau_fem), by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_FB_UB_tau$log2FoldChange)),
+     gonad_FB_UB_tau$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Female bias (|log2 fold change|)",
+     ylab=expression(tau_fem["TPM"]))
+points(sqrt(abs(liver_FB_UB_tau$log2FoldChange)),
+     liver_FB_UB_tau$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_FB_UB_tau$log2FoldChange)),
+     gill_FB_UB_tau$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_FB_UB_tau$tau_fem ~ sqrt(abs(gonad_FB_UB_tau$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_FB_UB_tau$tau_fem ~ sqrt(abs(liver_FB_UB_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_FB_UB_tau$tau_fem ~ sqrt(abs(gill_FB_UB_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```
+
+We can see wildly different patterns now: when we add in all of the points it seems that the best fit line for the gonads now points downward and the best fit line points upward. Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
+cor.test(gonad_FB_UB_tau$tau_fem, abs(gonad_FB_UB_tau$log2FoldChange), method = "spearman")
+cor.test(liver_FB_UB_tau$tau_fem, abs(liver_FB_UB_tau$log2FoldChange), method = "spearman")
+cor.test(gill_FB_UB_tau$tau_fem, abs(gill_FB_UB_tau$log2FoldChange), method = "spearman")
+
+```
+
+## Let's investigate the samples with a tau value of 0 but some degree of sex bias
+
+```{r explore-tau-fb}
+##Looking at genes that have a high bias and tau in the gonads
+#Getting list of genes with the greatest Tau
+gonad_FB_notau <- gonad_FB_UB_tau[sqrt(abs(gonad_FB_UB_tau$log2FoldChange)) > 2 & gonad_FB_UB_tau$tau_fem == 0, ]
+
+#Looking at the TPMS
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[1],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[2],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[3],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[4],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[5],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[6],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[7],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[8],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[9],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[10],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[11],] 
+tpms[rownames(tpms)== gonad_FB_notau$Row.names[12],] 
+
+```
+
+## Categories of sex bias vs $\tau$
+
+To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorised the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
+
+### Within the sex-biased genes
+
+```{r bias-bin-cats-fem, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_fem <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau_fem)),
+           rep("Gonad", nrow(gonad_bias_tau_fem)),
+           rep("Liver", nrow(liver_bias_tau_fem))),
+  logFC=c(gill_bias_tau_fem$log2FoldChange,
+          gonad_bias_tau_fem$log2FoldChange,
+          liver_bias_tau_fem$log2FoldChange),
+  geneID=c(gill_bias_tau_fem$Row.names,
+           gonad_bias_tau_fem$Row.names,
+           liver_bias_tau_fem$Row.names),
+  tau=c(gill_bias_tau_fem$tau_fem,
+        gonad_bias_tau_fem$tau_fem,
+        liver_bias_tau_fem$tau_fem)
+  )
+
+#Add a column to denote female-biased or male biased
+logFC_long_fem$bias <- ifelse(logFC_long_fem$logFC < 0, paste0("FB"), paste0("MB"))
+
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_fem$bias_cat <- ifelse(abs(logFC_long_fem$logFC) >= 2 & abs(logFC_long_fem$logFC) < 3, biased_bins[1],
+                                   ifelse(abs(logFC_long_fem$logFC) >= 3 & abs(logFC_long_fem$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long_fem$logFC) >= 5 & abs(logFC_long_fem$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Making sure the ordering stays correct
+logFC_long_fem$bias_cat <- factor(logFC_long_fem$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long, "data/logFC_long_taubiasFB.csv", row.names = FALSE)
+
+```
+
+```{r tau-v-biascat-plot-fem, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
+
+plotdat<-ggplot(logFC_long_fem,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(axis.line = element_blank(),
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_fem[logFC_long$bias == "MB",], 
+           aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          )+ 
+geom_point(data = logFC_long_fem[logFC_long_fem$bias == "FB",], 
+           aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.4, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          )
+
+```
+
+### Across all significantly expressed genes
+I want to see how $\tau$ in unbiased genes compares to these categories as well. To do that I recreated the long-style dataset to include all of the sig. expressed genes rather than just the sex-biased genes.
+
+```{r bias-bin-cats-FBUB, echo=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_FBUB <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_FB_UB_tau)),
+           rep("Gonad", nrow(gonad_FB_UB_tau)),
+           rep("Liver", nrow(liver_FB_UB_tau))
+         ),
+  logFC=c(gill_FB_UB_tau$log2FoldChange,
+          gonad_FB_UB_tau$log2FoldChange,
+          liver_FB_UB_tau$log2FoldChange
+          ),
+  geneID=c(gill_FB_UB_tau$Row.names,
+           gonad_FB_UB_tau$Row.names,
+           liver_FB_UB_tau$Row.names
+           ),
+  tau=c(gill_FB_UB_tau$tau,
+        gonad_FB_UB_tau$tau,
+        liver_FB_UB_tau$tau
+        ),
+  padj=c(gill_FB_UB_tau$padj,
+         gonad_FB_UB_tau$padj,
+         liver_FB_UB_tau$padj)
+  
+)
+
+#Add a column to denote female-biased or male biased
+logFC_long_FBUB$bias <- ifelse(logFC_long_FBUB$logFC <= -2 & 
+                                logFC_long_FBUB$padj <= 0.05,
+                              paste0("FB"),
+                              ifelse(logFC_long_FBUB$logFC >= 2 &
+                                       logFC_long_FBUB$padj <= 0.05,
+                                     paste0("MB"),
+                                     paste0("UB")
+                                     )
+                              )
+  
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_FBUB$bias_cat <- ifelse(logFC_long_FBUB$bias == "UB", 
+                              biased_bins[1],
+                              ifelse(abs(logFC_long_FBUB$logFC) >= 2 &
+                                       abs(logFC_long_FBUB$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long_FBUB$logFC) >= 3 &
+                                              abs(logFC_long_FBUB$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long_FBUB$logFC) >= 5 &
+                                                     abs(logFC_long_FBUB$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+  
+
+#Making sure the ordering stays correct
+logFC_long_FBUB$bias_cat <- factor(logFC_long_FBUB$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+logFC_long_FBUB$tissue <- factor(logFC_long_FBUB$tissue, levels = c("Gonad", "Liver", "Gill"), ordered = TRUE)
+
+#write.csv(logFC_long_FBUB, "data/logFC_long_FBUB.csv", row.names = FALSE)
+
+```
+
+
+```{r cat-sex-specific-FB}
+#Changing the bias category for the genes we just labeled as sex-specific
+organs <- c("Gill", "Gonad", "Liver",
+            "Gill", "Gonad", "Liver")
+bias <- c("FB", "FB", "FB",  
+          "MB", "MB", "MB")
+
+for(i in 1:length(SN_sex_specific_genes)){
+
+  tmp <- SN_sex_specific_genes[[i]]
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    if (one_gene %in% names(tau)){
+      
+    if(one_gene %in%
+       logFC_long_FBUB[logFC_long_FBUB$tissue == organs[[i]] &
+                      logFC_long_FBUB$bias == bias[[i]],"gene_ID"]){
+       
+       logFC_long_FBUB[logFC_long_FBUB$geneID == one_gene &
+                      logFC_long_FBUB$tissue == organs[[i]] &
+                      logFC_long_FBUB$bias == bias[[i]],"bias_cat"
+                      ] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long_FBUB),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long_FBUB)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene
+      one_gene_dat$tau <- tau[names(tau) == one_gene]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long_FBUB <- rbind(one_gene_dat, logFC_long_all)
+      
+      rownames(logFC_long_all) <- NULL
+    }
+    }  
+  }
+}
+
+#Making sure the ordering stays correct
+logFC_long_FBUB$bias_cat <- factor(logFC_long_FBUB$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias_SS_FB.csv", row.names = FALSE)
+```
+
+```{r tau-v-biascat-plot-all-fb-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_FBUB,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_boxplot() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_FBUB[logFC_long_FBUB$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_FBUB[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_FBUB[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.2),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+
+
+```
+
+```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_all,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+```
+
+## Let's look at males now 
+
+```{r tauHist-mal,fig.cap="Distribution of tissue specificity estimates for only the male samples.", echo=FALSE}
+par(mfrow=c(1,1))
+
+hist(tau_mal,
+     col="grey",
+     xlab=expression(tau_mal),
+     ylab="Number of genes",
+     main="Male-only")
+
+```
+
+## Validating the $\tau$ calculations for only male samples
+To make sure $\tau$ is being calculated in a way that makes sense, I am checking some of the TPM values and plotting the corresponding counts for the genes with a high tissue specificity index and a low tissue specificity index.
+
+```{r ts-plot-counts-high-mal, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for male genes with the highest tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+top_tau_mal <- head(sort(tau_mal, decreasing = TRUE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(top_tau_mal[1]),] 
+tpms[rownames(tpms)== names(top_tau_mal[2]),] 
+tpms[rownames(tpms)== names(top_tau_mal[3]),] 
+tpms[rownames(tpms)== names(top_tau_mal[4]),] 
+tpms[rownames(tpms)== names(top_tau_mal[5]),] 
+tpms[rownames(tpms)== names(top_tau_mal[6]),] 
+tpms[rownames(tpms)== names(top_tau_mal[7]),] 
+tpms[rownames(tpms)== names(top_tau_mal[8]),] 
+tpms[rownames(tpms)== names(top_tau_mal[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(top_tau_mal[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(top_tau_mal[9]), intgroup="organ")
+```
+
+```{r ts-plot-counts-med-mal, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with medium values of tau", message=FALSE}
+#Getting list of genes with the greatest Tau
+med_tau_mal <- head(tau_mal[tau_mal > 0.4 & tau_mal< 0.6], n=15)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(med_tau_mal[1]),] 
+tpms[rownames(tpms)== names(med_tau_mal[2]),] 
+tpms[rownames(tpms)== names(med_tau_mal[3]),] 
+tpms[rownames(tpms)== names(med_tau_mal[4]),] 
+tpms[rownames(tpms)== names(med_tau_mal[5]),] 
+tpms[rownames(tpms)== names(med_tau_mal[6]),] 
+tpms[rownames(tpms)== names(med_tau_mal[7]),] 
+tpms[rownames(tpms)== names(med_tau_mal[8]),] 
+tpms[rownames(tpms)== names(med_tau_mal[9]),] 
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(med_tau_mal[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(med_tau_mal[9]), intgroup="organ")
+
+```
+
+```{r ts-plot-counts-low-mal, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
+#Getting list of genes with the lowest Tau
+bot_tau_mal <- head(sort(tau_mal, decreasing = FALSE), n=9)
+
+#Looking at the TPMS
+tpms[rownames(tpms)== names(bot_tau_mal[1]),]
+tpms[rownames(tpms)== names(bot_tau_mal[2]),]
+tpms[rownames(tpms)== names(bot_tau_mal[3]),]
+tpms[rownames(tpms)== names(bot_tau_mal[4]),]
+tpms[rownames(tpms)== names(bot_tau_mal[5]),]
+tpms[rownames(tpms)== names(bot_tau_mal[6]),]
+tpms[rownames(tpms)== names(bot_tau_mal[7]),]
+tpms[rownames(tpms)== names(bot_tau_mal[8]),]
+tpms[rownames(tpms)== names(bot_tau_mal[9]),]
+
+#Plotting the gene counts from DESeq2 for the toptau genes
+par(mfrow=c(3, 3))
+plotCounts(dds_SN, gene= names(bot_tau_mal[1]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[2]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[3]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[4]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[5]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[6]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[7]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[8]), intgroup="organ")
+plotCounts(dds_SN, gene= names(bot_tau_mal[9]), intgroup="organ")
+
+```
+
+We can see that for the male genes that have high tau values the plots of the normalised counts are more consistently showing higher expression in just that tissue compared to when we included both male and female genes, but there are still a few plots that show high expression in more than one tissue. The plots of the median and lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
+
+# Sex Bias and Tissue Specificity
+Now that I have calculated male $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type. Now, I'll only be looking at male-biased genes.
+
+## $\tau$ and logFC in male-biased genes for each organ
+A gene was determined to be sex-biased if it had a log-fold change $\ge 2$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e., the genes that were not given a p-value of NA from DESeq). 
+
+From these datasets I can pull out the female-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
+
+```{r tau-v-bias-mal, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and skin."}
+
+#Pull out the male-biased genes (based on FC of >= 2 and padj of < 0.05) for each organ
+liver_biased_mal <- liver_res[which(liver_res$log2FoldChange >= 2 & liver_res$padj <= 0.05),]
+gonad_biased_mal <- gonad_res[which(gonad_res$log2FoldChange >= 2 & gonad_res$padj <= 0.05),]
+gill_biased_mal <- gill_res[which(gill_res$log2FoldChange >= 2 & gill_res$padj <= 0.05),]
+
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_bias_tau_mal <- merge(as.data.frame(liver_biased_mal), as.data.frame(tau_mal), by = "row.names")
+gonad_bias_tau_mal <- merge(as.data.frame(gonad_biased_mal), as.data.frame(tau_mal), by = "row.names")
+gill_bias_tau_mal <- merge(as.data.frame(gill_biased_mal), as.data.frame(tau_mal), by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_bias_tau_mal$log2FoldChange)),
+     gonad_bias_tau_mal$tau_mal,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Male bias (|log2 fold change|)",
+     ylab=expression(tau["TPM"]))
+points(sqrt(abs(liver_bias_tau_mal$log2FoldChange)),
+     liver_bias_tau_mal$tau_mal,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_bias_tau_mal$log2FoldChange)),
+     gill_bias_tau_mal$tau_mal,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_bias_tau_mal$tau_mal ~ sqrt(abs(gonad_bias_tau_mal$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau_mal$tau_mal ~ sqrt(abs(liver_bias_tau_mal$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau_mal$tau_mal ~ sqrt(abs(gill_bias_tau_mal$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```
+
+There appears to be a relationship between $\tau$ and male bias for the gonads, liver, and the gills. This may be due to a low number of male-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+
+```{r tau-v-bias-cor-mal, echo=FALSE, message=FALSE, warning=FALSE}
+cor.test(gonad_bias_tau_mal$tau_mal, sqrt(abs(gonad_bias_tau_mal$log2FoldChange)), method = "spearman")
+cor.test(liver_bias_tau_mal$tau_mal, sqrt(abs(liver_bias_tau_mal$log2FoldChange)), method = "spearman")
+cor.test(gill_bias_tau_mal$tau_mal, sqrt(abs(gill_bias_tau_mal$log2FoldChange)), method = "spearman")
+
+```
+
+We can see a significant positive correlation in the gonads and liver, but no significant correlation in the gills.
+Spearman's rank correlation rho
+
+gonad_bias_tau_mal$tau_mal and sqrt(abs(gonad_bias_tau_mal$log2FoldChange))
+S = 3.1522e+10, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.3725678 
+
+liver_bias_tau_mal$tau_mal and sqrt(abs(liver_bias_tau_mal$log2FoldChange))
+S = 89220844, p-value = 4.14e-11
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.2197884
+
+gill_bias_tau_mal$tau_mal and sqrt(abs(gill_bias_tau_mal$log2FoldChange))
+S = 1046, p-value = 0.05964
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.4093732 
+
+```{r tau-v-mal-bias-UB, echo=FALSE, fig.cap="Male bias versus tissue specificity (tau) for all genes that are female biased in the gonads, liver, and gills."}
+
+#Pull out both female-biased and unbiased 
+liver_MB_UB <- liver_res[
+  which((liver_res$log2FoldChange >= 2 & liver_res$padj <= 0.05) | 
+         (liver_res$padj > 0.05)), ]
+
+gonad_MB_UB <- gonad_res[
+  which((gonad_res$log2FoldChange >= 2 & gonad_res$padj <= 0.05) | 
+         (gonad_res$padj > 0.05)), ]
+
+gill_MB_UB <- gill_res[
+  which((gill_res$log2FoldChange >= 2 & gill_res$padj <= 0.05) | 
+         (gill_res$padj > 0.05)), ]
+
+#Merge the sex bias information with the tau values based on row names for each organ
+liver_MB_UB_tau <- merge(as.data.frame(liver_MB_UB), as.data.frame(tau_mal), by = "row.names")
+gonad_MB_UB_tau <- merge(as.data.frame(gonad_MB_UB), as.data.frame(tau_mal), by = "row.names")
+gill_MB_UB_tau <- merge(as.data.frame(gill_MB_UB), as.data.frame(tau_mal), by = "row.names")
+
+#Plot the relationship between FC (bias) and tau for each organ
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+plot(sqrt(abs(gonad_MB_UB_tau$log2FoldChange)),
+     gonad_MB_UB_tau$tau,
+     pch=19,
+     col = "#EEB42275",
+     xlab="Male bias (|log2 fold change|)",
+     ylab=expression(tau_mal["TPM"]))
+points(sqrt(abs(liver_MB_UB_tau$log2FoldChange)),
+     liver_MB_UB_tau$tau,
+     pch=19,
+     col="#EE826275")
+points(sqrt(abs(gill_MB_UB_tau$log2FoldChange)),
+     gill_MB_UB_tau$tau,
+     pch=19,
+     col = "#20B2AA75")
+
+
+#Add the best fit lines
+abline(lm(gonad_MB_UB_tau$tau_mal ~ sqrt(abs(gonad_MB_UB_tau$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_MB_UB_tau$tau_mal ~ sqrt(abs(liver_MB_UB_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_MB_UB_tau$tau_mal ~ sqrt(abs(gill_MB_UB_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+
+#Add a legend
+outer_legend("right",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 19,
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 1)
+
+
+```

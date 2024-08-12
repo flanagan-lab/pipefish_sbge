@@ -1,0 +1,736 @@
+---
+title: "Analysing *Stigmatopora macropterygia* RNAseq Data"
+author: "Emily Beasley"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        code_folding: show
+        toc: yes
+        toc_float: yes
+        number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+```
+
+``` {r library, include = FALSE}
+#library(tximport) #This was used to generate an abundance matrix from the salmon quant outputs
+
+```
+This pipeline follows a pipeline outlined for _Syngnathus floridae_. Changes in scripts and outputs are outlined in this document. This pipeline was run on the University of Canterbury's RCC.
+
+# Pre-assembly Quality Control and Filtering
+
+## Trimming the Reads with Trimmomatic
+[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data. There are a lot of different trimming steps that can be performed and parameters that correspond to each step. 
+
+### Running trimmomatic across Multiple Pairs of Reads
+
+```{bash}
+#!/bin/bash
+
+data=$1
+
+for fq in ${data}*_R1_001.fastq.gz
+        do
+        base=$(basename $fq _R1_001.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq ${data}${base}_R2_001.fastq.gz \
+                ${data}trimmed/${base}_paired_R1_001.fastq.gz ${data}trimmed/${base}_unpaired_R1_001.fastq.gz \
+                ${data}trimmed/${base}_paired_R2_001.fastq.gz ${data}trimmed/${base}_unpaired_R2_001.fastq.gz \
+                ILLUMINACLIP:TruSeq3-PE-2.fa:2:30:10 HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+
+```
+
+
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Trimmomatic takes about a day to run, so either run it with nohup or screen 
+
+-   Then remove the `echo "..."` and run the script as `nohup bash ../../scripts/trimmomatic_run.sh ../ > trim.out 2>&1 &`.
+
+## Using SortMeRNA to remove rRNA contamination
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1 #location of the reads
+ref_fasta=$2 #desired reference fasta
+output_dir_rrna=$3 #desired location for the reads that are rRNA
+output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
+
+## Loop through all pairs of reads in the input directory
+for pair in $1/*_R1_001.fastq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1_001.fastq.gz)
+
+        #Extract Fish ID
+        ID=$(basename $pair _paired_R1_001.fastq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running SortMeRNA for ${ID}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$1/${sample}_R1_001.fastq.gz
+        input2=$1/${sample}_R2_001.fastq.gz
+
+        #Run SortMeRNA on this pair of reads
+        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
+
+        #Remove SortMeRNA intermediate files before running again
+        rm -r /home/rccuser/sortmerna/run/kvdb
+
+done
+
+
+```
+
+This script was run as `nohup bash ../../scripts/sortmerna_run.sh paired/ /home/rccuser/shared/rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta rrna/ no_rrna/ > sortmerna.log 2>&1 &`
+
+## Using Kraken2 to remove biological contamination
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+
+#!/bin/bash
+
+#Create arguments
+ref_fasta=$1 #desired reference database
+input_dir=$2 #Input directory with the location of the reads
+output_dir=$3 #Desired location of the output
+
+## Loop through all pairs of reads in the input directory
+for pair in $2/*_fwd.fq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _fwd.fq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running Kraken2 for ${sample}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$2/${sample}_fwd.fq.gz
+        input2=$2/${sample}_rev.fq.gz
+
+        #Run Kraken2 on this pair of reads
+        time kraken2 --threads 16 --db $1 --paired $input1 $input2 --unclassified-out $3/${sample}#.fq --report $3/${sample}.log
+
+done
+
+```
+
+
+This script was run as `nohup bash ../../scripts/kraken2_run.sh ../../../kraken2_pluspfp/ no_rrna/ kraken2/ > kraken2.log 2>&1 &`
+
+## Doing a k-mer based correction with RCorrector
+Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
+
+
+### Creating a for loop to run multiple samples at a time
+```{bash}
+### Creating a for loop to run multiple samples at a time
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$3 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_1.fq -2 $2/${sample}_2.fq -od $3
+
+done
+
+```
+
+This script was run as `nohup bash ../../scripts/rcorrector_run.sh ../../../../rcorrector/ kraken2/ rcorrector/ > rcor.log 2>&1 &`
+
+# De novo transcriptome assembly
+
+## Installing Trinity
+Trinity requires the installation of several programs, to get around this Trinity was installed via a Docker in the RCC and must be used within one. **The first time that you use Trinity you must pull the latest Docker image for Trinity** like so:
+
+```
+docker pull trinityrnaseq/trinityrnaseq
+
+```
+
+## Running Trinity 
+Once started, a successful Trinity run will take days to complete. There are a lot of extra components you can add onto a Trinity run (View the [Trinity User Manual](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity) for more information).
+    
+### Using multiple reads
+#### Creating a Sample Name File
+There are two options when using multiple files to generate your de novo transcriptome assembly. Each sample can be typed out individually, ensuring that the two reads are paired up by order. Alternatively, the argument `--samples_file` can be used instead. With this argument you must provide a tab-delimited text file indicating biological replicate relationships. This is the example provided on the [Trinity Website](https://github.com/trinityrnaseq/trinityrnaseq/wiki/Running-Trinity):
+
+         cond_A    cond_A_rep1    A_rep1_left.fq    A_rep1_right.fq
+         cond_A    cond_A_rep2    A_rep2_left.fq    A_rep2_right.fq
+         cond_B    cond_B_rep1    B_rep1_left.fq    B_rep1_right.fq
+         cond_B    cond_B_rep2    B_rep2_left.fq    B_rep2_right.fq
+         
+The samples file that was provided for the script below was adapted into this format:
+
+```
+SMT3OF1 S1      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-01-49-1_S1_1.cor.fq    /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-01-49-1_S1_2.cor.fq
+SMT6OF1 S2      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-02-49-1_S2_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-02-49-1_S2_2.cor.fq
+SMT2OF5 S3      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-03-49-1_S3_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-03-49-1_S3_2.cor.fq
+SMT1OF2 S4      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-04-49-1_S4_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-04-49-1_S4_2.cor.fq
+SMO1F1  S5      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-05-49-1_S5_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-05-49-1_S5_2.cor.fq
+SMT4M2T S6      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-06-49-1_S6_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-06-49-1_S6_2.cor.fq
+SMT4TM1 S7      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-07-49-1_S7_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-07-49-1_S7_2.cor.fq
+SMT6TM3 S8      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-08-49-1_S8_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-08-49-1_S8_2.cor.fq
+SMT6TM2 S9      /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-09-49-1_S9_1.cor.fq  /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-09-49-1_S9_2.cor.fq
+SMT1TM1 S10     /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-10-49-1_S10_1.cor.fq /home/rccuser/shared/emily_files/rcorrector/AAAVL52HV-7629-10-49-1_S10_2.cor.fq
+
+...
+```
+The last two columns contain the **full** location to the desired reads.
+
+#### Script
+```{bash}
+#!/bin/bash
+
+#Create arguements
+samples_file=$1 #File containing sample names and locations
+out_dir_name=$2 #Desired name for the output directory
+
+sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
+        --samples_file $1 \
+        --normalize_by_read_set \
+        --CPU 16 \
+        --output `pwd`/$2
+
+```
+
+Trinity was run inside of a **screen** session as `bash scripts/trinity_run.sh `pwd`/SM_samples.txt S_mac_trinity`. The `pwd` was added in front of the samples file name as a shortcut since Trinity needs to full path to the file (since it was installed as a docker image).
+
+
+### Running BUSCO on a single transcriptome
+The lineage for _S. macropterygia_ was chosen as `actinopterygii_odb10` since it is the closest clade provided with BUSCO.
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+lineage=$2 #chosen dataset for assessment
+out_dir_name=$3 #Desired name for the output directory
+
+busco -i $1 -l $2 -m tran -o $3 -c 16
+
+```
+This script was run as `nohup bash scripts/busco_run.sh S_mac_trinity.Trinity.fasta actinopterygii_odb10 busco_mac > busco.log 2>&1 &`
+
+### Interpreting BUSCO results {.tabset}
+The main results from BUSCO are simplified into categories of _Complete and single-copy_, _Complete and duplicated_, _Fragmented_, or _Missing_. The results from BUSCO will only make sense in the context of the biology of your organism and data types.
+
+The transcriptome was not filtered for isoforms prior to running BUSCO which may then lead to a high proportion of duplicates. Additionally, not all BUSCO genes are necessarily expressed in the tissue/organ under consideration or at that specific timepoint. Therefore, transcriptomes are expected to show varying degrees of completeness. 
+
+#### Short Summary {-}
+```
+        ***** Results: *****
+
+        C:91.5%[S:13.2%,D:78.3%],F:2.2%,M:6.3%,n:3640   
+        3332    Complete BUSCOs (C)
+        481     Complete and single-copy BUSCOs (S)     
+        2851    Complete and duplicated BUSCOs (D)      
+        81      Fragmented BUSCOs (F)
+        227     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+
+  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+  - This can be done using the built in TrinityStats.pl script within trinity.
+  - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
+
+```{bash}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
+This script was run as `bash scripts/trinity_N50.sh `pwd`/S_macropterygia_2024/S_mac_trinity.Trinity.fasta trinity_stats_output`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  203474
+Total trinity transcripts:      344115
+Percent GC: 46.34
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 7076
+        Contig N20: 5199
+        Contig N30: 4061
+        Contig N40: 3181
+        Contig N50: 2448
+
+        Median contig length: 443
+        Average contig: 1081.96
+        Total assembled bases: 372319888
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 6071
+        Contig N20: 4087
+        Contig N30: 2785
+        Contig N40: 1759
+        Contig N50: 1040
+
+        Median contig length: 344
+        Average contig: 668.16
+        Total assembled bases: 135953047
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1040 bases in length (going off the stats based on the longest isoform).
+
+# Alignment and Abundance Estimations
+
+
+### Generating the index
+The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+transcriptome_file=$1
+desired_index_name=$2
+kmer_length=$3
+
+/usr/local/bin/salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash scripts/salmon_txome_indices.sh S_macropterygia_2024/S_mac_trinity.Trinity.fasta mac_salmon_index 31 > salmon_index.log 2>&1 &`.
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). If I end up seeing a smaller mapping rate than expected I will generate another index using a smaller k-mer length.
+
+### Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_1.cor.fq
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _1.cor.fq)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $1/${sample}_1.cor.fq \
+                -2 $1/${sample}_2.cor.fq \
+                -p 16 -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash scripts/salmon_quant.sh rcorrector/ mac_salmon_index/ mac_salmon_quant/ > salmon_quant.log > salmon_quant.log 2>&1 &`
+
+Running the above script generates an output with the following organization:
+```
+ac_salmon_quant/
+  AAAVL52HV-7629-01-49-1_S1_quant/
+      aux_info/
+      cmd_info.json
+      lib_format_counts.json
+      libParams/
+      logs/
+        salmon_quant.log
+      quant.sf
+      
+    ... for all samples
+```
+The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+    do
+
+    echo "$dir"
+
+    #Extract the sample name from the directory
+    sample=$(basename $dir _quant)
+
+    #Echo the sample that is being processed
+    echo "Rename sample ${sample} ..."
+
+    #Rename the quant.sf file
+    mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+    #Rename the log file
+    mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+done
+
+```
+This script was run as `bash scripts/rename_salmon.sh mac_salmon_quant/ mac_salmon_quant/expression_files/ mac_salmon_quant/log_files/`.
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+AAAVL52HV-7629-01-49-1_S1_salmon_quant.log:[2024-02-12 09:03:12.331] [jointLog] [info] Mapping rate = 99.6658%
+AAAVL52HV-7629-02-49-1_S2_salmon_quant.log:[2024-02-12 09:06:32.246] [jointLog] [info] Mapping rate = 99.8148%
+AAAVL52HV-7629-03-49-1_S3_salmon_quant.log:[2024-02-12 09:10:24.602] [jointLog] [info] Mapping rate = 99.7408%
+AAAVL52HV-7629-04-49-1_S4_salmon_quant.log:[2024-02-12 09:14:57.850] [jointLog] [info] Mapping rate = 99.789%
+AAAVL52HV-7629-05-49-1_S5_salmon_quant.log:[2024-02-12 09:19:03.692] [jointLog] [info] Mapping rate = 99.7002%
+AAAVL52HV-7629-06-49-1_S6_salmon_quant.log:[2024-02-12 09:22:10.490] [jointLog] [info] Mapping rate = 99.388%
+AAAVL52HV-7629-07-49-1_S7_salmon_quant.log:[2024-02-12 09:24:48.031] [jointLog] [info] Mapping rate = 99.7175%
+AAAVL52HV-7629-08-49-1_S8_salmon_quant.log:[2024-02-12 09:28:17.481] [jointLog] [info] Mapping rate = 99.3575%
+AAAVL52HV-7629-09-49-1_S9_salmon_quant.log:[2024-02-12 09:31:29.063] [jointLog] [info] Mapping rate = 99.5197%
+AAAVL52HV-7629-10-49-1_S10_salmon_quant.log:[2024-02-12 09:36:24.341] [jointLog] [info] Mapping rate = 99.618%
+AAAVL52HV-7629-11-49-1_S11_salmon_quant.log:[2024-02-12 09:39:24.845] [jointLog] [info] Mapping rate = 99.4388%
+AAAVL52HV-7629-12-49-1_S12_salmon_quant.log:[2024-02-12 09:43:07.189] [jointLog] [info] Mapping rate = 99.6555%
+AAAVL52HV-7629-13-49-1_S13_salmon_quant.log:[2024-02-12 09:45:37.396] [jointLog] [info] Mapping rate = 99.7012%
+AAAVL52HV-7629-14-49-1_S14_salmon_quant.log:[2024-02-12 09:48:44.242] [jointLog] [info] Mapping rate = 99.7539%
+AAAVL52HV-7629-15-49-1_S15_salmon_quant.log:[2024-02-12 09:51:31.498] [jointLog] [info] Mapping rate = 99.5926%
+AAAVL52HV-7629-16-49-1_S16_salmon_quant.log:[2024-02-12 09:52:59.615] [jointLog] [info] Mapping rate = 99.5316%
+AAAVL52HV-7629-17-49-1_S17_salmon_quant.log:[2024-02-12 09:55:56.276] [jointLog] [info] Mapping rate = 99.7997%
+AAAVL52HV-7629-18-49-1_S18_salmon_quant.log:[2024-02-12 09:58:48.989] [jointLog] [info] Mapping rate = 99.5807%
+AAAVL52HV-7629-19-49-1_S19_salmon_quant.log:[2024-02-12 10:01:04.101] [jointLog] [info] Mapping rate = 99.5983%
+AAAVL52HV-7629-20-49-1_S20_salmon_quant.log:[2024-02-12 10:02:43.054] [jointLog] [info] Mapping rate = 99.6624%
+AAAVL52HV-7629-21-49-1_S21_salmon_quant.log:[2024-02-12 10:04:22.622] [jointLog] [info] Mapping rate = 61.0351%
+AAAVL52HV-7629-22-49-1_S22_salmon_quant.log:[2024-02-12 10:05:47.397] [jointLog] [info] Mapping rate = 99.7399%
+AAAVL52HV-7629-23-49-1_S23_salmon_quant.log:[2024-02-12 10:07:09.944] [jointLog] [info] Mapping rate = 34.5275%
+AAAVL52HV-7629-24-49-1_S24_salmon_quant.log:[2024-02-12 10:07:46.883] [jointLog] [info] Mapping rate = 99.668%
+AAAVL52HV-7629-25-49-1_S25_salmon_quant.log:[2024-02-12 10:09:26.942] [jointLog] [info] Mapping rate = 99.7404%
+AAAVL52HV-7629-26-49-1_S26_salmon_quant.log:[2024-02-12 10:10:51.168] [jointLog] [info] Mapping rate = 99.5953%
+AAAVL52HV-7629-27-49-1_S27_salmon_quant.log:[2024-02-12 10:12:55.804] [jointLog] [info] Mapping rate = 99.5236%
+AAAVL52HV-7629-28-49-1_S28_salmon_quant.log:[2024-02-12 10:14:49.766] [jointLog] [info] Mapping rate = 99.5699%
+AAAVL52HV-7629-29-49-1_S29_salmon_quant.log:[2024-02-12 10:16:05.626] [jointLog] [info] Mapping rate = 99.7004%
+AAAVL52HV-7629-30-49-1_S30_salmon_quant.log:[2024-02-12 10:16:39.559] [jointLog] [info] Mapping rate = 12.0807%
+```
+
+# Assembly thinning and redundancy reduction
+
+## Using Super transcripts
+A SuperTranscript is constructed by collapsing unique and common sequence regions among your splicing isoforms into a single linear sequence. While the resulting SuperTranscript may not necessarily exist in a real biological context, they allow for assembly thinning to occur without any sequence loss. Here assembly thinning is not the main objective, but rather a nice side effect.
+
+```{bash}
+#!/bin/bash
+
+trinity_out=$1 #The .fasta file generated by the Trinity run
+
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/emily_files/ && /usr/local/bin/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py --incl_malign --trinity_fasta $trinity_out"
+
+```
+
+This script was run as `nohup bash scripts/super_transcripts.sh S_mac_trinity.Trinity.fasta > super.log 2>&1 &`
+
+## Re-evaluating quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2 
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2024-01-08, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/emily_files/trinity_genes.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:89.3%[S:87.3%,D:2.0%],F:3.1%,M:7.6%,n:3640    
+        3248    Complete BUSCOs (C)
+        3176    Complete and single-copy BUSCOs (S)     
+        72      Complete and duplicated BUSCOs (D)      
+        114     Fragmented BUSCOs (F)
+        278     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+
+```
+## Re-Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+
+```{bash}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
+This script was run as `bash scripts/trinity_N50.sh `pwd`/trinity_genes.fasta  super_stats_output`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  203474
+Total trinity transcripts:      203474
+Percent GC: 43.74
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 8191
+        Contig N20: 5687
+        Contig N30: 3986
+        Contig N40: 2595
+        Contig N50: 1509
+
+        Median contig length: 353
+        Average contig: 766.00
+        Total assembled bases: 155860479
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 8191
+        Contig N20: 5687
+        Contig N30: 3986
+        Contig N40: 2595
+        Contig N50: 1509
+
+        Median contig length: 353
+        Average contig: 766.00
+        Total assembled bases: 155860479
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 1509 bases in length (going off the stats based on the longest isoform).
+
+# Re-evaluating Alignment and Abundance Estimations
+### Generating the index
+The function `index` was then used to generate an index on the supertranscriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. 
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+transcriptome_file=$1
+desired_index_name=$2
+kmer_length=$3
+
+/usr/local/bin/salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash scripts/salmon_txome_indices.sh trinity_genes.fasta super_salmon_index 31 > super_index.log 2>&1 &`.
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon).
+
+### Re-Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_1.cor.fq
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _1.cor.fq)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $1/${sample}_1.cor.fq \
+                -2 $1/${sample}_2.cor.fq \
+                -p 16 -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash scripts/salmon_quant.sh rcorrector/ super_salmon_index/ super_salmon_quant/ > super_quant.log 2>&1 &`
+
+Running the above script generates an output with the following organization:
+```
+super_salmon_quant/
+    T1F1O_S17_L001_quant/
+      aux_info/
+      cmd_info.json
+      lib_format_counts.json
+      libParams/
+      logs/
+        salmon_quant.log
+      quant.sf
+      
+    ... for all samples
+```
+The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+    do
+
+    echo "$dir"
+
+    #Extract the sample name from the directory
+    sample=$(basename $dir _quant)
+
+    #Echo the sample that is being processed
+    echo "Rename sample ${sample} ..."
+
+    #Rename the quant.sf file
+    mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+    #Rename the log file
+    mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+done
+
+```
+
+This script was run as `bash scripts/rename_salmon.sh super_salmon_quant/ super_salmon_quant/expression_files/ super_salmon_quant/log_files/`.
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+AAAVL52HV-7629-01-49-1_S1_salmon_quant.log:[2024-02-12 11:50:33.697] [jointLog] [info] Mapping rate = 94.9948%
+AAAVL52HV-7629-02-49-1_S2_salmon_quant.log:[2024-02-12 11:51:15.312] [jointLog] [info] Mapping rate = 96.2058%
+AAAVL52HV-7629-03-49-1_S3_salmon_quant.log:[2024-02-12 11:52:13.869] [jointLog] [info] Mapping rate = 95.6985%
+AAAVL52HV-7629-04-49-1_S4_salmon_quant.log:[2024-02-12 11:52:51.291] [jointLog] [info] Mapping rate = 96.1049%
+AAAVL52HV-7629-05-49-1_S5_salmon_quant.log:[2024-02-12 11:53:35.797] [jointLog] [info] Mapping rate = 95.5827%
+AAAVL52HV-7629-06-49-1_S6_salmon_quant.log:[2024-02-12 11:54:13.663] [jointLog] [info] Mapping rate = 93.0571%
+AAAVL52HV-7629-07-49-1_S7_salmon_quant.log:[2024-02-12 11:54:43.443] [jointLog] [info] Mapping rate = 95.5856%
+AAAVL52HV-7629-08-49-1_S8_salmon_quant.log:[2024-02-12 11:55:09.954] [jointLog] [info] Mapping rate = 93.9877%
+AAAVL52HV-7629-09-49-1_S9_salmon_quant.log:[2024-02-12 11:56:06.259] [jointLog] [info] Mapping rate = 94.7252%
+AAAVL52HV-7629-10-49-1_S10_salmon_quant.log:[2024-02-12 11:57:02.619] [jointLog] [info] Mapping rate = 68.2604%
+AAAVL52HV-7629-11-49-1_S11_salmon_quant.log:[2024-02-12 11:57:36.873] [jointLog] [info] Mapping rate = 93.8263%
+AAAVL52HV-7629-12-49-1_S12_salmon_quant.log:[2024-02-12 11:58:14.390] [jointLog] [info] Mapping rate = 94.508%
+AAAVL52HV-7629-13-49-1_S13_salmon_quant.log:[2024-02-12 11:58:42.537] [jointLog] [info] Mapping rate = 94.7397%
+AAAVL52HV-7629-14-49-1_S14_salmon_quant.log:[2024-02-12 11:59:14.825] [jointLog] [info] Mapping rate = 94.6875%
+AAAVL52HV-7629-15-49-1_S15_salmon_quant.log:[2024-02-12 11:59:36.310] [jointLog] [info] Mapping rate = 93.8001%
+AAAVL52HV-7629-16-49-1_S16_salmon_quant.log:[2024-02-12 12:00:02.977] [jointLog] [info] Mapping rate = 94.1254%
+AAAVL52HV-7629-17-49-1_S17_salmon_quant.log:[2024-02-12 12:00:29.917] [jointLog] [info] Mapping rate = 95.0252%
+AAAVL52HV-7629-18-49-1_S18_salmon_quant.log:[2024-02-12 12:01:02.113] [jointLog] [info] Mapping rate = 93.543%
+AAAVL52HV-7629-19-49-1_S19_salmon_quant.log:[2024-02-12 12:01:30.043] [jointLog] [info] Mapping rate = 92.7967%
+AAAVL52HV-7629-20-49-1_S20_salmon_quant.log:[2024-02-12 12:01:48.020] [jointLog] [info] Mapping rate = 93.1998%
+AAAVL52HV-7629-21-49-1_S21_salmon_quant.log:[2024-02-12 12:02:13.477] [jointLog] [info] Mapping rate = 89.4449%
+AAAVL52HV-7629-22-49-1_S22_salmon_quant.log:[2024-02-12 12:02:39.732] [jointLog] [info] Mapping rate = 91.0625%
+AAAVL52HV-7629-23-49-1_S23_salmon_quant.log:[2024-02-12 12:02:45.902] [jointLog] [info] Mapping rate = 33.7558%
+AAAVL52HV-7629-24-49-1_S24_salmon_quant.log:[2024-02-12 12:03:07.531] [jointLog] [info] Mapping rate = 90.8928%
+AAAVL52HV-7629-25-49-1_S25_salmon_quant.log:[2024-02-12 12:03:28.736] [jointLog] [info] Mapping rate = 89.7636%
+AAAVL52HV-7629-26-49-1_S26_salmon_quant.log:[2024-02-12 12:03:50.626] [jointLog] [info] Mapping rate = 90.847%
+AAAVL52HV-7629-27-49-1_S27_salmon_quant.log:[2024-02-12 12:04:15.978] [jointLog] [info] Mapping rate = 90.1882%
+AAAVL52HV-7629-28-49-1_S28_salmon_quant.log:[2024-02-12 12:04:34.973] [jointLog] [info] Mapping rate = 89.4366%
+AAAVL52HV-7629-29-49-1_S29_salmon_quant.log:[2024-02-12 12:04:50.600] [jointLog] [info] Mapping rate = 89.3775%
+AAAVL52HV-7629-30-49-1_S30_salmon_quant.log:[2024-02-12 12:04:58.310] [jointLog] [info] Mapping rate = 11.6745%
+
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Install and load required package
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("tximport")
+library(tximport)
+
+#Read in sample file
+samples <- read.table("SM_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("/home/rccuser/shared/emily_files/super_salmon_quant/expression_files", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- read.table("trinity_genes.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 10)] #Using the geneID for both the gene and transcript ID as we no longer has isoform information in the SuperTranscripts assembly
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.SM <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.SM$counts)
+saveRDS(txi.salmon.SM, "txi.salmon_SM.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
+
+```
