@@ -1,0 +1,611 @@
+---
+title: "Differential Expression Analysis in _Stigmatopora argus_"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+This .Rmd is the analysis that follows the reassignment of identity to _S. argus_ samples after initial visualisation and inspection of previous sample identities was thought to be incorrect.
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_argus")
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(pheatmap)
+library(RColorBrewer)
+library(PCAtools)
+library(ggpubr)
+library(cowplot)
+library(UpSetR)
+library(ggplot2)
+library(kableExtra)
+library(tidyverse)
+library(knitr)
+library(magick)
+library(multcompView)
+library(spfTools)
+```
+
+``` {r read-data}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.argus <- readRDS("data/new.txi.salmon_SA.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/SA_sample_ID_new.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+```
+
+The package `DESeq2` was used for the differential expression analysis outlined below.
+
+# Single factor analysis - Comparing Males v Females across all organs
+To analyse your data with DESeq2 you must first generate the DESeqDataSet. In order to do this we need the abundance matrix generated with `tximport` and a `samples` file that lays out all of the conditions. The model for this single factor analysis was run as counts ~ Sex.
+
+```{r DESeqDataSet, message=FALSE, warning=FALSE}
+#Create the DESeq dataset
+dds_SA <- DESeqDataSetFromTximport(txi.argus, 
+                                   colData = samples,
+                                   design = ~ sex)
+
+```
+
+The data is then pre-filtered to remove low gene counts before running further DESeq2 functions. By doing this we remove rows in which there are very few reads thus reducing the memory size of the `dds` object and increasing the speed at which we can use the transformation and testing functions in DESeq2.
+
+The cutoff here was to remove rows that had counts fewer than 10 across all samples.
+
+```{r pre-filtering, message=FALSE, warning=FALSE}
+#only keeping rows that have at lead 10 reads total
+keep <- rowSums(counts(dds_SA)) >= 10
+dds_SA <- dds_SA[keep, ]
+
+```
+
+After filtering we can now perform the standard differential expression analysis that is wrapped into DESeq2.
+
+```{r diff-exp, message=FALSE, warning=FALSE}
+#Generate the expression values
+dds_SA_exp <- DESeq(dds_SA)
+
+#Compile the results
+res <- results(dds_SA_exp)
+res
+```
+
+Once that has finished we can now start exploring some of the single-factor analysis results
+```{r investigate-DESeq-results-SA}
+##Ordering our results based on p-value
+resOrdered <- res[order(res$pvalue),]
+resOrdered
+
+summary(res)
+
+#How many ADJUSTED p-values were less than 0.1?
+sum(res$padj < 0.1, na.rm = TRUE)
+
+#Looking at  an alpha=0.05, the default is 0.1
+res05 <- results(dds_SA_exp, alpha = 0.05)
+summary(res05)
+head(res05)
+sum(res05$padj < 0.05, na.rm = TRUE)
+
+```
+
+## Visualizing the results
+### MA-plot - MvF Differntial expression
+Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be coloured if the adjusted p-value is less that 0.1.
+
+```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalized count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
+
+par(mfrow=c(1,2))
+plotMA(res, ylim = c(-2,2))
+plotMA(res)
+
+```
+
+### Heatmap - overall expression
+We can also generate a heat map to look at overall expression levels across our samples. Note, this is not differentially expressed genes.
+
+```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
+df <- as.data.frame(samples[,c("sex", "organ")])
+rownames(df) <- samples$ID
+df$organ <- as.character(df$organ)
+
+organ_cols<-c("gill" = "#20B2AA",
+              "gonad" = "#EEB422", 
+              "liver" = "#EE8262")
+
+sex_cols<-c("F" = "#7fc97f", "M" = "#beaed4")
+
+ann_colors = list(sex=sex_cols,
+                  organ=organ_cols)
+
+col_order <- c(rownames(df[df$sex=="F" & df$organ=="gill",]),
+               rownames(df[df$sex=="M" & df$organ=="gill",]),
+               rownames(df[df$sex=="F" & df$organ=="gonad",]),
+               rownames(df[df$sex=="M" & df$organ=="gonad",]),
+               rownames(df[df$sex=="F" & df$organ=="liver",]),
+               rownames(df[df$sex=="M" & df$organ=="liver",]))
+
+
+#Pull out the top 20 rows with the most expression
+select <- order(rowMeans(counts(dds_SA_exp, normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+
+
+#Transform the data
+vsd <- vst(dds_SA_exp, blind=FALSE)
+
+#Run the heat map with the function pheatmap
+pheatmap(assay(vsd)[select, col_order], 
+         cluster_rows = FALSE, 
+         show_rownames = TRUE, 
+         cluster_cols = FALSE, 
+         annotation_col = df, 
+         annotation_colors = ann_colors)
+```
+
+From the heatmap we can see that for all of these top 20 expressed genes the highest expression in found in the gonads, which is different from the other two _Stigmatopora_ spp. and all of the _Syngnathus_ species that had the highest expression in the liver. There are also a few genes that appear to be highly expressed across all of the tissue types. 
+
+With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
+
+```{r heatmap_genes}
+#Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
+heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
+#Run once to create the file and then commented out
+#write.table(heatmap_TG,
+ #           'heatmap_trinitygenes.txt',
+  #          sep = "",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
+```
+
+### Sample-dist Heatmap
+
+We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparison within the same samples.
+
+```{r sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparisons between the same samples.", warning=FALSE}
+#Calculate the sample-to-sample distances from the transformed count matrix
+sampleDists <- dist(t(assay(vsd)))
+
+#Transform into a matrix
+sampleDistsMatrix <- as.matrix(sampleDists)
+rownames(sampleDistsMatrix) <- paste(vsd$sex, vsd$organ, sep = "-")
+colnames(sampleDistsMatrix) <- vsd$ID
+
+#Run the heatmap
+colors <- colorRampPalette(rev(brewer.pal(9, 'Blues')))(255)
+pheatmap(sampleDistsMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists, 
+         col = colors)
+```
+
+This is a definite improvement on the original sample distribution heatmap, although we still have one female gill (S39) clustering with livers, one male gonad clustering with gills (S46), and one female liver clustering with gonads (S32), so we might need to sort that out. Otherwise, we can see that the highest similarities (aside from same samples comparisons) is among samples from the same organ. 
+
+### PCA plots
+
+```{r pca-pairs-plot, echo=FALSE, fig.cap="Principal components analysis pairsplot showing PCA axis 1 - 4."}
+#Generate the PCA data to create the pairs plot, using the PCAtools package
+p <- pca(assay(vsd), 
+         metadata = colData(dds_SA))
+
+#Create the pairs plot
+pairsplot(p,
+          components = getComponents(p, c(1:4)),
+          colby = "organ",
+          triangle = FALSE,
+          hline = 0, vline = 0,
+          colkey = c("gill" = "#6E8B3D75", 
+                     "gonad" = "#EEB42275", 
+                     "liver" = "#EE826275"),
+          shape = "sex",
+          shapekey = c(16, 17),
+          pointSize = 3,
+          margingaps = unit(c(0.1, 0.1, 0.1, 0.1), 'cm'),
+          legendPosition = "left", legendIconSize = 3, legendLabSize = 10)
+
+```
+
+S39 still appears to be an outlier, and the S32 is clustering outside of any of the organ groups. From the pairs plot we can see that PC1 appears to be explaining differences between the gonad and the other tissues, PC2 appears to be explaining differences between gonadal and somatic tissue.
+
+Next we can look at PCA plots for our samples to see how our different samples are grouping.
+```{r pca-plot, echo=FALSE, message=FALSE, warning=FALSE}
+
+#Generate the PCA dataframe
+pca <- prcomp(t(assay(vsd)))
+pca_plotting_data<-as.data.frame(pca$x)
+
+#Add the metadata to the PCA dataset
+pca_plotting_data$organ <- samples$organ
+pca_plotting_data$sex <- samples$sex
+pca_plotting_data$ID <- samples$ID
+
+#Calculate the percent variation attributed to each axis 
+percentVar <- round(p$variance, digits = 2)
+
+
+my_colors <- c("gill" = "#6E8B3D75", "gonad" = "#EEB42275", "liver" = "#EE826275")
+my_shapes <- c(16, 17)
+
+ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = my_shapes) +
+  geom_point(size = 5) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed') + 
+  geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
+```
+
+
+### Let's get rid of S32, S39, S46
+Based on the heatmaps and PCA plots, I am going to remove S32 and S39.
+
+```{r rm-samples-DESeqDataSet, message=FALSE, warning=FALSE}
+#Create the DESeq dataset
+dds_SA <- DESeqDataSetFromTximport(txi.argus, 
+                                   colData = samples,
+                                   design = ~ sex)
+
+```
+
+
+```{r rm-samples-pre-filtering, message=FALSE, warning=FALSE}
+#only keeping rows that have at lead 10 reads total
+keep <- rowSums(counts(dds_SA)) >= 10
+dds_SA <- dds_SA[keep, ]
+
+#remove S32, S39, and S46
+dds_SA <- dds_SA[, !(dds_SA$ID %in% c("S32", "S39", "S46"))]
+
+```
+
+After filtering we can now perform the standard differential expression analysis that is wrapped into DESeq2.
+
+```{r rm-samples-diff-exp, message=FALSE, warning=FALSE}
+#Generate the expression values
+dds_SA_exp <- DESeq(dds_SA)
+
+#Compile the results
+res <- results(dds_SA_exp)
+res
+```
+
+
+### Heatmap - overall expression
+Let's visualise again - generate a heat map to look at overall expression levels across our samples. Note, this is not differentially expressed genes.
+
+```{r rm-samples-heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
+samples <- samples[!(samples$ID %in% c("S32", "S39","S46")),]
+df <- as.data.frame(samples[,c("sex", "organ")])
+rownames(df) <- samples$ID
+df$organ <- as.character(df$organ)
+
+organ_cols<-c("gill" = "#20B2AA",
+              "gonad" = "#EEB422", 
+              "liver" = "#EE8262")
+
+sex_cols<-c("F" = "#7fc97f", "M" = "#beaed4")
+
+ann_colors = list(sex=sex_cols,
+                  organ=organ_cols)
+
+col_order <- c(rownames(df[df$sex=="F" & df$organ=="gill",]),
+               rownames(df[df$sex=="M" & df$organ=="gill",]),
+               rownames(df[df$sex=="F" & df$organ=="gonad",]),
+               rownames(df[df$sex=="M" & df$organ=="gonad",]),
+               rownames(df[df$sex=="F" & df$organ=="liver",]),
+               rownames(df[df$sex=="M" & df$organ=="liver",]))
+
+
+#Pull out the top 20 rows with the most expression
+select <- order(rowMeans(counts(dds_SA_exp, normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+
+
+#Transform the data
+vsd <- vst(dds_SA_exp, blind=FALSE)
+
+#Run the heat map with the function pheatmap
+pheatmap(assay(vsd)[select, col_order], 
+         cluster_rows = FALSE, 
+         show_rownames = TRUE, 
+         cluster_cols = FALSE, 
+         annotation_col = df, 
+         annotation_colors = ann_colors)
+```
+
+From the new heatmap, we can see that for all of these top 20 expressed genes the highest expression in found in the gonads. There are also a few genes that appear to be highly expressed across all of the tissue types. 
+
+With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
+
+```{r rm-samples-heatmap_genes}
+#Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
+heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
+#Run once to create the file and then commented out
+#write.table(heatmap_TG,
+ #           'heatmap_trinitygenes.txt',
+  #          sep = "",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
+```
+
+### Sample-dist Heatmap
+
+We can then generate a sample-to-sample distances heatmap that will give an overview of the similarities and differences between our samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparison between the same samples.
+
+```{r rm-samples-sample-dist, echo=FALSE, fig.cap="Sample-to-sample distances heatmap showing the similarities and differences between all of the samples. The darker the colour, the more similar the samples are. The diagonal line of very dark blue represents the comparisons between the same samples.", warning=FALSE}
+#Calculate the sample-to-sample distances from the transformed count matrix
+sampleDists <- dist(t(assay(vsd)))
+
+#Transform into a matrix
+sampleDistsMatrix <- as.matrix(sampleDists)
+rownames(sampleDistsMatrix) <- paste(vsd$sex, vsd$organ, sep = "-")
+colnames(sampleDistsMatrix) <- vsd$ID
+
+#Run the heatmap
+colors <- colorRampPalette(rev(brewer.pal(9, 'Blues')))(255)
+pheatmap(sampleDistsMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists, 
+         col = colors)
+```
+
+Now we can see that the highest similarities are among samples from the same organ and all organs are clustering within their organ group. 
+
+### PCA plots
+
+```{r rm-samples-pca-pairs-plot, echo=FALSE, fig.cap="Principal components analysis pairsplot showing PCA axis 1 - 4."}
+#Generate the PCA data to create the pairs plot, using the PCAtools package
+p <- pca(assay(vsd), 
+         metadata = colData(dds_SA))
+
+#Create the pairs plot
+pairsplot(p,
+          components = getComponents(p, c(1:4)),
+          colby = "organ",
+          triangle = FALSE,
+          hline = 0, vline = 0,
+          colkey = c("gill" = "#6E8B3D75", 
+                     "gonad" = "#EEB42275", 
+                     "liver" = "#EE826275"),
+          shape = "sex",
+          shapekey = c(16, 17),
+          pointSize = 3,
+          margingaps = unit(c(0.1, 0.1, 0.1, 0.1), 'cm'),
+          legendPosition = "left", legendIconSize = 3, legendLabSize = 10)
+
+```
+
+From the pairs plot we can see that PC1 appears to be explaining differences between the gonads and the other tissues, PC2 appears to be explaining differences between gonadal and somatic tissues, PC3 seems to account for differences between gonad samples, and in PC4 we can see three gill samples sticking out from all the rest. I am going to plot all of PC2 - 4 against PC1 below for a clearer picture.
+
+Next we can look at PCA plots for our samples to see how our different samples are grouping.
+```{r rm-samples-pca-plot, echo=FALSE, message=FALSE, warning=FALSE}
+
+#Generate the PCA dataframe
+pca <- prcomp(t(assay(vsd)))
+pca_plotting_data<-as.data.frame(pca$x)
+
+#Add the metadata to the PCA dataset
+pca_plotting_data$organ <- samples$organ
+pca_plotting_data$sex <- samples$sex
+pca_plotting_data$ID <- samples$ID
+
+#Calculate the percent variation attributed to each axis 
+percentVar <- round(p$variance, digits = 2)
+
+
+my_colors <- c("gill" = "#6E8B3D75", "gonad" = "#EEB42275", "liver" = "#EE826275")
+my_shapes <- c(16, 17)
+
+ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = my_shapes) +
+  geom_point(size = 5) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed') + 
+  geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
+```
+
+```{r pca1v3, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with PC3. This third axis explains 8.63% of the variation, largely attributed to differences between the gonads samples.", warning=FALSE}
+
+ggplot(pca_plotting_data, aes(x=PC1, y=PC3, color = organ, shape = sex)) +
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = my_shapes) +
+  geom_point(size = 5) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC3: ",percentVar[3],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed') + 
+  geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
+```
+
+It looks like maybe some of the gonad samples were mislabelled not just for organ, but also for sex. We see S40 and S23 that are labeled as female samples clustering with other male samples. We also see S26 and S38 that are labelled as male samples clustering with female samples. In the liver samples, we see S37 and S34 which are labelled as male samples clustering with female samples.
+
+```{r pca1v4, echo=FALSE, fig.cap="The same Principal Components Analysis as above but with PC4. This fourth axis explains 6.63% of the variation, largely attributed to three of the gill samples.", warning=FALSE}
+
+ggplot(pca_plotting_data, aes(x=PC1, y=PC4, color = organ, shape = sex)) +
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = my_shapes) +
+  geom_point(size = 5) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC4: ",percentVar[4],"% variance")) + 
+  coord_fixed() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = 0,
+             linetype = 'dashed') +
+  geom_vline(xintercept = 0,
+             linetype = 'dashed') + 
+  geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
+```
+
+The three gill samples that are clustering away from the others are all "female" gill samples - S30, S27, and S19. 
+
+#### Saving the PCA plots to use in figure creation
+I will be including the PCAs describing the relationship between PC1 - 3 in the main text, as they account for the majority of the differences between our samples. The plot with PC1 and PC4 I still want to export, and will likely include as a supplemental to highlight why samples will be removed from the subsequent analyses.
+
+```{r setParams-PCAs}
+#Setting the shapes I want to show up for the different organs
+organ_shapes <- c(gill = 16, liver = 17, gonad = 15)
+
+#Setting the colors I want for each sex
+sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
+
+```
+
+```{r figPCA1v2, eval = FALSE}
+#Create the blank pdf to store the plot in
+pdf("figs/Fig_PCA1v2.pdf",height = 6,width=6)
+
+#Set the plotting parameters
+par(mar=c(4,5,4,1), oma=c(2,2,2,2))
+
+#Create the plot for PC1 v PC2
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC2,
+     col = paste0(sex_cols[pca_plotting_data$sex],"75"),
+     pch = organ_shapes[pca_plotting_data$organ],
+     cex = 2,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC2: ",percentVar[2], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+
+#Add a legend describing the sex
+outer_legend("top",
+             c("Female","Male"),
+             pch = 18,
+             bty = 'n',
+             col=paste0(sex_cols,"75"),
+             cex = 1.75,
+             ncol = 2,
+             pt.cex = 3)
+
+dev.off()
+```
+
+```{r figPCA1v3, eval = FALSE}
+#Create the blank pdf to store the plot in
+pdf("figs/Fig_PCA1v3.pdf",height = 6,width=6)
+
+#Set the plotting parameters
+par(mar=c(4,5,4,1), oma=c(2,2,2,2))
+
+#Create the plot for PC1 v PC3
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC3,
+     col = paste0(sex_cols[pca_plotting_data$sex],"75"),
+     pch = organ_shapes[pca_plotting_data$organ],
+     cex = 2,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC3: ",percentVar[3], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+
+#Add  legend describing the organs
+outer_legend("top",
+             c("Gill","Gonad","Liver"),
+             pch = c(16,15,17),
+             bty = 'n',
+             col = 'darkgrey',
+             cex = 1.75,
+             ncol = 3,
+             pt.cex = 3)
+
+dev.off()
+```
+
+```{r figPCA1v4, eval = FALSE}
+#Create the blank pdf to store the plot in
+pdf("figs/Fig_PCA1v4.pdf",height = 6,width=8)
+
+#Set the plotting parameters
+par(mar=c(4,5,1,5),oma=c(2,2,2,2))
+
+#Create the plot for PC1 v PC4
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC4,
+     col = paste0(sex_cols[pca_plotting_data$sex],"75"),
+     pch = organ_shapes[pca_plotting_data$organ],
+     cex = 2,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC4: ",percentVar[4], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+
+#Add  legend describing the organs and sex
+outer_legend("right",
+             c("Gill","Gonad","Liver"),
+             pch = c(16,15,17),
+             bty = 'n',
+             col = 'darkgrey',
+             cex = 1.5,
+             ncol = 1,
+             pt.cex = 2.25)
+
+outer_legend("topright",
+             c("Female","Male"),
+             pch = 18,
+             bty = 'n',
+             col=paste0(sex_cols,"75"),
+             cex = 1.5,
+             ncol = 1,
+             pt.cex = 2.25)
+dev.off()
+```
+
+# Multifactor design - Comparing M v F across the different tissue types 
+If we investigate the column of our DESeq dataset, we can see that each sample has both a sex and an organ type attached to it - we will be using these two factors in our multifactor analysis. Prior to running the multifactor analysis, I'm going to remove S39 because of its low mapping rate and clustering away from all other samples. 
