@@ -1539,19 +1539,8 @@ model <- glm.nb(abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
 linear_model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
 ```
 
-Analysis of Variance Table
 
-Response: abs(logFC_long$logFC)
-                                     Df Sum Sq Mean Sq  F value    Pr(>F)    
-logFC_long$bias                       2 100708   50354 25056.36 < 2.2e-16 ***
-logFC_long$tissue                     2   7980    3990  1985.45 < 2.2e-16 ***
-logFC_long$bias:logFC_long$tissue     4   4527    1132   563.17 < 2.2e-16 ***
-Residuals                         93273 187444       2                       
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
----
-
-## Categorizing sex-specific genes
+## Categorising sex-specific genes
 Now that we have investigated what the sex-bias is like across the different tissue types I want to dive further into genes with **sex-specific expression**. These are genes expressed only in one sex or the other. I am classifying a sex-specific genes within each tissue as ones where the expression of that gene is less than 10 for all of one sex and there is a median of $\ge 20$ in the other sex. 
 
 Prior to running the for loop, any "outliers" that were determined by DESeq were removed from the pool of genes. Additionally, normalized counts were used for the classification of sex-specific genes as DESeq2 uses the moralized counts for all of the logFC/sexbias calculations.
