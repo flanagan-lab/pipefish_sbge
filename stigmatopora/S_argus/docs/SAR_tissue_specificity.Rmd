@@ -32,3 +32,29 @@ library(ggplot2)
 
 
 ```
+
+``` {r read-data, message = FALSE, warning = FALSE}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.argus <- readRDS("data/txi.salmon_SA.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/SA_samples.txt", header = TRUE)
+
+samples$group <- factor(paste0(samples$sex, samples$organ))
+
+#Changing "Gonad" to be more descriptive --> testes or ovaries
+samples$organ <- ifelse(samples$sex == "F" & samples$organ == "Gonad",
+                        paste0("Ovaries"),
+                        ifelse(samples$sex == "M" & samples$organ == "Gonad",
+                            paste0("Testes"),
+                            paste0(samples$organ))
+                  )
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+#Format colData to be used in the tau function
+colData <- as.data.frame(samples)
+rownames(colData) <- samples$ID
+```
