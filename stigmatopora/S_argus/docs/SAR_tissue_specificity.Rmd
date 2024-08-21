@@ -7,7 +7,7 @@ output:
     fig_caption: yes
     keep_tex: yes
     number_sections: no
-    toc: false
+    toc: true
 header-includes: >
   \usepackage{lipsum}
   \usepackage{float}
