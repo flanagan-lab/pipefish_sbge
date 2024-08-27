@@ -1556,8 +1556,7 @@ for (i in 1:length(blast_output_filtered_SS)) {
 ```
 
 ```{r long_BLAST, eval=FALSE}
-#Create a long format dataset that has the tissue information, BLAST gene and protein, 
-#geneID, and sex 
+#Create a long format dataset that has the tissue information, BLAST gene and protein, geneID, and sex 
 blast_long_SS <- data.frame(
   tissue=c(rep("gill", 
                sum(nrow(blast_output_filtered_SS$SA_femG_specific_TRgenes_corythoicthys_blast),
