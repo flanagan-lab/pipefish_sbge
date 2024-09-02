@@ -77,7 +77,7 @@ gonad_res <- read.csv("data/gonad_res.csv",
 ```
 
 # Calculating Tissue Specificity
-To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
+To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalised first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
 
 ```
 Name | Length | EffectiveLength | TPM | NumReads
@@ -113,7 +113,7 @@ I want to filter the TPM dataset to remove a few things. These include similar t
   
   1. Keeping only rows that weren't filtered out in the DEseq2 dataset due to low counts (rowSum $\le$ 10).
   2. Removing the rows that corresponded to genes that were "outliers" in the DEseq2 analysis.
-  3. Removing the sample related to individual SNT8F2 (sample S34).
+  3. Removing the samples S34 and S41
 
 This will be imperfect filtering in this case because I did individual single-factor analysis within each organ type. To try and make life easier, I am going to run the multi-factor analysis on the DESeq2 dataset and then apply the filtering from that onto the TPM dataset. 
 
