@@ -103,8 +103,9 @@ tpms <- do.call(cbind, lapply(files, function(file){
   return(tpm)
 }))
 
-#Remove the sample that was removed in the differential expression analysis 
-tpms <- tpms[, !(colnames(tpms) %in% c("S34"))]
+#Remove the samples that were removed in the differential expression analysis 
+tpms <- tpms[, !(colnames(tpms) %in% c("S34", "S41"))]
+
 ```
 
 ## Filtering the TPM dataset
@@ -125,8 +126,8 @@ dds_SN <- DESeqDataSetFromTximport(txi.nigra,
                                    colData = samples,
                                    design = ~ group)
 
-##Remove S34 from the dataset
-dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34"))]
+##Remove S34 and S41 from the dataset
+dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34", "S41"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(dds_SN)) >= 10 
@@ -203,17 +204,18 @@ I then applied that function across each row in the TPMs matrix with my metadata
 I ran the $\tau$ function with the whole dataset, and then for just males and just females.
 
 ```{r calcTau}
-colData <- colData[!(colData$ID %in% c("S34")),]
+colData <- colData[!(colData$ID %in% c("S34", "S41")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
-#write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
+write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
 
 tau_fem<-apply(tpms[,which(colData$sex=="F")], 1, est_tau,
                colData[which(colData$sex=="F"),])
-#write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
+write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
+
 tau_mal<-apply(tpms[,which(colData$sex=="M")], 1, est_tau,
                colData[which(colData$sex=="M"),])
-#write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
+write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
 ```
 
 ```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
@@ -351,7 +353,7 @@ gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "r
 gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 8.1, 8.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
      gonad_bias_tau$tau,
      pch=19,
@@ -400,26 +402,26 @@ All three organs show significant positive correlations:
 
 Spearman's rank correlation rho
 
-gonad_bias_tau$tau and sqrt(abs(gonad_bias_tau$log2FoldChange))
-S = 8.1313e+10, p-value < 2.2e-16
+data:  gonad_bias_tau$tau and sqrt(abs(gonad_bias_tau$log2FoldChange))
+S = 7.7372e+10, p-value < 2.2e-16
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
       rho 
-0.3809588
+0.3841566 
 
-liver_bias_tau$tau and sqrt(abs(liver_bias_tau$log2FoldChange))
-S = 496932263, p-value = 1.125e-14
+data:  liver_bias_tau$tau and sqrt(abs(liver_bias_tau$log2FoldChange))
+S = 472715568, p-value = 5.079e-10
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
       rho 
-0.1946629
+0.1596164 
 
-gill_bias_tau$tau and sqrt(abs(gill_bias_tau$log2FoldChange))
-S = 1083418, p-value = 7.389e-09
+data:  gill_bias_tau$tau and sqrt(abs(gill_bias_tau$log2FoldChange))
+S = 116570, p-value = 0.0408
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
-     rho 
-0.381095
+      rho 
+0.2093733 
 
 ## $\tau$ and logFC for all the signficantly expressed genes in each organ
 Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
@@ -438,7 +440,7 @@ gill_bias_tau_all <- merge(as.data.frame(gill_res), as.data.frame(tau), by = "ro
 #write.csv(brain_bias_tau_all, "data/gill_bias_tau.csv", row.names = FALSE)
 
 #Plot logFC against Tau for all of the organs
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 8.1, 8.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau_all$log2FoldChange)),
      gonad_bias_tau_all$tau,
      pch=19,
@@ -495,28 +497,28 @@ cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = 
 
 ```
 
-All correlations are still significant, but now the liver has a negative correlation between $\tau$ and the degree of sex bias. 
+All correlations are now significant, where the gills were not previously significant, but now the liver has a negative correlation between $\tau$ and the degree of sex bias. 
 
-gonad_bias_tau_all$tau and abs(gonad_bias_tau_all$log2FoldChange)
-S = 1.4507e+13, p-value < 2.2e-16
+data:  gonad_bias_tau_all$tau and abs(gonad_bias_tau_all$log2FoldChange)
+S = 1.3794e+13, p-value < 2.2e-16
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
-      rho 
-0.3426831
+     rho 
+0.345951 
 
-liver_bias_tau_all$tau and abs(liver_bias_tau_all$log2FoldChange)
-S = 3.2297e+12, p-value < 2.2e-16
+data:  liver_bias_tau_all$tau and abs(liver_bias_tau_all$log2FoldChange)
+S = 3.0917e+12, p-value < 2.2e-16
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
         rho 
--0.09899651 
+-0.09754804 
 
-gill_bias_tau_all$tau and abs(gill_bias_tau_all$log2FoldChange)
-S = 2.2462e+12, p-value < 2.2e-16
+data:  gill_bias_tau_all$tau and abs(gill_bias_tau_all$log2FoldChange)
+S = 1.4094e+12, p-value < 2.2e-16
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
       rho 
-0.2356713
+0.1937712 
 
 I want to look into some of the genes that show a high bias and a high tau to see what is going on.
 
@@ -728,7 +730,7 @@ ss_genes_path <- "data"
 
 #Create a list of the files I want
 SN_sex_specific_genes_files <- list.files(ss_genes_path, 
-                                          pattern = "specific")
+                                          pattern = "specific_TRgenes")
 
 #Create an empty list to store my datasets in
 SN_sex_specific_genes <- list()
@@ -797,10 +799,10 @@ for(i in 1:length(SN_sex_specific_genes)){
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
 
-#write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
+write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
 ```
 
-```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
 
 plotdat <- ggplot(logFC_long_all,
@@ -883,8 +885,8 @@ Once we have the results from the new DESeq2 model, $\tau$ can once again be plo
 ##Re-running the DESeq2 model to look at M-F diff expression across ALL tissues
 dds_SN_SF <- dds_SN
 
-##Remove S34 from the dataset
-dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34"))]
+##Remove S34 and S41 from the dataset
+dds_SN <- dds_SN[, !(dds_SN$ID %in% c("S34", "S41"))]
 
 design(dds_SN_SF) <- ~ sex
 dds_SN_SF_exp <- DESeq(dds_SN_SF)
@@ -917,11 +919,11 @@ cor.test(MFbias_tau_all$tau, abs(MFbias_tau_all$log2FoldChange), method = "spear
 	Spearman's rank correlation rho
 
 data:  MFbias_tau_all$tau and abs(MFbias_tau_all$log2FoldChange)
-S = 9.6989e+12, p-value < 2.2e-16
+S = 1.0426e+13, p-value < 2.2e-16
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
       rho 
-0.3719997 
+0.3748184  
 
 There is a significant correlation between $\tau$ and abs(log2FoldChange). From the previous plots, we can presume that this significant correlation and rho is likely driven by the gonads.
 
