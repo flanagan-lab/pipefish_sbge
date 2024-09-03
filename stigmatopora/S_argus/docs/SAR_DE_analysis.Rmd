@@ -479,7 +479,7 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC4, color = organ, shape = sex)) +
 ```
 
 # Multifactor design - Comparing M v F across the different tissue types 
-If we investigate the column of our DESeq dataset, we can see that each sample has both a sex and an organ type attached to it - we will be using these two factors in our multifactor analysis.  The sample "S19" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
+If we investigate the column of our DESeq dataset, we can see that each sample has both a sex and an organ type attached to it - we will be using these two factors in our multifactor analysis.  The sample "S19" and "S39" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
 
 ```{r multi-factor-analysis, message=FALSE, warning=FALSE}
 #import samples.txt 
@@ -1320,25 +1320,28 @@ SA_blast_list <- list()
 
 #Create a loop to read in all of the blast results
 for(file_name in SA_blast_files){
+  
    # Read the file and store it in a new object
   file_data <- read.delim(file.path("data/cory_BLAST", file_name), 
                           stringsAsFactors = FALSE, 
                           quote = "", 
                           sep = "\t",
                           header = FALSE)
+  
+  file_data <- file_data[, c(1:4,6,10:15)]
  
   #Add column names to the dataset
   colnames(file_data) <- c("trin_geneid", 
                            "trin_gene_start", 
                            "trin_gene_end", 
-                           "cory_gene_info", 
-                           "cory_gene_start
-                           cory_gene_end", 
+                           "cory_gene_info",
+                           "prot_id",
+                           "cory_gene_start",
+                           "cory_gene_end", 
                            "evalue", 
                            "bit_score", 
                            "length", 
-                           "pident", 
-                           "gaps")
+                           "pident")
   
   # Create a new object with a name based on the file name
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
@@ -1359,7 +1362,10 @@ blast_output_filtered <- lapply(SA_blast_list, function(data_frame){
   
   #Create an empty dataframe to store intermediate results in
   output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
-  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "cory_gene_info", "cory_gene_start", "cory_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", 
+                        "cory_gene_info", "prot_id",
+                        "cory_gene_start", "cory_gene_end", 
+                        "evalue", "bit_score", "length", "pident")
   
   #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
   for(gene in uniqueID$trin_geneid){
@@ -1389,6 +1395,82 @@ blast_output_filtered <- lapply(SA_blast_list, function(data_frame){
 })
 
 ```
+
+```{r cory-gff-gene-names}
+#read in the GFF file for C. intestinalis that has info about the geneID
+cory_gff <- read.delim("../cory_genomic.gff",
+                       header = FALSE,
+                       comment.char = "#")
+
+#Keep only the columns I want and rename them
+cory_gff <- cory_gff[,c(1:5,9)]
+colnames(cory_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
+
+#subset the dataset to only include the rows we're interested in 
+genes <- cory_gff[cory_gff$feature == "CDS",]
+
+#Pull out the gene name that corresponds to each protein ID
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", 
+                        genes$gene_info)
+genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", 
+                      genes$gene_info)
+genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3", 
+                      genes$gene_info)
+
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+
+  output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
+  
+   return(output)
+})
+
+```
+
+```{r merge-cory-blast-logfc}
+
+blast_output_merged$SA_femG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SA_femG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SA_femL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SA_femL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+```
+
+```{r write-names, eval=FALSE}
+#write once then comment out 
+
+write.table(c(blast_output_merged$SA_femG_TRgenes_corythoicthys_blast$gene_name,
+            blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast$gene_name,
+            blast_output_merged$SA_femL_TRgenes_corythoicthys_blast$gene_name,
+            blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast$gene_name,
+            blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast$gene_name,
+            blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast$gene_name),
+            'data/SA_cory_names.txt',
+            sep = " ",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+
+write.table(rbind(blast_output_merged$SA_femG_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            blast_output_merged$SA_femL_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
+            'data/SA_cory_names_FC.txt',
+            sep = "\t",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+
+```
+
 
 ### Merging the BLAST filtered Data frames with the sex-biased information
 Not all of the trinity genes had a BLAST hit come back, but I still want to include what those genes are in the dataset. To do this I am merging all of the genes with the filtered BLAST dataset and if there are genes that did not have any hits (i.e. are not in the filtered BLAST database) then they will receive an "NA".
