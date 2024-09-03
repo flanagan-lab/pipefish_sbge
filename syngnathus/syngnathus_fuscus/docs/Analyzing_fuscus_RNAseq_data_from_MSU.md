@@ -1,45 +1,52 @@
 Analyzing *Syngnathus fuscus* RNAseq Data from MSU
 ================
 Coley Tosto
-2024-07-16
+2024-09-03
 
-- [Pre-assembly Quality Control and
-  Filtering](#pre-assembly-quality-control-and-filtering)
-  - [Trimming the raw reads with
-    Trimmomatic](#trimming-the-raw-reads-with-trimmomatic)
-  - [Using Kraken2 to remove biological
-    contamination](#using-kraken2-to-remove-biological-contamination)
-  - [Using SortMeRNA to remove rRNA
-    contamination](#using-sortmerna-to-remove-rrna-contamination)
-  - [Doing a k-mer based correction with
-    RCorrector](#doing-a-k-mer-based-correction-with-rcorrector)
-- [Checking quality of trimmed and filtered
-  reads](#checking-quality-of-trimmed-and-filtered-reads)
-- [De novo transcriptome assembly](#de-novo-transcriptome-assembly)
-  - [Running Trinity](#running-trinity)
-- [Post-assembly Quality Control - On the Trinity
-  assembly](#post-assembly-quality-control---on-the-trinity-assembly)
-  - [Using BUSCO to assess composition or ‘completeness’ of
-    assembly](#using-busco-to-assess-composition-or-completeness-of-assembly)
-  - [Trinity transcriptome contig Nx
-    Statistics](#trinity-transcriptome-contig-nx-statistics)
-  - [Trinity transcriptome contig Ex90N50 Statistic and gene
-    count](#trinity-transcriptome-contig-ex90n50-statistic-and-gene-count)
-- [Alignment and abundance
-  estimations](#alignment-and-abundance-estimations)
-  - [Generate the index](#generate-the-index)
-  - [Quantify the samples](#quantify-the-samples)
-- [Assembly thinning and redundancy reduction -
-  SuperTranscripts](#assembly-thinning-and-redundancy-reduction---supertranscripts)
-  - [Re-evaluating the quality of the
-    assembly](#re-evaluating-the-quality-of-the-assembly)
-    - [BUSCO](#busco)
-    - [Examining RNA-Seq read representation (via
-      Salmon)](#examining-rna-seq-read-representation-via-salmon)
-- [Prepping for differential expression
-  analysis](#prepping-for-differential-expression-analysis)
-  - [Importing transcript abundance with
-    tximport](#importing-transcript-abundance-with-tximport)
+- <a href="#pre-assembly-quality-control-and-filtering"
+  id="toc-pre-assembly-quality-control-and-filtering">Pre-assembly Quality
+  Control and Filtering</a>
+  - <a href="#trimming-the-raw-reads-with-trimmomatic"
+    id="toc-trimming-the-raw-reads-with-trimmomatic">Trimming the raw reads
+    with Trimmomatic</a>
+  - <a href="#using-kraken2-to-remove-biological-contamination"
+    id="toc-using-kraken2-to-remove-biological-contamination">Using Kraken2
+    to remove biological contamination</a>
+  - <a href="#using-sortmerna-to-remove-rrna-contamination"
+    id="toc-using-sortmerna-to-remove-rrna-contamination">Using SortMeRNA to
+    remove rRNA contamination</a>
+  - <a href="#doing-a-k-mer-based-correction-with-rcorrector"
+    id="toc-doing-a-k-mer-based-correction-with-rcorrector">Doing a k-mer
+    based correction with RCorrector</a>
+- <a href="#checking-quality-of-trimmed-and-filtered-reads"
+  id="toc-checking-quality-of-trimmed-and-filtered-reads">Checking quality
+  of trimmed and filtered reads</a>
+- <a href="#mapping-reads-to-s-scovelli-genome"
+  id="toc-mapping-reads-to-s-scovelli-genome">Mapping reads to <em>S.
+  scovelli</em> genome</a>
+- <a href="#alignment-and-abundance-estimations"
+  id="toc-alignment-and-abundance-estimations">Alignment and abundance
+  estimations</a>
+  - <a href="#generate-the-index" id="toc-generate-the-index">Generate the
+    index</a>
+  - <a href="#quantify-the-samples" id="toc-quantify-the-samples">Quantify
+    the samples</a>
+- <a href="#assembly-thinning-and-redundancy-reduction---supertranscripts"
+  id="toc-assembly-thinning-and-redundancy-reduction---supertranscripts">Assembly
+  thinning and redundancy reduction - SuperTranscripts</a>
+  - <a href="#re-evaluating-the-quality-of-the-assembly"
+    id="toc-re-evaluating-the-quality-of-the-assembly">Re-evaluating the
+    quality of the assembly</a>
+    - <a href="#busco" id="toc-busco">BUSCO</a>
+    - <a href="#examining-rna-seq-read-representation-via-salmon"
+      id="toc-examining-rna-seq-read-representation-via-salmon">Examining
+      RNA-Seq read representation (via Salmon)</a>
+- <a href="#prepping-for-differential-expression-analysis"
+  id="toc-prepping-for-differential-expression-analysis">Prepping for
+  differential expression analysis</a>
+  - <a href="#importing-transcript-abundance-with-tximport"
+    id="toc-importing-transcript-abundance-with-tximport">Importing
+    transcript abundance with tximport</a>
 
 # Pre-assembly Quality Control and Filtering
 
@@ -241,201 +248,43 @@ From the General stats reported in the MultiQC report we can see that
 following this filtering/trimming process we end up with an average of
 42 ± 6.2 million reads per sample for a total of 2.54 billion reads.
 
-# De novo transcriptome assembly
+# Mapping reads to *S. scovelli* genome
 
-## Running Trinity
+There is currently a genome that exists for a closely related species
+within the same genus as *S. fuscus*. As a result of this, rather than
+constructing a *de novo* transcriptome assembly, I am going to use that
+genome to map the reads back to.
 
-Due to the timeline, and to ensure all three species of *Syngnathus* are
-processed in the same way, the assembly was also generated with Trinity
-as I did for *Syngnathus floridae*.
+There are several programs that have the capability of doing this. The
+two main things that I will be looking to increase are run time (how
+much space and time will running these programs take up) and accuracy
+(what proportion of my reads are mapping back to the genome). Some of
+the alignment programs include:
 
-``` bash
-#!/bin/bash
+- `STAR`
+- `HISAT2`
+- `Bowtie2`
+- `BWA`
 
-#Create arguements
-samples_file=$1 #File containing sample names and locations
-out_dir_name=$2 #Desired name for the output directory
+A previous study comparing these different alignment software ([Musich
+et al.,
+2021](https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2021.657240/full))
+highlighted that `Bowtie2` with local alignment mode and `BWA`had the
+highest alignment rate followed by `STAR` and lastly `HISAT2`. However,
+`Bowtie2` with the local alignment took the longest to run followed by
+`STAR` and `BWA` which were similar and lastly, `HISAT2` which was by
+far the fastest. For `HISAT2` and `STAR` it appears that they are able
+to better handle reads that are \>1,000bp compared to the other
+aligners.
 
-sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType fq --max_memory 188G \
-    --samples_file $1 \
-    --CPU 16 \
-    --output `pwd`/$2
-```
-
-This script was run in a screen session as
-`bash bash_scripts trinity.sh FU_trinity_samples.txt trinity_out_dir_fuscus_June2023`.
-
-# Post-assembly Quality Control - On the Trinity assembly
-
-## Using BUSCO to assess composition or ‘completeness’ of assembly
-
-`BUSCO` was installed in the `busco` conda environment on the RCC.
-`BUSCO v 5.2.2` was used.
-
-``` bash
-#!/bin/bash
-
-#Create arguments
-transcriptome=$1 #Output fasta file from Trinity
-lineage=$2 #chosen dataset for assessment
-out_dir_name=$3 #Desired name for the output directory
-
-busco -i $1 -l $2 -m tran -o $3 -c 16
-```
-
-The lineage chosen for *S fuscus* was `actinopterygii_odb10` since it is
-the closest clade provided with BUSCO. This script was run as
-`nohup bash bash_scripts/busco_tran.sh trinity_out_dir_fuscus_June2023.Trinity.fasta actinopterygii_odb10 busco_out_fuscus > busco.log 2>&1 &`.
-
-#### Short Summary
-
-    # BUSCO version is: 5.2.2
-    # The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
-    # Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_out_dir_fuscus_June2023.Trinity.fasta
-    # BUSCO was run in mode: transcriptome
-
-            ***** Results: *****
-
-            C:94.7%[S:7.6%,D:87.1%],F:2.4%,M:2.9%,n:3640
-            3447    Complete BUSCOs (C)
-            277     Complete and single-copy BUSCOs (S)
-            3170    Complete and duplicated BUSCOs (D)
-            87      Fragmented BUSCOs (F)
-            106     Missing BUSCOs (M)
-            3640    Total BUSCO groups searched
-
-    Dependencies and versions:
-            hmmsearch: 3.1
-            metaeuk: 6.a5d39d9
-
-Very similar results to what was found with *S. floridae* prior to any
-thinning. Good completeness but high duplication (likely due to the
-multiple isoforms that are outputted from Trinity).
-
-#### Plot
-
-<p float="center">
-
-<img src="../imgs/busco_fuscus_trinity.png" style="width:650px;"/>
-
-</p>
-
-## Trinity transcriptome contig Nx Statistics
-
-``` bash
-#!/bin/bash
-
-##Create the arguments
-trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
-trinity_stats_output=$2 #Desired name for your output results
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
-        $trinity_fasta_file \
-        >> $trinity_stats_output
-```
-
-#### Results
-
-    ################################
-    ## Counts of transcripts, etc.
-    ################################
-    Total trinity 'genes':  323048
-    Total trinity transcripts:  534363
-    Percent GC: 46.61
-
-    ########################################
-    Stats based on ALL transcript contigs:
-    ########################################
-
-        Contig N10: 7775
-        Contig N20: 5458
-        Contig N30: 4161
-        Contig N40: 3192
-        Contig N50: 2414
-
-        Median contig length: 456
-        Average contig: 1088.98
-        Total assembled bases: 581911276
-
-
-    #####################################################
-    ## Stats based on ONLY LONGEST ISOFORM per 'GENE':
-    #####################################################
-
-        Contig N10: 5947
-        Contig N20: 3778
-        Contig N30: 2391
-        Contig N40: 1502
-        Contig N50: 979
-
-        Median contig length: 346
-        Average contig: 656.63
-        Total assembled bases: 212122880
-
-Based on the longest isoform we can see that 50% of the assembled bases
-are found in transcript contigs that are at least 979 bases in length.
-This is lower than the 1307 N50 from *Syngnathus floridae*.
-
-## Trinity transcriptome contig Ex90N50 Statistic and gene count
-
-#### Create an Abundance Matrix
-
-    #Get a list of the salmon quant.sf files so you don't have to list them individually
-    find . -maxdepth 2 -name "*quant.sf" | tee FUsalmon.quant_files.txt
-
-``` bash
-#!/bin/bash
-
-trinity_gene_map=$1
-salmon_quant_files=$2
-out_file_name=$3
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/abundance_estimates_to_matrix.pl \
-        --est_method salmon \
-        --gene_trans_map $trinity_gene_map \
-        --quant_files $salmon_quant_files \
-        --out_prefix $out_file_name"
-```
-
-This script was run as
-`nohup bash bash_scripts/trinity_abund_est.sh`pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta.gene_trans_map`pwd`/fuscus_salmon_quant/FUsalmon.quant_files.txt fuscus_salmon > trin_abund.log 2>&1 &`.
-The shell wrapper (`/bin/sh -c`) was added to the script to ensure the
-ouput files were sent to the right place.
-
-#### Calculate the Ex90N50 stat
-
-``` bash
-#!/bin/bash
-
-isoform_expression_matrix=$1
-trinity_fasta_output=$2
-ExN50_output=$3
-
-sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/misc/contig_ExN50_statistic.pl \
-        $isoform_expression_matrix \
-        $trinity_fasta_output | tee $ExN50_output
-```
-
-This script was run as
-`bash bash_scripts/exn50.sh`pwd`/fuscus_salmon.isoform.TMM.EXPR.matrix`pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_exN50.stats`
-
-| Ex  | ExN50 | num_genes |
-|:----|:------|:----------|
-| 2   | 281   | 1         |
-| 4   | 2370  | 2         |
-| 6   | 2370  | 3         |
-| 7   | 1570  | 4         |
-| …   | …     | …         |
-| 90  | 2981  | 25899     |
-| 99  | 2431  | 492686    |
-| 100 | 2414  | 534363    |
-
-We can then plot the Ex value (first column) against the ExN50 values:
-
-`sudo docker run -v`pwd`:`pwd`trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/fuscus_exN50.stats"`
-
-the Ex90N50 for *S. fuscus* (2981) is slightly higher but very similar
-to the Ex90N50 for *S. floridae* (2918).
+Outside of these components, one other important component to keep in
+mind is the fact that one data source is genomic while the other is
+transcriptomic. Where this presents potential issues is in the
+fragmentation associated with transcriptomic data, which when
+unrecognized, translates to large gaps in comparison to the genome. To
+mediate this, some of the aligners have been designed to recognize this,
+including `STAR` and `HISAT2`. They are able to do so by allowing the
+option of inputting a transcriptome alongside the reference.
 
 # Alignment and abundance estimations
 
