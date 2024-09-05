@@ -1322,7 +1322,7 @@ SA_blast_list <- list()
 for(file_name in SA_blast_files){
   
    # Read the file and store it in a new object
-  file_data <- read.delim(file.path("data/cory_BLAST", file_name), 
+  file_data <- read.delim(file.path("data/cory_BLAST/", file_name), 
                           stringsAsFactors = FALSE, 
                           quote = "", 
                           sep = "\t",
