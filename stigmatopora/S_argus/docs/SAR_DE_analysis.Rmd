@@ -611,7 +611,7 @@ gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -
 gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
 ```
 
-Here I am getting the trinity gene IDs that correspond to all differentially expressed genes for males and females. Because there are only 22 female-biased and male-biased genes I will only use those.
+Here I am getting the trinity gene IDs that correspond to all differentially expressed genes for males and females.
 
 ```{r all-gill}
 #Creating a subset of results where p-value is less than 0.05
@@ -783,18 +783,18 @@ upset(fromList(listInputFB),
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
 #Exporting data used to make the Upset plot (run once and them commented out)
-write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
-            row.names = TRUE)
+#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+ #           row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
 listInputall <- list("Testes" = rownames(gonad_mal_biased),
@@ -1420,7 +1420,8 @@ genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3",
 #Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
 blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
-  output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
+  #browser()
+  output <- merge(dataframe, unique(genes[,7:9]), by = "prot_id")
   
    return(output)
 })
@@ -1429,18 +1430,60 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
 ```{r merge-cory-blast-logfc}
 
-blast_output_merged$SA_femG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SA_femG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_femG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SA_femG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SA_femL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SA_femL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_femL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SA_femL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
 
-blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+#blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+
+### things to try
+# cory_gff[cory_gff$feature == "CDS" & cory_gff$seqname == "NC_080403.1" & cory_gff$start = 19590472,] <- fuzzy match start and end
 ```
+
+```{r fuzzy-match}
+
+## This didn't really work, but it could be a me problem
+# Convert start and end columns to numeric
+#cory_gff$start <- as.numeric(cory_gff$start)
+#cory_gff$end <- as.numeric(cory_gff$end)
+
+# Create function to perform fuzzy matching on the `start` and `end` columns
+#fuzzy_match <- function(x, y, tolerance) {
+ # abs(x - y) <= tolerance
+#}
+
+# Apply the fuzzy matching to the start and end columns
+#tolerance <- 10000
+#result <- cory_gff[
+ # fuzzy_match(cory_gff[[start]], cory_gff[[end]], tolerance) &
+  #cory_gff$feature == "CDS" &
+  #cory_gff$seqname == "NC_080395.1"
+#]
+
+# Display the result
+#print(result)
+
+#We'll try something else here
+tolerance <- 1000
+result <- cory_gff %>%
+  filter(feature == "CDS", seqname == "NC_080395.1") %>%
+  mutate(start = as.numeric(start),
+         end = as.numeric(end)) %>%
+  rowwise() %>%
+  mutate(match = abs(start - end) <= tolerance) %>%
+  select(-match)
+
+#that also didn't really work, maybe try by phase?
+
+
+```
+
 
 ```{r write-names, eval=FALSE}
 #write once then comment out 
@@ -1453,18 +1496,6 @@ write.table(c(blast_output_merged$SA_femG_TRgenes_corythoicthys_blast$gene_name,
             blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast$gene_name),
             'data/SA_cory_names.txt',
             sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
-
-write.table(rbind(blast_output_merged$SA_femG_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            blast_output_merged$SA_femL_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast[,c("gene_name", "log2FoldChange")],
-            'data/SA_cory_names_FC.txt',
-            sep = "\t",
             quote=FALSE,
             row.names = FALSE,
             col.names = FALSE)
@@ -1535,7 +1566,7 @@ First, I read in all of the BLAST results for the sex-specific genes in each org
 
 ```{r readin_blast_results_SS}
 #Specify the directory where BLAST results are located
-blast_path <- "data/cory_BLAST/"
+blast_path <- "data/cory_BLAST/specific/"
 
 #Create a list of the files I want
 SA_blast_files <- list.files(blast_path, pattern = "specific")
