@@ -1428,61 +1428,21 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
 ```
 
-```{r merge-cory-blast-logfc}
 
-#blast_output_merged$SA_femG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_fem_biased), blast_output_merged$SA_femG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+```{r}
 
-#blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_fem_biased), blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
+gene_products <- unique(genes$product)
 
-#blast_output_merged$SA_femL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_fem_biased), blast_output_merged$SA_femL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
-
-#blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast <- merge(as.data.frame(gill_mal_biased), blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
-
-#blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast <- merge(as.data.frame(gonad_mal_biased), blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
-
-#blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast <- merge(as.data.frame(liver_mal_biased), blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.y = TRUE)
-
-### things to try
-# cory_gff[cory_gff$feature == "CDS" & cory_gff$seqname == "NC_080403.1" & cory_gff$start = 19590472,] <- fuzzy match start and end
+#write.csv(gene_products, 'data/gene_products.csv')
 ```
 
-```{r fuzzy-match}
-
-## This didn't really work, but it could be a me problem
-# Convert start and end columns to numeric
-#cory_gff$start <- as.numeric(cory_gff$start)
-#cory_gff$end <- as.numeric(cory_gff$end)
-
-# Create function to perform fuzzy matching on the `start` and `end` columns
-#fuzzy_match <- function(x, y, tolerance) {
- # abs(x - y) <= tolerance
-#}
-
-# Apply the fuzzy matching to the start and end columns
-#tolerance <- 10000
-#result <- cory_gff[
- # fuzzy_match(cory_gff[[start]], cory_gff[[end]], tolerance) &
-  #cory_gff$feature == "CDS" &
-  #cory_gff$seqname == "NC_080395.1"
-#]
-
-# Display the result
-#print(result)
-
-#We'll try something else here
-tolerance <- 1000
-result <- cory_gff %>%
-  filter(feature == "CDS", seqname == "NC_080395.1") %>%
-  mutate(start = as.numeric(start),
-         end = as.numeric(end)) %>%
-  rowwise() %>%
-  mutate(match = abs(start - end) <= tolerance) %>%
-  select(-match)
-
-#that also didn't really work, maybe try by phase?
+After pulling out the unique product information, there are a few candidates for indicators:
+* oocyte zinc finger protein * <- there are 24 of these each with different suffixes (fem gon)
+* hepatocyte nuclear factor * <- there are 25 of these each with different suffixes (potentially liver, but Huang & Weng 2010 found some HNF families detected in teleost gonads)
+* HNF-6 <- contributes to the control of the expression of liver-enriched transcription factors, and there are 2 of these (liver, either sex)
+* Vitellogenin * <- there are 3 of these with different suffixes, but vtg1, vtg4, and vtg5 overlap in males and females (Zheng et al., 2013)
 
 
-```
 
 
 ```{r write-names, eval=FALSE}
