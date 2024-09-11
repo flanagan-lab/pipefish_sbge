@@ -1067,7 +1067,7 @@ SM_blast_list <- list()
 #Create a loop to read in all of the blast results
 for(file_name in SM_blast_files){
    # Read the file and store it in a new object
-  file_data <- read.delim(file.path("data/cory_BLAST", file_name), 
+  file_data <- read.delim(file.path("data/cory_BLAST/", file_name), 
                           stringsAsFactors = FALSE, 
                           quote = "", 
                           sep = "\t",
