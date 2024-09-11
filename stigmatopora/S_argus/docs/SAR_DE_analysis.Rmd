@@ -1429,7 +1429,7 @@ blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 ```
 
 
-```{r}
+```{r pull-out-gene-products}
 
 gene_products <- unique(genes$product)
 
@@ -1441,6 +1441,7 @@ After pulling out the unique product information, there are a few candidates for
 * hepatocyte nuclear factor * <- there are 25 of these each with different suffixes (potentially liver, but Huang & Weng 2010 found some HNF families detected in teleost gonads)
 * HNF-6 <- contributes to the control of the expression of liver-enriched transcription factors, and there are 2 of these (liver, either sex)
 * Vitellogenin * <- there are 3 of these with different suffixes, but vtg1, vtg4, and vtg5 overlap in males and females (Zheng et al., 2013)
+* estrogen-related receptor * <- there are 29 of these each with different suffixes (fem gon)
 
 
 
