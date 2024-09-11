@@ -1249,7 +1249,7 @@ I have then pulled out all of the male-biased, female-biased, and non-biased gen
 gill_con_res_noNA <- gill_con_res[!is.na(gill_con_res$padj), ]
 summary(gill_con_res_noNA) #We can now see that there are no outliers or 
                            #low counts since the NAs have been removed
-write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRUE)
+#write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRUE)
 
 #Creating a vector that contains all of the male-biased and female-biased genes in the gills
 gill_mal_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange >= 2 
@@ -1337,24 +1337,24 @@ all_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=6705)))
 
 #Run once to create the file and then commented out
-write.table(all_MGonad_trin_genes,
-         'data/SN_maleGon_allTRgenes.txt', 
-          sep = "", 
-          quote=FALSE, 
-          row.names = FALSE, 
-          col.names = FALSE)
+#write.table(all_MGonad_trin_genes,
+ #        'data/SN_maleGon_allTRgenes.txt', 
+  #        sep = "", 
+   #       quote=FALSE, 
+    #      row.names = FALSE, 
+     #     col.names = FALSE)
 
 #Pulling all diff expressed genes in Females
 all_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
   gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=2532)))
 
 #Run once to create the file and then commented out
-write.table(all_FGonad_trin_genes,
-            'data/SN_femGon_allTRgenes.txt', 
-            sep = "", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(all_FGonad_trin_genes,
+ #           'data/SN_femGon_allTRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
 ```
 
 ### MA Plots
@@ -1433,18 +1433,18 @@ upset(fromList(listInputFB),
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
 #Exporting data used to make the Upset plot (run once and them commented out)
-write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
-            row.names = TRUE)
-write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
-            row.names = TRUE)
+#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+ #           row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
 listInputall <- list("Testis" = rownames(gonad_mal_biased),
@@ -1534,7 +1534,7 @@ logFC_long<- data.frame(
 )
 
 #Exporting this data, run once and then commented out
-write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
 ```
 
 With the dataset in the proper format now, we can generate the plot
@@ -1966,24 +1966,26 @@ SN_blast_list <- list()
 #Create a loop to read in all of the blast results
 for(file_name in SN_blast_files){
    # Read the file and store it in a new object
-  file_data <- read.delim(file.path("data/cory_BLAST", file_name), 
+  file_data <- read.delim(file.path("data/cory_BLAST/", file_name), 
                           stringsAsFactors = FALSE, 
                           quote = "", 
                           sep = "\t",
                           header = FALSE)
+  
+  file_data <- file_data[, c(1:4,6,10:15)]
  
   #Add column names to the dataset
   colnames(file_data) <- c("trin_geneid", 
                            "trin_gene_start", 
                            "trin_gene_end", 
-                           "cory_gene_info", 
+                           "cory_gene_info",
+                           "prot_id",
                            "cory_gene_start",
                            "cory_gene_end", 
                            "evalue", 
                            "bit_score", 
                            "length", 
-                           "pident", 
-                           "gaps")
+                           "pident")
   
   # Create a new object with a name based on the file name
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
@@ -2004,7 +2006,10 @@ blast_output_filtered <- lapply(SN_blast_list, function(data_frame){
   
   #Create an empty dataframe to store intermediate results in
   output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
-  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "cory_gene_info", "cory_gene_start", "cory_gene_end", "evalue", "bit_score", "length", "pident", "gaps")
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", 
+                        "cory_gene_info", "prot_id",
+                        "cory_gene_start", "cory_gene_end", 
+                        "evalue", "bit_score", "length", "pident")
   
   #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
   for(gene in uniqueID$trin_geneid){
@@ -2022,7 +2027,7 @@ blast_output_filtered <- lapply(SN_blast_list, function(data_frame){
     # check that there is a single gene ID in cory, if not, only first row is kept
     if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",uni_gene_subset_lowe_highpid$cory_gene_info))>1){
     #   browser()
-    # } else{
+     } else{
       uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
     }
     
@@ -2033,6 +2038,45 @@ blast_output_filtered <- lapply(SN_blast_list, function(data_frame){
   return(output)
 })
 
+```
+
+```{r cory-gff-gene-names}
+#read in the GFF file for C. intestinalis that has info about the geneID
+cory_gff <- read.delim("../cory_genomic.gff",
+                       header = FALSE,
+                       comment.char = "#")
+
+#Keep only the columns I want and rename them
+cory_gff <- cory_gff[,c(1:5,9)]
+colnames(cory_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
+
+#subset the dataset to only include the rows we're interested in 
+genes <- cory_gff[cory_gff$feature == "CDS",]
+
+#Pull out the gene name that corresponds to each protein ID
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", 
+                        genes$gene_info)
+genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", 
+                      genes$gene_info)
+genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3", 
+                      genes$gene_info)
+
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+
+  #browser()
+  output <- merge(dataframe, unique(genes[,7:9]), by = "prot_id")
+  
+   return(output)
+})
+
+```
+
+```{r pull-out-gene-products}
+
+gene_products <- unique(genes$product)
+
+#write.csv(gene_products, 'data/SN_gene_products.csv')
 ```
 
 ### Merging the BLAST filtered Data frames with the sex-biased information
