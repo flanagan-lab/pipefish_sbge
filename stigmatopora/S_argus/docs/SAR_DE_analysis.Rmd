@@ -1420,18 +1420,96 @@ genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3",
 #Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
 blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
 
-  #browser()
-  output <- merge(dataframe, unique(genes[,7:9]), by = "prot_id")
   
+  merged_info<-data.frame(matrix(ncol=nrow(dataframe)+5))
+  for(x in 1:nrow(dataframe)){
+    
+    this_gff<-genes[genes$seqname==dataframe$prot_id[x],]
+    gene_id<- this_gff[this_gff$start<= dataframe$cory_gene_start[x] & this_gff$end >= dataframe$cory_gene_end[x],]
+    merged_gene <- cbind(dataframe[x,], gene_id[,c(1,4,5,8,9)])
+   #browser()
+     merged_info<-rbind(merged_info, gene_id)
+  }
+  
+ output <- merge(dataframe, unique(genes[,c(1,7,9)]), by.x = "prot_id",by.y="seqname", all.x=TRUE)
+  print(output$product)
    return(output)
 })
 
 ```
 
+```{r try-something-else}
+
+#read in the GFF file for C. intestinalis that has info about the geneID
+cory_gff <- read.delim("../cory_genomic.gff",
+                       header = FALSE,
+                       comment.char = "#")
+
+#Keep only the columns I want and rename them
+cory_gff <- cory_gff[,c(1:5,9)]
+colnames(cory_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
+
+#subset the dataset to only include the rows we're interested in 
+genes <- cory_gff[cory_gff$feature == "CDS",]
+
+#Pull out the gene name that corresponds to each protein ID
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", 
+                        genes$gene_info)
+genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", 
+                      genes$gene_info)
+genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3", 
+                      genes$gene_info)
+
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+  
+  # Ensure dataframe has expected columns
+  required_columns <- c("prot_id", "cory_gene_start", "cory_gene_end")
+  if(!all(required_columns %in% colnames(dataframe))) {
+    stop(paste("Missing required column(s):", setdiff(required_columns, colnames(dataframe))))
+  }
+  
+  merged_info <- data.frame()
+  for(x in 1:nrow(dataframe)){
+    
+    this_gff <- genes[genes$seqname == dataframe$prot_id[x],]
+    gene_id <- this_gff[this_gff$start <= dataframe$cory_gene_start[x] & this_gff$end >= dataframe$cory_gene_end[x],]
+    
+    if(nrow(gene_id) > 0) {
+      # Check if gene_id has expected columns
+      if(all(c("seqname", "start", "end", "gene_name") %in% colnames(gene_id))) {
+        merged_info <- rbind(merged_info, cbind(dataframe[x,], gene_id))
+      } else {
+        print(paste("Warning: gene_id missing some expected columns for protein ID:", dataframe$prot_id[x]))
+      }
+    } else {
+      print(paste("No matching gene found for protein ID:", dataframe$prot_id[x]))
+    }
+  }
+  
+  return(merged_info)
+})
+
+# After running lapply, print the structure of blast_output_merged
+print("Structure of blast_output_merged:")
+print(str(blast_output_merged))
+
+# Print the first few rows of the merged data
+head(blast_output_merged)
+
+
+```
+
+
 
 ```{r pull-out-gene-products}
+# gene products in blast outputs
+sexbiased_products <- lapply(blast_output_merged, function(x){ unique(x$product) })
 
-gene_products <- unique(genes$product)
+
+
+# all gene products in the genome
+#gene_products <- unique(genes$product)
 
 #write.csv(gene_products, 'data/gene_products.csv')
 ```
