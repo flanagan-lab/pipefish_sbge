@@ -1501,10 +1501,32 @@ head(blast_output_merged)
 ```
 
 
+```{r}
+merged_SAR_femG <- blast_output_merged$SA_femG_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_femG, 'data/blast_output_merged_femG.csv')
+
+merged_SAR_femGon <- blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_femGon, 'data/blast_output_merged_femGon.csv')
+
+merged_SAR_femL <- blast_output_merged$SA_femL_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_femL, 'data/blast_output_merged_femL.csv')
+
+merged_SAR_malG <- blast_output_merged$SA_malG_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_malG, 'data/blast_output_merged_malG.csv')
+
+merged_SAR_malGon <- blast_output_merged$SA_malGon_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_malGon, 'data/blast_output_merged_malGon.csv')
+
+merged_SAR_malL <- blast_output_merged$SA_malL_TRgenes_corythoicthys_blast
+#write.csv(merged_SAR_malL, 'data/blast_output_merged_malL.csv')
+```
+
+
+
 
 ```{r pull-out-gene-products}
 # gene products in blast outputs
-sexbiased_products <- lapply(blast_output_merged, function(x){ unique(x$product) })
+#sexbiased_products <- lapply(blast_output_merged, function(x){ unique(x$product) })
 
 
 
@@ -1520,26 +1542,7 @@ After pulling out the unique product information, there are a few candidates for
 * HNF-6 <- contributes to the control of the expression of liver-enriched transcription factors, and there are 2 of these (liver, either sex)
 * Vitellogenin * <- there are 3 of these with different suffixes, but vtg1, vtg4, and vtg5 overlap in males and females (Zheng et al., 2013)
 * estrogen-related receptor * <- there are 29 of these each with different suffixes (fem gon)
-
-
-
-
-```{r write-names, eval=FALSE}
-#write once then comment out 
-
-write.table(c(blast_output_merged$SA_femG_TRgenes_corythoicthys_blast$gene_name,
-            blast_output_merged$SA_femGon_TRgenes_corythoicthys_blast$gene_name,
-            blast_output_merged$SA_femL_TRgenes_corythoicthys_blast$gene_name,
-            blast_output_merged$SA_maleG_TRgenes_corythoicthys_blast$gene_name,
-            blast_output_merged$SA_maleGon_TRgenes_corythoicthys_blast$gene_name,
-            blast_output_merged$SA_maleL_TRgenes_corythoicthys_blast$gene_name),
-            'data/SA_cory_names.txt',
-            sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
-
-```
+* progestin and adipoQ receptor family member 3a <- (fem gon)
 
 
 ### Merging the BLAST filtered Data frames with the sex-biased information
