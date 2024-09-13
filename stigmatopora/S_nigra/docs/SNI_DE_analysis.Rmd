@@ -2063,20 +2063,63 @@ genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3",
 
 #Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
 blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
-
-  #browser()
-  output <- merge(dataframe, unique(genes[,7:9]), by = "prot_id")
   
-   return(output)
+  # Ensure dataframe has expected columns
+  required_columns <- c("prot_id", "cory_gene_start", "cory_gene_end")
+  if(!all(required_columns %in% colnames(dataframe))) {
+    stop(paste("Missing required column(s):", setdiff(required_columns, colnames(dataframe))))
+  }
+  
+  merged_info <- data.frame()
+  for(x in 1:nrow(dataframe)){
+    
+    this_gff <- genes[genes$seqname == dataframe$prot_id[x],]
+    gene_id <- this_gff[this_gff$start <= dataframe$cory_gene_start[x] & this_gff$end >= dataframe$cory_gene_end[x],]
+    
+    if(nrow(gene_id) > 0) {
+      # Check if gene_id has expected columns
+      if(all(c("seqname", "start", "end", "gene_name") %in% colnames(gene_id))) {
+        merged_info <- rbind(merged_info, cbind(dataframe[x,], gene_id))
+      } else {
+        print(paste("Warning: gene_id missing some expected columns for protein ID:", dataframe$prot_id[x]))
+      }
+    } else {
+      print(paste("No matching gene found for protein ID:", dataframe$prot_id[x]))
+    }
+  }
+  
+  return(merged_info)
 })
+
+# After running lapply, print the structure of blast_output_merged
+print("Structure of blast_output_merged:")
+print(str(blast_output_merged))
+
+# Print the first few rows of the merged data
+head(blast_output_merged)
+
 
 ```
 
-```{r pull-out-gene-products}
+```{r export-products}
 
-gene_products <- unique(genes$product)
+merged_SNI_femG <- blast_output_merged$SN_femG_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_femG, 'data/blast_output_merged_femG.csv')
 
-#write.csv(gene_products, 'data/SN_gene_products.csv')
+merged_SNI_femGon <- blast_output_merged$SN_femGon_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_femGon, 'data/blast_output_merged_femGon.csv')
+
+merged_SNI_femL <- blast_output_merged$SN_femL_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_femL, 'data/blast_output_merged_femL.csv')
+
+merged_SNI_malG <- blast_output_merged$SN_maleG_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_malG, 'data/blast_output_merged_malG.csv')
+
+merged_SNI_malGon <- blast_output_merged$SN_maleGon_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_malGon, 'data/blast_output_merged_malGon.csv')
+
+merged_SNI_malL <- blast_output_merged$SN_maleL_allTRgenes_corythoicthys_blast
+#write.csv(merged_SNI_malL, 'data/blast_output_merged_malL.csv')
 ```
 
 ### Merging the BLAST filtered Data frames with the sex-biased information

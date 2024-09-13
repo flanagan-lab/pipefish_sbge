@@ -1396,49 +1396,8 @@ blast_output_filtered <- lapply(SA_blast_list, function(data_frame){
 
 ```
 
+
 ```{r cory-gff-gene-names}
-#read in the GFF file for C. intestinalis that has info about the geneID
-cory_gff <- read.delim("../cory_genomic.gff",
-                       header = FALSE,
-                       comment.char = "#")
-
-#Keep only the columns I want and rename them
-cory_gff <- cory_gff[,c(1:5,9)]
-colnames(cory_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
-
-#subset the dataset to only include the rows we're interested in 
-genes <- cory_gff[cory_gff$feature == "CDS",]
-
-#Pull out the gene name that corresponds to each protein ID
-genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", 
-                        genes$gene_info)
-genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", 
-                      genes$gene_info)
-genes$product <- gsub("^(.*;)(product=)(.*);(.*$)", "\\3", 
-                      genes$gene_info)
-
-#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
-blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
-
-  
-  merged_info<-data.frame(matrix(ncol=nrow(dataframe)+5))
-  for(x in 1:nrow(dataframe)){
-    
-    this_gff<-genes[genes$seqname==dataframe$prot_id[x],]
-    gene_id<- this_gff[this_gff$start<= dataframe$cory_gene_start[x] & this_gff$end >= dataframe$cory_gene_end[x],]
-    merged_gene <- cbind(dataframe[x,], gene_id[,c(1,4,5,8,9)])
-   #browser()
-     merged_info<-rbind(merged_info, gene_id)
-  }
-  
- output <- merge(dataframe, unique(genes[,c(1,7,9)]), by.x = "prot_id",by.y="seqname", all.x=TRUE)
-  print(output$product)
-   return(output)
-})
-
-```
-
-```{r try-something-else}
 
 #read in the GFF file for C. intestinalis that has info about the geneID
 cory_gff <- read.delim("../cory_genomic.gff",
@@ -1501,7 +1460,7 @@ head(blast_output_merged)
 ```
 
 
-```{r}
+```{r export-products}
 merged_SAR_femG <- blast_output_merged$SA_femG_TRgenes_corythoicthys_blast
 #write.csv(merged_SAR_femG, 'data/blast_output_merged_femG.csv')
 
@@ -1522,20 +1481,6 @@ merged_SAR_malL <- blast_output_merged$SA_malL_TRgenes_corythoicthys_blast
 ```
 
 
-
-
-```{r pull-out-gene-products}
-# gene products in blast outputs
-#sexbiased_products <- lapply(blast_output_merged, function(x){ unique(x$product) })
-
-
-
-# all gene products in the genome
-#gene_products <- unique(genes$product)
-
-#write.csv(gene_products, 'data/gene_products.csv')
-```
-
 After pulling out the unique product information, there are a few candidates for indicators:
 * oocyte zinc finger protein * <- there are 24 of these each with different suffixes (fem gon)
 * hepatocyte nuclear factor * <- there are 25 of these each with different suffixes (potentially liver, but Huang & Weng 2010 found some HNF families detected in teleost gonads)
@@ -1544,61 +1489,6 @@ After pulling out the unique product information, there are a few candidates for
 * estrogen-related receptor * <- there are 29 of these each with different suffixes (fem gon)
 * progestin and adipoQ receptor family member 3a <- (fem gon)
 
-
-### Merging the BLAST filtered Data frames with the sex-biased information
-Not all of the trinity genes had a BLAST hit come back, but I still want to include what those genes are in the dataset. To do this I am merging all of the genes with the filtered BLAST dataset and if there are genes that did not have any hits (i.e. are not in the filtered BLAST database) then they will receive an "NA".
-
-All genes that had an "NA" come back from blasting against the _C. intestinalis_ database will be blasted against the non-redundant BLAST database as well.
-
-```{r merge-blast-results}
-#Getting all diff. expressed genes in Males
-all_MGonad <- head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], 
-                     n=6805) 
-all_MGill <- head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = TRUE),], 
-                     n=19)
-all_MLiver <- head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = TRUE),], 
-                     n=354)
-
-#Pulling all diff expressed genes in Females
-all_FGonad <- head(gonad_con_res_p05[order(gonad_con_res_p05$log2FoldChange, decreasing = FALSE),],
-                     n=3554)
-all_FGill <- head(gill_con_res_p05[order(gill_con_res_p05$log2FoldChange, decreasing = FALSE),],
-                     n=18)
-all_FLiver <- head(liver_con_res_p05[order(liver_con_res_p05$log2FoldChange, decreasing = FALSE),],
-                     n=267)
-#Create dataframes for all of the above that contains the trinity gene ID and the logFoldChange
-all_MGonad_df <- as.data.frame(cbind(trin_geneid = all_MGonad$trin_geneid,
-                                       LogFC = all_MGonad$log2FoldChange))
-all_MGill_df <- as.data.frame(cbind(trin_geneid = all_MGill$trin_geneid,
-                                       LogFC = all_MGill$log2FoldChange))
-all_MLiver_df <- as.data.frame(cbind(trin_geneid = all_MLiver$trin_geneid,
-                                       LogFC = all_MLiver$log2FoldChange))
-all_FGonad_df <- as.data.frame(cbind(trin_geneid = all_FGonad$trin_geneid, 
-                                      LogFC = all_FGonad$log2FoldChange))
-all_FGill_df <- as.data.frame(cbind(trin_geneid = all_FGill$trin_geneid, 
-                                      LogFC = all_FGill$log2FoldChange))
-all_FLiver_df <- as.data.frame(cbind(trin_geneid = all_FLiver$trin_geneid, 
-                                      LogFC = all_FLiver$log2FoldChange))
-
-#Merge the above dataframes with the corresponding blast_output_filtered dataframe
-blast_output_filtered$SA_femG_TRgenes_corythoicthys_blast <- merge(all_FGill_df, blast_output_filtered$SA_femG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SA_femGon_TRgenes_corythoicthys_blast <- merge(all_FGonad_df, blast_output_filtered$SA_femGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SA_femL_TRgenes_corythoicthys_blast <- merge(all_FLiver_df, blast_output_filtered$SA_femL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SA_maleG_TRgenes_corythoicthys_blast <- merge(all_MGill_df, blast_output_filtered$SA_maleG_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SA_maleGon_TRgenes_corythoicthys_blast <- merge(all_MGonad_df, blast_output_filtered$SA_maleGon_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-blast_output_filtered$SA_maleL_TRgenes_corythoicthys_blast <- merge(all_MLiver_df, blast_output_filtered$SA_maleL_TRgenes_corythoicthys_blast, by = "trin_geneid", all.x = TRUE, all.y = TRUE)
-```
-
-```{r export-datasets}
-#write.csv(blast_output_filtered$SA_femG_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_femG.csv", row.names = FALSE)
-#write.csv(blast_output_filtered$SA_malG_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_malG.csv", row.names = FALSE)
-
-#write.csv(blast_output_filtered$SA_femGon_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_femGon.csv", row.names = FALSE)
-#write.csv(blast_output_filtered$SA_malGon_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_malGon.csv", row.names = FALSE)
-
-#write.csv(blast_output_filtered$SA_femL_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_femL.csv", row.names = FALSE)
-#write.csv(blast_output_filtered$SA_malL_TRgenes_corythoicthys_blast, "data/SA_BLAST_results_malL.csv", row.names = FALSE)
-```
 
 
 ### Blasting the sex-specific genes against the _C. intestinalis_ genome
@@ -1625,15 +1515,20 @@ for(file_name in SA_blast_files){
                           sep = "\t",
                           header = FALSE)
   
-  file_data <- file_data[, c(1:4, 10:16)]
+  file_data <- file_data[, c(1:4,6, 10:15)]
   
   #Add column names to the dataset
   colnames(file_data) <- c("trin_geneid", 
-                           "trin_gene_start", "trin_gene_end", 
+                           "trin_gene_start", 
+                           "trin_gene_end", 
                            "cory_gene_info",
-                           "cory_gene_start", "cory_gene_end", 
-                           "evalue", "bit_score", "length", "pident", 
-                           "gaps")
+                           "prot_id",
+                           "cory_gene_start",
+                           "cory_gene_end", 
+                           "evalue", 
+                           "bit_score", 
+                           "length", 
+                           "pident")
 
   # Create a new object with a name based on the file name
   blast_name <- sub(".txt$", "", file_name) #Removes the file extension
@@ -1704,8 +1599,6 @@ for (i in 1:length(blast_output_filtered_SS)) {
   blast_output_filtered_SS[[i]]$protein <- gsub("^(.*)(protein=)(.*)([[:graph:]]\\s[[:graph:]])(protein_id=)(.*$)",
                                                 "\\3",
                                                 blast_output_filtered_SS[[i]]$cory_gene_info)
-  
-  
 }
 
 ```
