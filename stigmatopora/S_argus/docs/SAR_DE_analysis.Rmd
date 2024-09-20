@@ -1480,17 +1480,6 @@ merged_SAR_malL <- blast_output_merged$SA_malL_TRgenes_corythoicthys_blast
 #write.csv(merged_SAR_malL, 'data/blast_output_merged_malL.csv')
 ```
 
-
-After pulling out the unique product information, there are a few candidates for indicators:
-* oocyte zinc finger protein * <- there are 24 of these each with different suffixes (fem gon)
-* hepatocyte nuclear factor * <- there are 25 of these each with different suffixes (potentially liver, but Huang & Weng 2010 found some HNF families detected in teleost gonads)
-* HNF-6 <- contributes to the control of the expression of liver-enriched transcription factors, and there are 2 of these (liver, either sex)
-* Vitellogenin * <- there are 3 of these with different suffixes, but vtg1, vtg4, and vtg5 overlap in males and females (Zheng et al., 2013)
-* estrogen-related receptor * <- there are 29 of these each with different suffixes (fem gon)
-* progestin and adipoQ receptor family member 3a <- (fem gon)
-
-
-
 ### Blasting the sex-specific genes against the _C. intestinalis_ genome
 The trinity genes that were pulled out for the sex-specific genes above were blasted with `blastn` against the _Corythoicthys intestinalis_ genome in the RCC. I then need to load those BLAST results into R, filter them, and pull out what the _C. intestinalis_ gene names are that correspond to them. 
 
