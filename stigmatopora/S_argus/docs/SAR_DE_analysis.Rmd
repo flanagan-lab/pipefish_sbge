@@ -39,6 +39,7 @@ library(knitr)
 library(magick)
 library(multcompView)
 library(spfTools)
+library(patchwork)
 ```
 
 ``` {r read-data}

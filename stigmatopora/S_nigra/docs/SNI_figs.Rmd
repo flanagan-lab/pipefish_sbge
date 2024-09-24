@@ -80,7 +80,7 @@ dds_PCA <- DESeqDataSetFromTximport(txi.nigra,
                                    colData = samples,
                                    design = ~ sex)
 ##Remove S34 from the dataset
-dds_PCA <- dds_SN[, dds_SN$ID != "S34"]
+dds_PCA <- dds_PCA[, !(dds_PCA$ID %in% c("S34", "S41"))]
 
 #only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(dds_PCA)) >= 10
@@ -115,8 +115,8 @@ pca_plotting_data <- as.data.frame(pca$x)
 
 
 #Add the metadata to the PCA dataset
-pca_plotting_data$organ <- samples$organ[samples$ID != "S34"]
-pca_plotting_data$sex <- samples$sex[samples$ID != "S34"]
+pca_plotting_data$organ <- samples$organ[samples$ID != "S34", "S41"]
+pca_plotting_data$sex <- samples$sex[samples$ID != "S34", "S41"]
 
 #Calculate the percent variation attributed to each axis 
 percents <- round(p$variance, digits = 2)
