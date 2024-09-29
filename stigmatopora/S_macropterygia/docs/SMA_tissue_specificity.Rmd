@@ -321,7 +321,7 @@ gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "r
 gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(8.1, 8.1, 8.1, 8.1), xpd=FALSE)
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
      gonad_bias_tau$tau,
      pch=19,
@@ -340,7 +340,7 @@ points(sqrt(abs(gill_bias_tau$log2FoldChange)),
 
 #Add the best fit lines
 abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 3)
+abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
 abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
 
 #Add a legend
@@ -348,7 +348,7 @@ outer_legend("right",
              c("Gonad", "Liver", "Gill"),
              col = c("#EEB422", "#EE8262", "#20B2AA"),
              pch = 19,
-             lwd = 4,
+             lwd = 3,
              bty = 'n',
              cex = 1.5,
              lty = 1:3,
@@ -436,9 +436,9 @@ outer_legend("right",
 The absolute value of the log2 fold change was square root transformed. We can see somewhat similar patterns as when we only plotted the sex biased genes (Fig. \@ref(fig:tau-v-bias)). When we add in all of the points, however, it seems that the best fit line for the liver now points downward (Fig. \@ref(fig:tau-v-FC)). Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
-cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman")
-cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman")
-cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman") #sig, pos
+cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman") #sig, pos
+cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman") #sig, pos 
 
 ```
 
@@ -779,7 +779,8 @@ plotdat <- ggplot(logFC_long_all,
   labs(x="Bias Category", y=expression(tau["TPM"])) +
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
-plotdat + 
+plotdat 
++ 
 geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
           size=0.6, 
           position = position_jitter(width = 0.15),
