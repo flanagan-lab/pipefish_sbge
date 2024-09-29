@@ -55,3 +55,4 @@ stigmatopora/S_nigra/data/nigra_BLAST/FL_femL_top50TRgenes.fasta
 stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.pdf
 stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.tex
 *.pdf
+*.png
