@@ -392,36 +392,13 @@ outer_legend("right",
 The absolute value of the log2 fold change was square root transformed. There appears to be a positive relationship between $\tau$ and sex bias for the gonads, liver, and gills (Fig. \@ref(fig:tau-v-bias)). We can look further into these relationships with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor, echo=FALSE, message=FALSE, warning=FALSE}
-cor.test(gonad_bias_tau$tau, sqrt(abs(gonad_bias_tau$log2FoldChange)), method = "spearman")
-cor.test(liver_bias_tau$tau, sqrt(abs(liver_bias_tau$log2FoldChange)), method = "spearman")
-cor.test(gill_bias_tau$tau, sqrt(abs(gill_bias_tau$log2FoldChange)), method = "spearman")
+cor.test(gonad_bias_tau$tau, sqrt(abs(gonad_bias_tau$log2FoldChange)), method = "spearman") #sig, positive
+cor.test(liver_bias_tau$tau, sqrt(abs(liver_bias_tau$log2FoldChange)), method = "spearman") #sig. positive
+cor.test(gill_bias_tau$tau, sqrt(abs(gill_bias_tau$log2FoldChange)), method = "spearman") #min. sig. positive 
 
 ```
 
-All three organs show significant positive correlations:
-
-Spearman's rank correlation rho
-
-data:  gonad_bias_tau$tau and sqrt(abs(gonad_bias_tau$log2FoldChange))
-S = 7.7372e+10, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.3841566 
-
-data:  liver_bias_tau$tau and sqrt(abs(liver_bias_tau$log2FoldChange))
-S = 472715568, p-value = 5.079e-10
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.1596164 
-
-data:  gill_bias_tau$tau and sqrt(abs(gill_bias_tau$log2FoldChange))
-S = 116570, p-value = 0.0408
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.2093733 
+All three organs show significant positive correlations.
 
 ## $\tau$ and logFC for all the signficantly expressed genes in each organ
 Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
@@ -488,12 +465,12 @@ outer_legend("right",
 
 ```
 
-The absolute value of the log2 fold change was square root transformed. We can see similar patterns as when we only plotted the sex biased genes (Fig. \@ref(fig:tau-v-bias)) with the strongest relationship showing up in the gonads. When we add in all of the points, however, it seems that the best fit line for the liver and gills now points downward (Fig. \@ref(fig:tau-v-FC)). Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+The absolute value of the log2 fold change was square root transformed. We can see similar patterns as when we only plotted the sex biased genes (Fig. \@ref(fig:tau-v-bias)) with the strongest relationship showing up in the gonads. When we add in all of the points, however, it seems that the best fit line for the liver now points downward (Fig. \@ref(fig:tau-v-FC)). Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
-cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman")
-cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman")
-cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman")
+cor.test(gonad_bias_tau_all$tau, abs(gonad_bias_tau_all$log2FoldChange), method = "spearman") #sig, pos
+cor.test(liver_bias_tau_all$tau, abs(liver_bias_tau_all$log2FoldChange), method = "spearman") #sig, neg
+cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = "spearman") #sig, pos
 
 ```
 
@@ -856,22 +833,24 @@ plotdat <- ggplot(logFC_long_all,
   labs(x="Bias Category", y=expression(tau["TPM"])) +
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
-plotdat + 
+plotdat 
+
++ 
 geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
           size=0.6, 
-          position = position_jitter(width = 0.15),
+          position = position_jitter(width = 0.1),
           bg=my_colors["MB"],
           col="black",pch=21
           ) + 
 geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
           size=0.6, 
-          position = position_jitter(width = 0.15),
+          position = position_jitter(width = 0.1),
           bg=my_colors["FB"],
           col="black",pch=21
           ) + 
 geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
           size=0.6, 
-          position = position_jitter(width = 0.15),
+          position = position_jitter(width = 0.1),
           bg=my_colors["UB"],
           col="black",pch=21)
 ```
