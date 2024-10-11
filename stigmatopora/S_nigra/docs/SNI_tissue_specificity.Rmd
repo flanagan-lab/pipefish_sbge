@@ -207,15 +207,15 @@ I ran the $\tau$ function with the whole dataset, and then for just males and ju
 colData <- colData[!(colData$ID %in% c("S34", "S41")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
-write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
+#write.csv(as.data.frame(tau), "data/tau.csv", row.names = TRUE)
 
 tau_fem<-apply(tpms[,which(colData$sex=="F")], 1, est_tau,
                colData[which(colData$sex=="F"),])
-write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
+#write.csv(as.data.frame(tau_fem), "data/tau_fem.csv", row.names = TRUE)
 
 tau_mal<-apply(tpms[,which(colData$sex=="M")], 1, est_tau,
                colData[which(colData$sex=="M"),])
-write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
+#write.csv(as.data.frame(tau_mal), "data/tau_mal.csv", row.names = TRUE)
 ```
 
 ```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
@@ -475,27 +475,6 @@ cor.test(gill_bias_tau_all$tau, abs(gill_bias_tau_all$log2FoldChange), method = 
 ```
 
 All correlations are now significant, where the gills were not previously significant, but now the liver has a negative correlation between $\tau$ and the degree of sex bias. 
-
-data:  gonad_bias_tau_all$tau and abs(gonad_bias_tau_all$log2FoldChange)
-S = 1.3794e+13, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-     rho 
-0.345951 
-
-data:  liver_bias_tau_all$tau and abs(liver_bias_tau_all$log2FoldChange)
-S = 3.0917e+12, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-        rho 
--0.09754804 
-
-data:  gill_bias_tau_all$tau and abs(gill_bias_tau_all$log2FoldChange)
-S = 1.4094e+12, p-value < 2.2e-16
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.1937712 
 
 I want to look into some of the genes that show a high bias and a high tau to see what is going on.
 
@@ -835,24 +814,24 @@ plotdat <- ggplot(logFC_long_all,
 
 plotdat 
 
-+ 
-geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
-          size=0.6, 
-          position = position_jitter(width = 0.1),
-          bg=my_colors["MB"],
-          col="black",pch=21
-          ) + 
-geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
-          size=0.6, 
-          position = position_jitter(width = 0.1),
-          bg=my_colors["FB"],
-          col="black",pch=21
-          ) + 
-geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
-          size=0.6, 
-          position = position_jitter(width = 0.1),
-          bg=my_colors["UB"],
-          col="black",pch=21)
+#+ 
+#geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+ #         size=0.6, 
+  #        position = position_jitter(width = 0.1),
+   #       bg=my_colors["MB"],
+    #      col="black",pch=21
+     #     ) + 
+#geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+ #         size=0.6, 
+  #        position = position_jitter(width = 0.1),
+   #       bg=my_colors["FB"],
+    #      col="black",pch=21
+     #     ) + 
+#geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+ #         size=0.6, 
+  #        position = position_jitter(width = 0.1),
+   #       bg=my_colors["UB"],
+    #      col="black",pch=21)
 ```
 
 ## Exploring the relationship between $\tau$ and sex bias in a single-factor analysis
