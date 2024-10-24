@@ -353,7 +353,7 @@ gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "r
 gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(8.1, 8.1, 8.1, 8.1), xpd=FALSE)
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
      gonad_bias_tau$tau,
      pch=19,
