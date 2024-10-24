@@ -2000,30 +2000,30 @@ blast_output_merged$SN_maleL_allTRgenes_danio_blast <- merge(as.data.frame(liver
 
 ```{r, eval=FALSE}
 #Write once then comment out
-write.table(c(blast_output_merged$SN_femG_allTRgenes_danio_blast$gene_name, 
-              blast_output_merged$SN_femGon_allTRgenes_danio_blast$gene_name, 
-              blast_output_merged$SN_femL_allTRgenes_danio_blast$gene_name, 
-              blast_output_merged$SN_maleG_allTRgenes_danio_blast$gene_name, 
-              blast_output_merged$SN_maleGon_allTRgenes_danio_blast$gene_name, 
-              blast_output_merged$SN_maleL_allTRgenes_danio_blast$gene_name),
-           'SN_GOnames.txt', 
-            sep = " ", 
-            quote=FALSE, 
-            row.names = FALSE, 
-            col.names = FALSE)
+#write.table(c(blast_output_merged$SN_femG_allTRgenes_danio_blast$gene_name, 
+ #             blast_output_merged$SN_femGon_allTRgenes_danio_blast$gene_name, 
+  #            blast_output_merged$SN_femL_allTRgenes_danio_blast$gene_name, 
+   #           blast_output_merged$SN_maleG_allTRgenes_danio_blast$gene_name, 
+    #          blast_output_merged$SN_maleGon_allTRgenes_danio_blast$gene_name, 
+     #         blast_output_merged$SN_maleL_allTRgenes_danio_blast$gene_name),
+      #     'SN_GOnames.txt', 
+       #     sep = " ", 
+        #    quote=FALSE, 
+         #   row.names = FALSE, 
+          #  col.names = FALSE)
 
 #write once then comment out
-write.table(rbind(blast_output_merged$SN_femG_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$SN_femGon_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$SN_femL_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$SN_maleG_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$SN_maleGon_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
-              blast_output_merged$SN_maleL_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")]),
-            'SN_GOnames_FC.txt',
-            sep = "\t",
-            quote = FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#write.table(rbind(blast_output_merged$SN_femG_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+ #             blast_output_merged$SN_femGon_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+  #            blast_output_merged$SN_femL_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+   #           blast_output_merged$SN_maleG_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+    #          blast_output_merged$SN_maleGon_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")],
+     #         blast_output_merged$SN_maleL_allTRgenes_danio_blast[,c("gene_name", "log2FoldChange")]),
+      #      'SN_GOnames_FC.txt',
+       #     sep = "\t",
+        #    quote = FALSE,
+         #   row.names = FALSE,
+          #  col.names = FALSE)
 ```
 
 ```{r panther-results}
@@ -2226,31 +2226,31 @@ ggsave("figs/FigGO_indv.png", figGO, height=5, width=8)
 
 ```{r export-danio-geneID-INDV, eval=FALSE}
 
-write.table(blast_output_merged$SN_femGon_allTRgenes_danio_blast$gene_name,
-            'SN_GOnames_SBG_ovary.txt',
-            sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#write.table(blast_output_merged$SN_femGon_allTRgenes_danio_blast$gene_name,
+ #           'SN_GOnames_SBG_ovary.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
 
-write.table(blast_output_merged$SN_maleGon_allTRgenes_danio_blast$gene_name,
-            'SN_GOnames_SBG_testes.txt',
-            sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#write.table(blast_output_merged$SN_maleGon_allTRgenes_danio_blast$gene_name,
+ #           'SN_GOnames_SBG_testes.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
 
-write.table(blast_output_merged$SN_femL_allTRgenes_danio_blast$gene_name,
-            'SN_GOnames_SBG_fLiver.txt',
-            sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#write.table(blast_output_merged$SN_femL_allTRgenes_danio_blast$gene_name,
+ #           'SN_GOnames_SBG_fLiver.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
 
-write.table(blast_output_merged$SN_maleL_allTRgenes_danio_blast$gene_name,
-            'SN_GOnames_SBG_mLiver.txt',
-            sep = " ",
-            quote=FALSE,
-            row.names = FALSE,
-            col.names = FALSE)
+#write.table(blast_output_merged$SN_maleL_allTRgenes_danio_blast$gene_name,
+ #           'SN_GOnames_SBG_mLiver.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
 ```
