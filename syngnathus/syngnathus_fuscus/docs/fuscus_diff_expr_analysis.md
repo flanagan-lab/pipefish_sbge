@@ -23,6 +23,27 @@ Coley Tosto
     - [MA Plots](#ma-plots)
   - [Variation in FC across sex-bias and tissue
     type](#variation-in-fc-across-sex-bias-and-tissue-type)
+- [Running a single factor analysis between males and females WITHIN
+  each
+  organ](#running-a-single-factor-analysis-between-males-and-females-within-each-organ)
+  - [Liver M-F differential
+    expression](#liver-m-f-differential-expression)
+  - [Gonad M-F differential
+    expression](#gonad-m-f-differential-expression)
+  - [Gill M-F differential
+    expression](#gill-m-f-differential-expression)
+  - [Re-looking at variation in logFC across both sex-bias categories
+    and tissue
+    types](#re-looking-at-variation-in-logfc-across-both-sex-bias-categories-and-tissue-types)
+  - [Investigating expression across samples in the sex-biased
+    genes](#investigating-expression-across-samples-in-the-sex-biased-genes)
+  - [Looking at shared sex-biased genes with an Upset
+    plot](#looking-at-shared-sex-biased-genes-with-an-upset-plot)
+  - [Categorizing sex-specific genes](#categorizing-sex-specific-genes)
+    - [Investigating the results of the sex-specific
+      subsetting](#investigating-the-results-of-the-sex-specific-subsetting)
+    - [Pulling out the gene IDs for all of the sex-specific
+      genes](#pulling-out-the-gene-ids-for-all-of-the-sex-specific-genes)
 
 ``` r
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
@@ -1232,3 +1253,603 @@ There is a cluster of genes with a logFC between 5 -15 and then another
 clump at 25 and above, and very little in between. This may be a result
 of normalizing across all of the organs. I am going to try re-running
 the DE analysis within each organ and see if that helps anything.
+
+# Running a single factor analysis between males and females WITHIN each organ
+
+## Liver M-F differential expression
+
+``` r
+#Create a subset of the DESeq dataset that only includes the liver samples
+dds_FU_liver <- ddsMF_FU[, ddsMF_FU$Organ == "Liver"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_FU_liver)) >= 10
+dds_FU_liver <- dds_FU_liver[keep, ]
+
+design(dds_FU_liver) <- ~ Sex
+
+#Run the differential expression analysis
+dds_FU_liver_exp <- DESeq(dds_FU_liver)
+
+#Compiling the results
+res_liver <- results(dds_FU_liver_exp, alpha = 0.05)
+
+summary(res_liver)
+```
+
+    ## 
+    ## out of 57172 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 139, 0.24%
+    ## LFC < 0 (down)     : 65, 0.11%
+    ## outliers [1]       : 6294, 11%
+    ## low counts [2]     : 23989, 42%
+    ## (mean count < 4)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+The single factor analysis from the liver showed 130 male-biased genes
+and 58 female-biased genes. I am going to pull out all of the female-
+and male-biased genes to store them in their own objects as well as
+genes that are non-biased. Non-biased genes will be categorized as genes
+with a p-value \> 0.05, regardless of what the logFC may be.
+
+``` r
+#Removing the rows where padj. is NA in results
+liver_res_noNA <- res_liver[!is.na(res_liver$padj),]
+summary(liver_res_noNA) #We can now see that there are no outliers or 
+```
+
+    ## 
+    ## out of 26889 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 139, 0.52%
+    ## LFC < 0 (down)     : 65, 0.24%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 4)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(liver_res_noNA), "data/liver_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+liver_mal_biased <- liver_res_noNA[which(liver_res_noNA$log2FoldChange >= 2
+                                             & liver_res_noNA$padj <= 0.05),]
+liver_fem_biased <- liver_res_noNA[which(liver_res_noNA$log2FoldChange <= -2 
+                                             & liver_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+liver_non_biased <- liver_res_noNA[which(liver_res_noNA$padj > 0.05),]
+```
+
+## Gonad M-F differential expression
+
+``` r
+#Create a subset of the DESeq dataset that only includes the gonad samples
+dds_FU_gonad <- ddsMF_FU[, ddsMF_FU$Organ == "Gonad"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_FU_gonad)) >= 10
+dds_FU_gonad <- dds_FU_gonad[keep, ]
+
+design(dds_FU_gonad) <- ~ Sex
+
+#Run the differential expression analysis
+dds_FU_gonad_exp <- DESeq(dds_FU_gonad)
+
+#Compiling the results
+res_gonad <- results(dds_FU_gonad_exp, alpha = 0.05)
+
+summary(res_gonad)
+```
+
+    ## 
+    ## out of 88396 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 15718, 18%
+    ## LFC < 0 (down)     : 10814, 12%
+    ## outliers [1]       : 3091, 3.5%
+    ## low counts [2]     : 23993, 27%
+    ## (mean count < 2)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+The single factor analysis from the gonad showed 11557 male-biased genes
+and 6126 female-biased genes. I am going to pull out all of the female-
+and male-biased genes to store them in their own objects as well as
+genes that are non-biased. Non-biased genes will be categorized as genes
+with a p-value \> 0.05, regardless of what the logFC may be.
+
+``` r
+#Removing the rows where padj. is NA in results
+gonad_res_noNA <- res_gonad[!is.na(res_gonad$padj),]
+summary(gonad_res_noNA) #We can now see that there are no outliers or 
+```
+
+    ## 
+    ## out of 61312 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 15718, 26%
+    ## LFC < 0 (down)     : 10814, 18%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 2)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(gonad_res_noNA), "data/gonad_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+gonad_mal_biased <- gonad_res_noNA[which(gonad_res_noNA$log2FoldChange >= 2
+                                             & gonad_res_noNA$padj <= 0.05),]
+gonad_fem_biased <- gonad_res_noNA[which(gonad_res_noNA$log2FoldChange <= -2 
+                                             & gonad_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+gonad_non_biased <- gonad_res_noNA[which(gonad_res_noNA$padj > 0.05),]
+```
+
+## Gill M-F differential expression
+
+``` r
+#Create a subset of the DESeq dataset that only includes the gill samples
+dds_FU_gill <- ddsMF_FU[, ddsMF_FU$Organ == "Gill"]
+
+#Filtering to remove any rows that have less than 10 reads total
+keep <- rowSums(counts(dds_FU_gill)) >= 10
+dds_FU_gill <- dds_FU_gill[keep, ]
+
+design(dds_FU_gill) <- ~ Sex
+
+#Run the differential expression analysis
+dds_FU_gill_exp <- DESeq(dds_FU_gill)
+
+#Compiling the results
+res_gill <- results(dds_FU_gill_exp, alpha = 0.05)
+
+summary(res_gill)
+```
+
+    ## 
+    ## out of 92188 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 116, 0.13%
+    ## LFC < 0 (down)     : 53, 0.057%
+    ## outliers [1]       : 1278, 1.4%
+    ## low counts [2]     : 47927, 52%
+    ## (mean count < 5)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+The single factor analysis from the gill showed 40 male-biased genes and
+29 female-biased genes. I am going to pull out all of the female- and
+male-biased genes to store them in their own objects as well as genes
+that are non-biased. Non-biased genes will be categorized as genes with
+a p-value \> 0.05, regardless of what the logFC may be.
+
+``` r
+#Removing the rows where padj. is NA in results
+gill_res_noNA <- res_gill[!is.na(res_gill$padj),]
+summary(gill_res_noNA) #We can now see that there are no outliers or 
+```
+
+    ## 
+    ## out of 42983 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0 (up)       : 116, 0.27%
+    ## LFC < 0 (down)     : 53, 0.12%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 5)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+
+``` r
+                            #low counts since the NAs have been removed
+#write.csv(as.data.frame(gill_res_noNA), "data/gill_res.csv", row.names = TRUE)
+
+#Creating a vector that contains all of the male-biased and female-biased genes in the brain
+gill_mal_biased <- gill_res_noNA[which(gill_res_noNA$log2FoldChange >= 2
+                                             & gill_res_noNA$padj <= 0.05),]
+gill_fem_biased <- gill_res_noNA[which(gill_res_noNA$log2FoldChange <= -2 
+                                             & gill_res_noNA$padj <= 0.05),]
+
+#Creating an object that contains all of the non-biased genes in the brain
+gill_non_biased <- gill_res_noNA[which(gill_res_noNA$padj > 0.05),]
+```
+
+## Re-looking at variation in logFC across both sex-bias categories and tissue types
+
+I want to now re-create the plot the highlights the variation we see in
+fold-change both across the different biases groups (male-biased,
+female-biased, and non-biased) within one tissue type and across all of
+the tissue types to see if the weird patterns are still there. To do
+this I first need to re-generate the “long” style dataset with the new
+information:
+
+``` r
+logFC_long <- data.frame(
+  tissue=c(rep("Gill",nrow(gill_fem_biased)),
+           rep("Gill", nrow(gill_mal_biased)),
+           rep("Gill", nrow(gill_non_biased)),
+           rep("Gonad", nrow(gonad_fem_biased)),
+           rep("Gonad", nrow(gonad_mal_biased)),
+           rep("Gonad", nrow(gonad_non_biased)),
+           rep("Liver", nrow(liver_fem_biased)),
+           rep("Liver", nrow(liver_mal_biased)),
+           rep("Liver", nrow(liver_non_biased))
+         ),
+  bias=c(rep("FB",nrow(gill_fem_biased)),
+         rep("MB",nrow(gill_mal_biased)),
+         rep("NB", nrow(gill_non_biased)),
+         rep("FB", nrow(gonad_fem_biased)),
+         rep("MB", nrow(gonad_mal_biased)),
+         rep("NB", nrow(gonad_non_biased)),
+         rep("FB", nrow(liver_fem_biased)),
+         rep("MB", nrow(liver_mal_biased)),
+         rep("NB", nrow(liver_non_biased))
+         ),
+  logFC=c(gill_fem_biased$log2FoldChange,
+          gill_mal_biased$log2FoldChange,
+          gill_non_biased$log2FoldChange,
+          gonad_fem_biased$log2FoldChange,
+          gonad_mal_biased$log2FoldChange,
+          gonad_non_biased$log2FoldChange,
+          liver_fem_biased$log2FoldChange,
+          liver_mal_biased$log2FoldChange,
+          liver_non_biased$log2FoldChange
+          ),
+  geneID=c(rownames(gill_fem_biased),
+           rownames(gill_mal_biased),
+           rownames(gill_non_biased),
+           rownames(gonad_fem_biased),
+           rownames(gonad_mal_biased),
+           rownames(gonad_non_biased),
+           rownames(liver_fem_biased),
+           rownames(liver_mal_biased),
+           rownames(liver_non_biased)
+           )
+  
+)
+
+#Exporting this data, run once and then commented out
+#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+```
+
+After re-creating the long version of the dataset I can re-generate the
+plot.
+
+<figure>
+<img
+src="fuscus_diff_expr_analysis_files/figure-gfm/FC-var-plot-SFanalysis-1.png"
+alt="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters." />
+<figcaption aria-hidden="true">Absolute value of the logFC for genes
+that are female-biased, male-biased, and unbiased across each tissue
+type. Raw fold-change values are added ontop of the boxplot as
+jitters.</figcaption>
+</figure>
+
+The weird pattern does appear to still be there for the male-biased
+genes in the liver. I am going to look more in detail to the expression
+level of the male- and female-biased genes within each organ across all
+of the tissues using heatmaps. What does change, however, is the degree
+of the logFC. When doing the multi-facotr analysis, there were several
+genes that had a logFC of 35. Now, the highest logFC we see is around
+25.
+
+## Investigating expression across samples in the sex-biased genes
+
+For each organ type I am going to pull out either all of the sex-biased
+genes, or just the top 200 if there are more than that, and look at the
+expression levels of those genes across all of the samples.
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_gonads-1.png)<!-- -->![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_gonads-2.png)<!-- -->
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_liver-1.png)<!-- -->![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_liver-2.png)<!-- -->
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_gill-1.png)<!-- -->![](fuscus_diff_expr_analysis_files/figure-gfm/heatmap_gill-2.png)<!-- -->
+
+In the liver, for both males and females, expression in the top biased
+genes appears to be driven almost exclusively by two individuals. I am
+going to continue on with the SF analysis over the MF analysis for a
+more conservative approach. I am also choosing to leave those
+individuals in the analysis as they may represent true variation in
+expression of genes across the samples.
+
+Looking back at the logFC plot made from the single-factor analysis,
+there appears to be differences in the logFC across both the organs and
+the sex-bias groups (male-biased, fem-biased, and non-biased). In the
+gill and liver, it looks like the female-biased genes are more biased on
+average than the male-biased genes, but this pattern reverses in the
+gonads. In every case the non-biased genes have the lowest median logFC
+even though there is some variation.
+
+I am going to fit a linear model to the data and explore some of the
+summary statistics to see what is happening
+
+``` r
+#Looking at some summary statistics for logFC between the different groups
+tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), median)
+```
+
+    ##         Gill    Gonad     Liver
+    ## FB 5.6611821 3.860896 7.1918331
+    ## MB 5.4242997 4.097896 5.2275218
+    ## NB 0.3223442 1.156665 0.5509466
+
+``` r
+tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
+```
+
+    ##         Gill    Gonad    Liver
+    ## FB 4.0337608 2.211555 7.289603
+    ## MB 2.1559514 1.605536 9.545260
+    ## NB 0.6580531 1.328525 1.293784
+
+``` r
+model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
+summary(model)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -9.6367 -0.6204 -0.2737  0.3451 20.8980 
+    ## 
+    ## Coefficients:
+    ##                                          Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)                                5.8766     0.2374  24.753  < 2e-16
+    ## logFC_long$tissueGonad                    -1.5441     0.2380  -6.488 8.70e-11
+    ## logFC_long$tissueLiver                     3.8900     0.2908  13.378  < 2e-16
+    ## logFC_long$biasMB                         -0.5912     0.3118  -1.896    0.058
+    ## logFC_long$biasNB                         -5.3421     0.2375 -22.494  < 2e-16
+    ## logFC_long$tissueGonad:logFC_long$biasMB   0.4855     0.3125   1.554    0.120
+    ## logFC_long$tissueLiver:logFC_long$biasMB   2.4880     0.3715   6.698 2.12e-11
+    ## logFC_long$tissueGonad:logFC_long$biasNB   2.5539     0.2381  10.724  < 2e-16
+    ## logFC_long$tissueLiver:logFC_long$biasNB  -3.4922     0.2909 -12.003  < 2e-16
+    ##                                             
+    ## (Intercept)                              ***
+    ## logFC_long$tissueGonad                   ***
+    ## logFC_long$tissueLiver                   ***
+    ## logFC_long$biasMB                        .  
+    ## logFC_long$biasNB                        ***
+    ## logFC_long$tissueGonad:logFC_long$biasMB    
+    ## logFC_long$tissueLiver:logFC_long$biasMB ***
+    ## logFC_long$tissueGonad:logFC_long$biasNB ***
+    ## logFC_long$tissueLiver:logFC_long$biasNB ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 1.278 on 122210 degrees of freedom
+    ## Multiple R-squared:  0.5029, Adjusted R-squared:  0.5028 
+    ## F-statistic: 1.545e+04 on 8 and 122210 DF,  p-value: < 2.2e-16
+
+The summary statistics confirm the assumptions made from the boxplots,
+female-biased genes in the liver and gill have a higher logFC compared
+to the male-biased genes, but male-biased genes in the gonads have a
+higher logFC compared to the female-biased. In all three organs,
+unbiased genes possess the lowest logFC. Interestingly, the highest
+logFC across tissues can be found in the liver, followed by the gill,
+and lastly the gonads.
+
+## Looking at shared sex-biased genes with an Upset plot
+
+I now want to see if there are genes that are female/male-biased in
+multiple organs or if there are genes that are female-biased in one
+organ and then male-biased in a different organ, etc. In order to do
+this I will be creating upset plots first for the sexes individually and
+then across all biased genes.
+
+<figure>
+<img
+src="fuscus_diff_expr_analysis_files/figure-gfm/upset-plot-mal-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs in males." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs in males.</figcaption>
+</figure>
+
+<figure>
+<img
+src="fuscus_diff_expr_analysis_files/figure-gfm/upset-plot-fem-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs in females." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs in females.</figcaption>
+</figure>
+
+<figure>
+<img
+src="fuscus_diff_expr_analysis_files/figure-gfm/upset-plot-all-1.png"
+alt="Upset plots to show the number of shared sex-biased genes across the organs across both sexes." />
+<figcaption aria-hidden="true">Upset plots to show the number of shared
+sex-biased genes across the organs across both sexes.</figcaption>
+</figure>
+
+In females, the highest number of shared sex-biased genes is found
+between the gonads and the liver, but in males, the highest number of
+shared sex-biased genes is found between the gills and the gonads. There
+are no genes that are shared across the same organ between males and
+females (i.e. biased in males and females in the liver) which is good.
+There are 3 and 2 genes that are biased in all three organs for males
+and females respectively. Overall, however, there is not a high amount
+of genes that are sex-biased in more than one organ type.
+
+## Categorizing sex-specific genes
+
+Now that we have investigated what the sex-bias is like across the
+different tissue types I want to dive further into genes with
+**sex-specific expression**. These are genes expressed only in one sex
+or the other. I am classifying a sex-specific genes within each tissue
+as ones where the expression of that gene is less than 10 for all of one
+sex and there is a median of $\ge 20$ in the other sex.
+
+Prior to running the for loop, any “outliers” that were determined by
+DESeq were removed from the pool of genes. Additionally, normalized
+counts were used for the classification of sex-specific genes as DESeq2
+uses the moralized counts for all of the logFC/sexbias calculations.
+
+``` r
+#Store all of the single factor analysis outputs in a list
+DE_models <- list(dds_FU_gill_exp, 
+                  dds_FU_gonad_exp, 
+                  dds_FU_liver_exp)
+
+#Create an empty list to store my sex-specific datasets in
+FU_sex_specific_genes <- list()
+
+#For each DESeq dataset in DE_models pull out the Mspecific and Fspecific
+#genes based on medians
+for (dataset in DE_models) {
+  
+  #Pull out the geneIDs for genes that were categorized as "outliers" by DESeq2
+  ##Calculate the Cooks threshold that would have been used
+  np <- length(resultsNames(dataset))
+  nsamp <- ncol(dataset)
+  cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp - np)
+  
+  ##Apply threshold calculated above to the cooks values in the dataset
+  out_ids <- names(mcols(dataset)$maxCooks[mcols(dataset)$maxCooks >
+                                                cooks_thresh])
+  
+  #Filtering the dds dataset to remove the outliers identified by DESeq
+  dataset_filtered <- dataset[!(rownames(dataset) %in% out_ids), ]
+  
+  
+  #Male-specific Genes
+  ##Pull out all of the rows where fem count <=10 in every female sample
+  fem10_organ_names <- which(rowSums(t(apply(counts(dataset_filtered,
+                                                    normalized = TRUE)[, dataset_filtered$Sex == "F"],
+                                             1,
+                                             function(x) x <= 10)
+                                       )
+                                     ) == ncol(counts(dataset_filtered, 
+                                                      normalized = TRUE)[, dataset_filtered$Sex == "F"])
+                             )
+  
+  fem10_organ <- counts(dataset_filtered,
+                        normalized = TRUE)[rownames(counts(dataset_filtered,
+                                                          normalized = TRUE)) %in%
+                                            names(fem10_organ_names),]
+  
+  ##Pull out the rows where median of male count >=50  
+  mal50_organ <- apply(counts(dataset_filtered,
+                              normalized = TRUE)[, dataset_filtered$Sex == "M"],
+                       1,
+                       function(x) median(x) >= 50)
+  
+  ##Keep only rows where all female samples <=10 and the male median >= 50
+  fem10_mal50_organ <- fem10_organ[rownames(fem10_organ) %in%
+                                     names(mal50_organ[mal50_organ == TRUE]),
+                                   ]
+  
+  ##Create a new object with a name based on the organ type
+  organ_malsp <- sub("$", "_male_specific", dataset$Organ[1])
+  FU_sex_specific_genes[[organ_malsp]] <- fem10_mal50_organ
+  
+  
+  #Female-specific Genes
+  ##Pull out ll the rows where male count is <=10 in every male sample
+  mal10_organ_names <- which(rowSums(t(apply(counts(dataset_filtered,
+                                                    normalized = TRUE)[, dataset_filtered$Sex == "M"],
+                                             1,
+                                             function(x) x <= 10)
+                                       )
+                                     ) == ncol(counts(dataset_filtered,
+                                                      normalized = TRUE)[, dataset_filtered$Sex == "M"])
+                             )
+  
+  mal10_organ <- counts(dataset_filtered,
+                        normalized = TRUE)[rownames(counts(dataset_filtered,
+                                                           normalized = TRUE)) %in%
+                                             names(mal10_organ_names), ]
+  
+  ##Pull out rows where median of female count is >=50 
+  fem50_organ <- apply(counts(dataset_filtered,
+                              normalized = TRUE)[, dataset_filtered$Sex == "F"],
+                       1,
+                       function(x) median(x) >= 50)
+  
+  ##keep only the rows where male <=10 and fem median >= 50
+  mal10_fem50_organ <- mal10_organ[rownames(mal10_organ) %in%
+                                     names(fem50_organ[fem50_organ == TRUE]),
+                                   ]
+  
+  ##Create a new object with a name based on the organ type
+  organ_femsp <- sub("$", "_female_specific", dataset$Organ[1])
+  FU_sex_specific_genes[[organ_femsp]] <- mal10_fem50_organ
+  
+}
+```
+
+### Investigating the results of the sex-specific subsetting
+
+Let’s now take a look at how many sex-specific genes we have in each
+tissue type:
+
+``` r
+ss_genes <- image_ggplot(image_read('docs/figs/sex_specific_genes_table.png'),interpolate = TRUE)
+
+ss_genes
+```
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/show-ss-table-1.png)<!-- -->
+
+To get a better idea what is going on between the sex-specific genes vs
+the sex-biased genes I first determined how many overlaps there were
+between our sex-biased and sex-specific genes and then used plotCounts
+to plot the counts for each gene separately.
+
+In the **Male Gills** there are 2 genes that overlap between sex-biased
+and sex-specific, there are 570 overlapping in the **gonads** and 18
+overlapping in the **liver**. For females we have 3 overlapping
+sex-specific and sex-biased genes in the **gills**, 412 genes in the
+**gonads**, and 13 genes in the **liver**.
+
+### Pulling out the gene IDs for all of the sex-specific genes
+
+``` r
+#Run once to create the file and then commented out
+write.table(cbind(rownames(FU_sex_specific_genes$Gill_male_specific)),
+            'data/FU_malG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gill_female_specific)),
+            'data/FU_femG_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gonad_male_specific)),
+            'data/FU_malGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Gonad_female_specific)),
+            'data/FU_femGon_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Liver_male_specific)),
+            'data/FU_malL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(FU_sex_specific_genes$Liver_female_specific)),
+            'data/FU_femL_specific_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```

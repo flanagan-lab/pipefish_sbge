@@ -1,7 +1,7 @@
 Tissue Specificity in *Syngnathus fuscus*
 ================
 Coley Tosto
-2024-07-31
+2024-12-06
 
 
 
@@ -22,11 +22,22 @@ Coley Tosto
     - [Gonads](#gonads)
     - [Liver](#liver)
     - [Gills](#gills)
+  - [Categories of sex bias vs $\tau$](#categories-of-sex-bias-vs-tau)
+    - [Within the sex-biased genes](#within-the-sex-biased-genes)
+    - [Across all significantly expressed
+      genes](#across-all-significantly-expressed-genes)
 
 ``` r
 #This is a cohesive list of all the libraries used in this document
 library(DESeq2)
 library(spfTools)
+library(ggplot2)
+library(EnvStats)
+library(dplyr)
+library(magick)
+library(patchwork)
+library(pdftools)
+library(tidyverse)
 ```
 
 ``` r
@@ -739,3 +750,530 @@ the liver (pink), the gills (blue), or none (black).</em></figcaption>
 There aren’t many biased genes in the gills, however, of the ones that
 are there is quite a mix in terms of which tissue is showing the highest
 overall expression.
+
+## Categories of sex bias vs $\tau$
+
+To further investigate the relationship between $\tau$ and sex biased
+and possibly get a cleaner idea of what may be going on I categorized
+the sex biased genes based on a series of logFC thresholds. After that I
+can plot $\tau$ against the bias level.
+
+### Within the sex-biased genes
+
+I am first going to combine all of the individual organ datasets
+together in a long format dataset which includes information about the
+tissue, the logFC, the geneID, tau, and the organ it has the highest
+expression in.
+
+After that I am going to categorize all of the sex-biased genes based on
+logFC into different types of bias levels, the same way that I did for
+the differential expression.
+
+``` r
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long <- data.frame(tissue=c(rep("Gill", nrow(gill_bias_tau)),
+                                  rep("Gonad", nrow(gonad_bias_tau)),
+                                  rep("Liver", nrow(liver_bias_tau))),
+                         logFC=c(gill_bias_tau$log2FoldChange,
+                                 gonad_bias_tau$log2FoldChange,
+                                 liver_bias_tau$log2FoldChange),
+                         geneID=c(gill_bias_tau$Row.names,
+                                  gonad_bias_tau$Row.names,
+                                  liver_bias_tau$Row.names),
+                         tau=c(gill_bias_tau$tau,
+                               gonad_bias_tau$tau,
+                               liver_bias_tau$tau),
+                         organ_exp=c(gill_bias_tau$organ,
+                                     gonad_bias_tau$organ,
+                                     liver_bias_tau$organ)
+                         )
+
+#Add a column to denote female-biased or male biased
+logFC_long$bias <- ifelse(logFC_long$logFC < 0, 
+                          paste0("FB"), 
+                          paste0("MB"))
+
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(abs(logFC_long$logFC) >= 2 
+                              & abs(logFC_long$logFC) < 3,
+                              biased_bins[1],
+                                   ifelse(abs(logFC_long$logFC) >= 3 
+                                          & abs(logFC_long$logFC) < 5,
+                                          biased_bins[2],
+                                          ifelse(abs(logFC_long$logFC) >= 5 &
+                                                   abs(logFC_long$logFC) < 10,
+                                                 biased_bins[3], 
+                                                 biased_bins[4])
+                                          )
+                                   )
+
+#Making sure the ordering stays correct
+logFC_long$bias_cat <- factor(logFC_long$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long, "data/logFC_long_taubiasSB.csv", row.names = FALSE)
+```
+
+<figure>
+<img
+src="fuscus_tissue_specificity_files/figure-gfm/tau-v-biascat-plot-1.png"
+alt="Tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased and jitters were added to show all of the raw tau values." />
+<figcaption aria-hidden="true"><em>Tissue specifcity (tau) across the
+different bias levels. Color denotes female-biased versus male biased
+and jitters were added to show all of the raw tau
+values.</em></figcaption>
+</figure>
+
+### Across all significantly expressed genes
+
+I want to see how $\tau$ in unbiased genes compares to these categories
+as well. To do that I recreated the long-style dataset to include all of
+the sig. expressed genes rather than just the sex-biased genes.
+
+Similar to last time, I first need to combine all of the tissue specific
+datasets together in the long format and then I need to categorize all
+of the genes again.
+
+``` r
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_long_all <- data.frame(tissue=c(rep("Gill", nrow(gill_bias_tau_all)),
+                                      rep("Gonad", nrow(gonad_bias_tau_all)),
+                                      rep("Liver", nrow(liver_bias_tau_all))
+                                      ),
+                             logFC=c(gill_bias_tau_all$log2FoldChange,
+                                     gonad_bias_tau_all$log2FoldChange,
+                                     liver_bias_tau_all$log2FoldChange
+                                     ),
+                             geneID=c(gill_bias_tau_all$Row.names,
+                                      gonad_bias_tau_all$Row.names,
+                                      liver_bias_tau_all$Row.names
+                                      ),
+                             tau=c(gill_bias_tau_all$tau,
+                                   gonad_bias_tau_all$tau,
+                                   liver_bias_tau_all$tau
+                                   ),
+                             padj=c(gill_bias_tau_all$padj,
+                                    gonad_bias_tau_all$padj,
+                                    liver_bias_tau_all$padj),
+                             organ_exp=c(gill_bias_tau_all$organ,
+                                         gonad_bias_tau_all$organ,
+                                         liver_bias_tau_all$organ)
+                             )
+
+#Add a column to denote female-biased or male biased
+logFC_long_all$bias <- ifelse(logFC_long_all$logFC <= -2 & 
+                                logFC_long_all$padj <= 0.05,
+                              paste0("FB"),
+                              ifelse(logFC_long_all$logFC >= 2 &
+                                       logFC_long_all$padj <= 0.05,
+                                     paste0("MB"),
+                                     paste0("UB")
+                                     )
+                              )
+  
+#Categorize the degree of sex bias in each row
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long_all$bias_cat <- ifelse(logFC_long_all$bias == "UB", 
+                              biased_bins[1],
+                              ifelse(abs(logFC_long_all$logFC) >= 2 &
+                                       abs(logFC_long_all$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long_all$logFC) >= 3 &
+                                              abs(logFC_long_all$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long_all$logFC) >= 5 &
+                                                     abs(logFC_long_all$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+  
+
+#Making sure the ordering stays correct
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+```
+
+As a bit of a side quest, I am also interested in looking at how the
+male expression compares to the female expression for all of the
+sex-biased genes across the organs.
+
+``` r
+#Looking at the relationship between male expression and female expression
+organs <- c(unique(logFC_long_all$tissue))
+
+dds_FU_exp$Organ <- ifelse(dds_FU_exp$Organ %in% c("Ovaries", "Testis"),
+                           paste0("Gonad"), 
+                           paste0(dds_FU_exp$Organ))
+
+bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
+
+#pdf("docs/figs/Fig_MFexpression.pdf", width = 10, height=4)
+
+par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(1,1,1,0))
+
+for (organ in organs) {
+  
+  tmp <- as.data.frame(counts(dds_FU_exp, normalized = TRUE)[, dds_FU_exp$Organ == organ])
+  
+  tmp$Fmedian <- apply(tmp[, grep("F\\d", colnames(tmp))], 1, median)
+  tmp$Mmedian <- apply(tmp[, grep("M", colnames(tmp))], 1, median)
+  
+  tmp <- tmp[rownames(tmp) %in% logFC_long_all[logFC_long_all$tissue == organ, ]$geneID, ]
+  
+  tmp <- merge(tmp, logFC_long_all[logFC_long_all$tissue == organ, ],
+               by.x = 0, 
+               by.y = "geneID", 
+               all = TRUE)
+  ymax <- max(log(tmp$Mmedian+0.01), na.rm = TRUE) + 1
+  xmax <- max(log(tmp$Fmedian+0.01), na.rm = TRUE) + 1
+  
+  plot(log(tmp$Fmedian+0.01), log(tmp$Mmedian+0.01),
+       #ylab = expression('log'[2] * '(Male Expression)'),
+       #xlab = expression('log'[2] * '(Female Expression)'),
+       axes=FALSE,
+       cex.main=2,
+       #main = organ,
+       col = bias_colors[tmp$bias],
+       pch = 19,
+       cex = ifelse(organ != "Gonad" & tmp$bias %in% c("MB", "FB"),
+                    0.75,
+                    0.25),
+       ylim = c(0, ymax),
+       xlim = c(0, xmax))
+  
+  
+  
+  #Make the axis lines longer and thicker
+  axis(1, labels=seq(-2, xmax, 2), 
+       line=NA, at=seq(-2, xmax, 2), 
+       lwd=2,xlim=c(0, xmax),cex.axis=1.5,las=1)
+  axis(2, labels=seq(-2, ymax, 2),
+       line=NA, at=seq(-2, ymax, 2), 
+       lwd=2, ylim=c(0,ymax),cex.axis=1.5,las=1)
+  
+  mtext(organ, cex=1.5,outer=FALSE, line=-1)
+  
+}
+
+# add x axis label
+mtext(expression('log'[2] * '(Female Expression)'), side = 1, cex=1.25, outer=TRUE, line=2)
+
+# add y axis label
+mtext(expression('log'[2] * '(Male Expression)'), side = 2, cex=1.25, outer=TRUE, line=2)
+
+# add legend
+spfTools::outer_legend("right",
+                       legend=c("Female\nbiased",
+                                "Male\nbiased",
+                                "Unbiased"),
+                       pt.bg=bias_colors,
+                       pch=22,
+                       bty='n',
+                       ncol=1,
+                       cex=2,
+                       y.intersp = 1.5,
+                       pt.cex=2)
+```
+
+<figure>
+<img
+src="fuscus_tissue_specificity_files/figure-gfm/mvf-expression-1.png"
+alt="Compare the male median expression to the female median expression for all male- and female-biased genes in the gonads, liver, and gills." />
+<figcaption aria-hidden="true"><em>Compare the male median expression to
+the female median expression for all male- and female-biased genes in
+the gonads, liver, and gills.</em></figcaption>
+</figure>
+
+``` r
+#dev.off()
+```
+
+I also want to include the sex-specific genes in this comparison against
+$\tau$, so I need to pull those out again. The list of these genes was
+orignially generated during the differential expression analysis.
+
+``` r
+#Specify the directory where Sex-specific gene files are located
+ss_genes_path <- "data"
+
+#Create a list of the files I want
+FU_sex_specific_genes_files <- list.files(ss_genes_path, 
+                                          pattern = "specific")
+
+#Create an empty list to store my datasets in
+FU_sex_specific_genes <- list()
+
+#Create a loop to read in all of the sex-specific genes
+for(file_name in FU_sex_specific_genes_files){
+  
+  # Read the file and store it in a new object
+  file_data <- read.table(file.path(ss_genes_path, file_name))
+  
+  #Add column names to the dataset
+  colnames(file_data) <- c("trin_geneid")
+  
+  # Create a new object with a name based on the file name
+  ss_name <- sub("_TRgenes.txt$", "", file_name) #Removes the file extension
+  FU_sex_specific_genes[[ss_name]] <- file_data
+}
+```
+
+Now that I have the list of sex-specific genes, I can add that
+information to the growing dataset that I built before
+(`logFC_long_all`).
+
+``` r
+#Changing the bias category for the genes we just labeled as sex-specific
+organs <- c("Gill", "Gonad", "Liver",
+            "Gill", "Gonad", "Liver")
+bias <- c("FB", "FB", "FB",  
+          "MB", "MB", "MB")
+
+for(i in 1:length(FU_sex_specific_genes)){
+  
+  tmp <- FU_sex_specific_genes[[i]]
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    if (one_gene %in% row.names(tau)){
+      
+    if(one_gene %in%
+       logFC_long_all[logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"gene_ID"]){
+       
+       logFC_long_all[logFC_long_all$geneID == one_gene &
+                      logFC_long_all$tissue == organs[[i]] &
+                      logFC_long_all$bias == bias[[i]],"bias_cat"
+                      ] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long_all),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long_all)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene
+      one_gene_dat$tau <- tau[row.names(tau) == one_gene,]$tau
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long_all <- rbind(one_gene_dat, logFC_long_all)
+      
+      rownames(logFC_long_all) <- NULL
+    }
+    }  
+  }
+}
+
+#Making sure the ordering stays correct
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+    levels = biased_bins, ordered = TRUE)
+
+#write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
+```
+
+Now that the dataset is properly curated, I can plot all of the
+information:
+
+    ## png 
+    ##   2
+
+<figure>
+<img
+src="fuscus_tissue_specificity_files/figure-gfm/tau-v-biascat-plot-all-vp-1.png"
+alt="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values." />
+<figcaption aria-hidden="true">Violin plot showing tissue specifcity
+(tau) across the different bias levels. Color denotes female-biased
+versus male biased versus unbiased and jitters were added to show all of
+the raw tau values.</figcaption>
+</figure>
+
+    ## png 
+    ##   2
+
+``` r
+logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
+                                levels = c("Gonad", "Liver", "Gill"), 
+                                ordered = TRUE)
+
+organ_cols <- c("Gill" = "#20B2AA", 
+                "Gonad" = "#EEB422", 
+                "Liver" = "#EE8262")
+
+organs <- levels(logFC_long_all$tissue)
+
+pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+par(oma = c(2,2,1,2),
+    mar = c(2,2,1,2),
+    xpd = FALSE)
+
+plot(logFC_long_all$tau[logFC_long_all$tissue=="Gonad"]~
+       sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue=="Gonad"])),
+     xlim = c(0, 6),
+     ylim = c(0, 1),
+     xlab = "",
+     ylab = "",
+     bty = "n",
+     type = 'n',
+     axes = FALSE)
+
+axis(1, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las=1)
+axis(2, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las = 1)
+
+clip(0, 6, 0, 1)
+
+for(organ in organs){
+  
+  points(logFC_long_all$tau[logFC_long_all$tissue==organ]~
+           sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue==organ])),
+         col = paste0(organ_cols[organ],"50"),
+         pch = 19)
+
+}
+
+for(organ in organs){
+  
+  abline(lm(logFC_long_all$tau[logFC_long_all$tissue==organ]~
+              sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue==organ]))),
+         col = ifelse(organ == "Gill",
+                      "#6E8B3D",
+                      organ_cols[organ]),
+         lwd = 3,
+         lty = which(organs %in% organ),
+         xpd = FALSE)
+  
+}
+
+outer_legend("top",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 3)
+
+outer_legend("top",
+             c("               ", "            ", "     "),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             bty = 'n',
+             cex = 1.5,
+             ncol = 3)
+
+mtext("|log fold change|",1,cex=2, line=2)
+mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+``` r
+figtaua <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_biascat_violins.pdf'),interpolate = TRUE)
+figtaub <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_sexbias.pdf'),interpolate = TRUE)
+
+
+figtau<-wrap_plots(
+  figtaub,
+  figtaua,
+  ncol=2
+)
+figtau<-figtau + plot_annotation(tag_levels = 'A')
+figtau
+```
+
+![](fuscus_tissue_specificity_files/figure-gfm/figcomb-1.png)<!-- -->
+
+``` r
+ggsave("docs/figs/FigTau.pdf",figtau,height = 4, width=16)
+ggsave("docs/figs/FigTau.png",figtau,height = 4, width=16)
+```
+
+``` r
+logFC_noMB <- logFC_long_all[logFC_long_all$bias != "MB", ]
+logFC_noMB$tissue <- factor(logFC_noMB$tissue, 
+                            levels = c("Gonad", "Liver", "Gill"), 
+                            ordered = TRUE)
+
+pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+par(oma = c(2,2,1,2),
+    mar = c(2,2,1,2),
+    xpd = FALSE)
+
+plot(logFC_noMB$tau[logFC_noMB$tissue=="Gonad"]~
+       sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue=="Gonad"])),
+     xlim = c(0, 6),
+     ylim = c(0, 1),
+     xlab = "",
+     ylab = "",
+     bty = "n",
+     type = 'n',
+     axes = FALSE)
+
+axis(1, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las=1)
+axis(2, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las = 1)
+
+clip(0, 6, 0, 1)
+
+for(organ in organs){
+  
+  points(logFC_noMB$tau[logFC_noMB$tissue==organ]~
+           sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue==organ])),
+         col = paste0(organ_cols[organ],"50"),
+         pch = 19)
+
+}
+
+for(organ in organs){
+  
+  abline(lm(logFC_noMB$tau[logFC_noMB$tissue==organ]~
+              sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue==organ]))),
+         col = ifelse(organ == "Gill",
+                      "#6E8B3D",
+                      organ_cols[organ]),
+         lwd = 3,
+         lty = which(organs %in% organ),
+         xpd = FALSE)
+  
+}
+
+outer_legend("top",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 3)
+
+outer_legend("top",
+             c("               ", "            ", ""),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             bty = 'n',
+             cex = 1.5,
+             ncol = 3)
+
+mtext("|log fold change|",1,cex=2, line=2)
+mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
+dev.off()
+```
+
+    ## png 
+    ##   2

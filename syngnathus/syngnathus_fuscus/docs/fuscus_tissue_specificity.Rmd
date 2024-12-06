@@ -30,6 +30,10 @@ library(spfTools)
 library(ggplot2)
 library(EnvStats)
 library(dplyr)
+library(magick)
+library(patchwork)
+library(pdftools)
+library(tidyverse)
 ```
 
 ``` {r read-data, message = FALSE, warning = FALSE}
@@ -943,4 +947,252 @@ logFC_long_all %>%
 
 dev.off()
 
+```
+
+```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+
+plotdat <- ggplot(logFC_long_all,
+       aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+
+  labs(x="Bias Category", y=expression(tau["TPM"])) +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+plotdat + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["MB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "FB",], aes(x=as.numeric(bias_cat)-0.185, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["FB"],
+          col="black",pch=21
+          ) + 
+geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, y=tau),
+          size=0.6, 
+          position = position_jitter(width = 0.15),
+          bg=my_colors["UB"],
+          col="black",pch=21)
+```
+
+```{r tau-v-biascat-plot-all-vp2, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased."}
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+bias_labs<-c("U","L", "M", "H", "E", "S")
+
+pdf("docs/figs/Fig_tau_biascat_violins.pdf",width = 12, height=3.75)
+logFC_long_all %>%
+  ggplot(aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(position = position_dodge(), draw_quantiles = c(0.5)) +
+  scale_x_discrete(labels= bias_labs) +
+  geom_boxplot(width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=16)) +
+  
+  labs(x="Bias Category", y=expression(tau["TPM"]))  +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "FB",], 
+              aes(x=bias_cat, y=tau),
+              #hjust = 1.2,
+              #vjust = -2,
+              y.pos = -0.05,
+              color=my_colors["FB"]
+              ) +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "MB",], 
+              aes(x=bias_cat, y=tau),
+             # hjust = -0.2,
+              #vjust = 2,
+              y.pos = 0.95,
+             color=my_colors["MB"]
+              ) +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "UB",], 
+              aes(x=bias_cat, y=tau),
+              #vjust = -4 ,
+              y.pos=-0.05,
+              color=my_colors["UB"]
+              ) +
+  guides(fill = guide_legend(title = "Bias", order = 3))
+dev.off()
+
+```
+
+```{r}
+logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
+                                levels = c("Gonad", "Liver", "Gill"), 
+                                ordered = TRUE)
+
+organ_cols <- c("Gill" = "#20B2AA", 
+                "Gonad" = "#EEB422", 
+                "Liver" = "#EE8262")
+
+organs <- levels(logFC_long_all$tissue)
+
+pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+par(oma = c(2,2,1,2),
+    mar = c(2,2,1,2),
+    xpd = FALSE)
+
+plot(logFC_long_all$tau[logFC_long_all$tissue=="Gonad"]~
+       sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue=="Gonad"])),
+     xlim = c(0, 6),
+     ylim = c(0, 1),
+     xlab = "",
+     ylab = "",
+     bty = "n",
+     type = 'n',
+     axes = FALSE)
+
+axis(1, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las=1)
+axis(2, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las = 1)
+
+clip(0, 6, 0, 1)
+
+for(organ in organs){
+  
+  points(logFC_long_all$tau[logFC_long_all$tissue==organ]~
+           sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue==organ])),
+         col = paste0(organ_cols[organ],"50"),
+         pch = 19)
+
+}
+
+for(organ in organs){
+  
+  abline(lm(logFC_long_all$tau[logFC_long_all$tissue==organ]~
+              sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue==organ]))),
+         col = ifelse(organ == "Gill",
+                      "#6E8B3D",
+                      organ_cols[organ]),
+         lwd = 3,
+         lty = which(organs %in% organ),
+         xpd = FALSE)
+  
+}
+
+outer_legend("top",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 3)
+
+outer_legend("top",
+             c("               ", "            ", "     "),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             bty = 'n',
+             cex = 1.5,
+             ncol = 3)
+
+mtext("|log fold change|",1,cex=2, line=2)
+mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
+dev.off()
+```
+
+```{r figcomb, message=FALSE}
+figtaua <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_biascat_violins.pdf'),interpolate = TRUE)
+figtaub <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_sexbias.pdf'),interpolate = TRUE)
+
+
+figtau<-wrap_plots(
+  figtaub,
+  figtaua,
+  ncol=2
+)
+figtau<-figtau + plot_annotation(tag_levels = 'A')
+figtau
+
+ggsave("docs/figs/FigTau.pdf",figtau,height = 4, width=16)
+ggsave("docs/figs/FigTau.png",figtau,height = 4, width=16)
+
+```
+
+```{r}
+
+logFC_noMB <- logFC_long_all[logFC_long_all$bias != "MB", ]
+logFC_noMB$tissue <- factor(logFC_noMB$tissue, 
+                            levels = c("Gonad", "Liver", "Gill"), 
+                            ordered = TRUE)
+
+pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+par(oma = c(2,2,1,2),
+    mar = c(2,2,1,2),
+    xpd = FALSE)
+
+plot(logFC_noMB$tau[logFC_noMB$tissue=="Gonad"]~
+       sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue=="Gonad"])),
+     xlim = c(0, 6),
+     ylim = c(0, 1),
+     xlab = "",
+     ylab = "",
+     bty = "n",
+     type = 'n',
+     axes = FALSE)
+
+axis(1, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las=1)
+axis(2, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las = 1)
+
+clip(0, 6, 0, 1)
+
+for(organ in organs){
+  
+  points(logFC_noMB$tau[logFC_noMB$tissue==organ]~
+           sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue==organ])),
+         col = paste0(organ_cols[organ],"50"),
+         pch = 19)
+
+}
+
+for(organ in organs){
+  
+  abline(lm(logFC_noMB$tau[logFC_noMB$tissue==organ]~
+              sqrt(abs(logFC_noMB$logFC[logFC_noMB$tissue==organ]))),
+         col = ifelse(organ == "Gill",
+                      "#6E8B3D",
+                      organ_cols[organ]),
+         lwd = 3,
+         lty = which(organs %in% organ),
+         xpd = FALSE)
+  
+}
+
+outer_legend("top",
+             c("Gonad", "Liver", "Gill"),
+             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             lwd = 3,
+             bty = 'n',
+             cex = 1.5,
+             lty = 1:3,
+             ncol = 3)
+
+outer_legend("top",
+             c("               ", "            ", ""),
+             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             pch = 21,
+             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             bty = 'n',
+             cex = 1.5,
+             ncol = 3)
+
+mtext("|log fold change|",1,cex=2, line=2)
+mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
+dev.off()
 ```
