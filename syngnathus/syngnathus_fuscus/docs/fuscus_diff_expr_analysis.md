@@ -1,7 +1,7 @@
 Differential Expression Analysis in *Syngnathus fuscus*
 ================
 Coley Tosto
-2024-07-16
+2024-12-16
 
 
 
@@ -44,6 +44,26 @@ Coley Tosto
       subsetting](#investigating-the-results-of-the-sex-specific-subsetting)
     - [Pulling out the gene IDs for all of the sex-specific
       genes](#pulling-out-the-gene-ids-for-all-of-the-sex-specific-genes)
+  - [Creating categories and binning the sex-biased genes based on
+    degree of
+    logFC](#creating-categories-and-binning-the-sex-biased-genes-based-on-degree-of-logfc)
+  - [Create a combined figure](#create-a-combined-figure)
+- [Gene Ontologogy Analysis and BLASTing the different
+  genes](#gene-ontologogy-analysis-and-blasting-the-different-genes)
+  - [BLASTING against the zebrafish
+    proteome](#blasting-against-the-zebrafish-proteome)
+  - [Read in and filter the BLAST
+    results](#read-in-and-filter-the-blast-results)
+  - [Collect gene names corresponding to each protein -sex-biased
+    genes](#collect-gene-names-corresponding-to-each-protein--sex-biased-genes)
+  - [Pull out the gene names and protein ID for sex-specific
+    BLAST](#pull-out-the-gene-names-and-protein-id-for-sex-specific-blast)
+  - [Reading in the PANTHER results - Sex-biased
+    Genes](#reading-in-the-panther-results---sex-biased-genes)
+  - [Looking at GO groups for the male- and female-biased
+    genes](#looking-at-go-groups-for-the-male--and-female-biased-genes)
+  - [Create combined Gene Ontology
+    Figure](#create-combined-gene-ontology-figure)
 
 ``` r
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
@@ -151,11 +171,11 @@ resOrdered
     ## DataFrame with 193637 rows and 6 columns
     ##                        baseMean log2FoldChange     lfcSE      stat      pvalue
     ##                       <numeric>      <numeric> <numeric> <numeric>   <numeric>
-    ## TRINITY_DN22310_c0_g1  804.2311        27.6241   1.89885   14.5477 6.03588e-48
-    ## TRINITY_DN13824_c0_g1   92.1347        25.5625   1.92144   13.3039 2.19823e-40
+    ## TRINITY_DN22310_c0_g1  804.2311        27.6241   1.89885   14.5477 6.03587e-48
+    ## TRINITY_DN13824_c0_g1   92.1347        25.5625   1.92144   13.3039 2.19822e-40
     ## TRINITY_DN35004_c1_g2  129.5764        26.0372   2.10520   12.3680 3.89194e-35
-    ## TRINITY_DN34941_c0_g1  260.2356        27.0195   2.24241   12.0493 1.95581e-33
-    ## TRINITY_DN9279_c0_g1    23.3464        23.3498   1.95493   11.9441 6.97254e-33
+    ## TRINITY_DN34941_c0_g1  260.2356        27.0195   2.24241   12.0493 1.95608e-33
+    ## TRINITY_DN9279_c0_g1    23.3464        23.3489   1.95493   11.9436 7.00895e-33
     ## ...                         ...            ...       ...       ...         ...
     ## TRINITY_DN99935_c0_g1         0              0         0         0           1
     ## TRINITY_DN99938_c0_g1         0              0         0         0           1
@@ -164,11 +184,11 @@ resOrdered
     ## TRINITY_DN99973_c0_g1         0              0         0         0           1
     ##                              padj
     ##                         <numeric>
-    ## TRINITY_DN22310_c0_g1 3.82524e-43
-    ## TRINITY_DN13824_c0_g1 6.96563e-36
+    ## TRINITY_DN22310_c0_g1 3.82523e-43
+    ## TRINITY_DN13824_c0_g1 6.96562e-36
     ## TRINITY_DN35004_c1_g2 8.22172e-31
-    ## TRINITY_DN34941_c0_g1 3.09873e-29
-    ## TRINITY_DN9279_c0_g1  8.83769e-29
+    ## TRINITY_DN34941_c0_g1 3.09916e-29
+    ## TRINITY_DN9279_c0_g1  8.88384e-29
     ## ...                           ...
     ## TRINITY_DN99935_c0_g1          NA
     ## TRINITY_DN99938_c0_g1          NA
@@ -413,6 +433,9 @@ outer_legend("top",
 dev.off()
 ```
 
+    ## png 
+    ##   2
+
 ``` r
 #Create the blank pdf to store the plot in
 pdf("docs/figs/Fig_PCA1v3.pdf",height = 6,width=6)
@@ -445,6 +468,9 @@ outer_legend("top",
 
 dev.off()
 ```
+
+    ## png 
+    ##   2
 
 ``` r
 #Create the blank pdf to store the plot in
@@ -490,6 +516,9 @@ outer_legend("topright",
              pt.cex = 2.25)
 dev.off()
 ```
+
+    ## png 
+    ##   2
 
 #### Creating heatmaps based on the PCA axes
 
@@ -546,11 +575,18 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
                 fontsize = 16,
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC1")
+```
 
+![](fuscus_diff_expr_analysis_files/figure-gfm/figheatmap-PC1-1.png)<!-- -->
+
+``` r
 save_pheatmap_pdf(pc1, "docs/figs/Fig_pc1_heatmap.pdf",
                   width=6,
                   height=6)
 ```
+
+    ## png 
+    ##   2
 
 ``` r
 pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order], 
@@ -564,11 +600,18 @@ pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order],
                 fontsize = 16,
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC2")
+```
 
+![](fuscus_diff_expr_analysis_files/figure-gfm/figheatmap-PC2-1.png)<!-- -->
+
+``` r
 save_pheatmap_pdf(pc2, "docs/figs/Fig_pc2_heatmap.pdf",
                   width=6,
                   height=6)
 ```
+
+    ## png 
+    ##   2
 
 ``` r
 pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order], 
@@ -582,11 +625,18 @@ pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order],
                 fontsize = 16,
                 border_color = NA,
                 main = "Top loading genes on PC3")
+```
 
+![](fuscus_diff_expr_analysis_files/figure-gfm/figheatmap-PC3-1.png)<!-- -->
+
+``` r
 save_pheatmap_pdf(pc3, "docs/figs/Fig_pc3_heatmap.pdf",
                   width=6,
                   height=6)
 ```
+
+    ## png 
+    ##   2
 
 ``` r
 pc4 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,4]) >= 0.02), col_order], 
@@ -600,11 +650,18 @@ pc4 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,4]) >= 0.02), col_order],
                 fontsize = 16,
                 border_color = NA,
                 main = "Top loading genes on PC4")
+```
 
+![](fuscus_diff_expr_analysis_files/figure-gfm/figheatmap-PC4-1.png)<!-- -->
+
+``` r
 save_pheatmap_pdf(pc4, "docs/figs/Fig_pc4_heatmap.pdf",
                   width=6,
                   height=6)
 ```
+
+    ## png 
+    ##   2
 
 #### Making the combined figure
 
@@ -1236,14 +1293,8 @@ FU_logFC_long <- data.frame(
 
 With the dataset in the proper format now, we can generate the plot
 
-<figure>
-<img src="fuscus_diff_expr_analysis_files/figure-gfm/FC-var-plot-1.png"
-alt="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters." />
-<figcaption aria-hidden="true">Absolute value of the logFC for genes
-that are female-biased, male-biased, and unbiased across each tissue
-type. Raw fold-change values are added ontop of the boxplot as
-jitters.</figcaption>
-</figure>
+    ## png 
+    ##   2
 
 There are some weird patterns popping up in this analysis. The first one
 is the magnitude of differences in male- and female-biased genes in the
@@ -1524,15 +1575,8 @@ logFC_long <- data.frame(
 After re-creating the long version of the dataset I can re-generate the
 plot.
 
-<figure>
-<img
-src="fuscus_diff_expr_analysis_files/figure-gfm/FC-var-plot-SFanalysis-1.png"
-alt="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added ontop of the boxplot as jitters." />
-<figcaption aria-hidden="true">Absolute value of the logFC for genes
-that are female-biased, male-biased, and unbiased across each tissue
-type. Raw fold-change values are added ontop of the boxplot as
-jitters.</figcaption>
-</figure>
+    ## png 
+    ##   2
 
 The weird pattern does appear to still be there for the male-biased
 genes in the liver. I am going to look more in detail to the expression
@@ -1588,7 +1632,7 @@ tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
 
     ##         Gill    Gonad    Liver
     ## FB 4.0337608 2.211555 7.289603
-    ## MB 2.1559514 1.605536 9.545260
+    ## MB 2.1559514 1.605536 9.545186
     ## NB 0.6580531 1.328525 1.293784
 
 ``` r
@@ -1602,7 +1646,7 @@ summary(model)
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -9.6367 -0.6204 -0.2737  0.3451 20.8980 
+    ## -9.6366 -0.6204 -0.2737  0.3451 20.8980 
     ## 
     ## Coefficients:
     ##                                          Estimate Std. Error t value Pr(>|t|)
@@ -1793,13 +1837,14 @@ for (dataset in DE_models) {
 Let’s now take a look at how many sex-specific genes we have in each
 tissue type:
 
-``` r
-ss_genes <- image_ggplot(image_read('docs/figs/sex_specific_genes_table.png'),interpolate = TRUE)
-
-ss_genes
-```
-
-![](fuscus_diff_expr_analysis_files/figure-gfm/show-ss-table-1.png)<!-- -->
+| tissue | sex | num_genes |
+|:-------|:----|----------:|
+| Gill   | M   |        12 |
+| Gonad  | M   |       624 |
+| Liver  | M   |        18 |
+| Gill   | F   |         9 |
+| Gonad  | F   |       447 |
+| Liver  | F   |        14 |
 
 To get a better idea what is going on between the sex-specific genes vs
 the sex-biased genes I first determined how many overlaps there were
@@ -1851,5 +1896,943 @@ write.table(cbind(rownames(FU_sex_specific_genes$Liver_female_specific)),
             sep = "", 
             quote=FALSE, 
             row.names = FALSE, 
+            col.names = FALSE)
+```
+
+## Creating categories and binning the sex-biased genes based on degree of logFC
+
+This binned was only done on the sex-biased genes, will not have a
+category for the unbiased genes. The cutoffs for the different groups
+are as follows:
+
+    1. Low - biased = LFC 2 - 3
+    2. Medium - biased = LFC 3 - 5
+    3. High - biased = LFC 5 - 10
+    4. Extreme sex bias = LFC > 10
+
+Counts of the sex-specific genes will be added on separately as they
+were not classified based on fold-change but rather a presence in one
+sex and an absence in the other sex. A for loop will then be used to
+make sure genes are not counted twice (i.e. as both extremely biased and
+sex-specific).
+
+``` r
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(logFC_long$bias == "NB",
+                              biased_bins[1],
+                              ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10,
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              )
+
+#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their 
+#bias cat. in the dataset
+organs <- c("Gill", "Gill", "Gonad", "Gonad", "Liver", "Liver")
+bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
+
+for(i in 1:length(FU_sex_specific_genes)){
+
+  tmp <- FU_sex_specific_genes[[i]]
+  tmp <- as.data.frame(tmp)
+  tmp$geneID <- rownames(tmp)
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    
+    if(one_gene[["geneID"]] %in%
+       logFC_long[logFC_long$tissue == organs[[i]] &
+                  logFC_long$bias == bias[[i]],"geneID"]){
+       
+      logFC_long[logFC_long$geneID == one_gene[["geneID"]] &
+                   logFC_long$tissue == organs[[i]] &
+                   logFC_long$bias == bias[[i]],
+                 "bias_cat"] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene[["geneID"]]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long <- rbind(one_gene_dat, logFC_long)
+      
+      rownames(logFC_long) <- NULL
+    }
+  }
+ }
+
+#Create  subset of our long dataset that does not include the non-biased genes
+logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
+
+#Make a table to count the number of genes in each category for each organ
+bias_cat_table <- table(logFC_long_noNB$bias, logFC_long_noNB$bias_cat, logFC_long_noNB$tissue)
+
+#Seperate out the different organs
+bias_cat_gill <- bias_cat_table[,, "Gill"]
+#write.table(bias_cat_gill, "data/bias_cat_gills.txt", row.names = TRUE)
+
+bias_cat_gonad <- bias_cat_table[,, "Gonad"]
+#write.table(bias_cat_gonad, "data/bias_cat_gonad.txt", row.names = TRUE)
+
+bias_cat_liver <- bias_cat_table[,, "Liver"]
+write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+
+#Plot the counts for each tissue type
+sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4" )
+labs <- c("Low", "Med", "High", "Extreme", "Specific")
+
+pdf("docs/figs/FigSB_biasCat_counts.pdf",width = 10, height=4)
+
+par(mfrow=c(1, 3), oma=c(6,4,2,8), mar=c(1,2.5,1,0), 
+    cex.main=2,
+    cex.axis=2)
+
+bp <- barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], 
+        beside = TRUE,
+        xaxt='n',
+        ylim = c(0, max(bias_cat_gill)+5), 
+        col = sex_cols,
+        main = "")
+mtext("Gill",3,outer = FALSE,cex=1.5,line=-1)
+axis(2,lwd=2)
+text(cex=2, x=colMeans(bp), y=-0.5, labs, xpd=NA, srt=35, adj = 1)
+
+barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], 
+        beside = TRUE, 
+        ylim = c(0, max(bias_cat_gonad)+1000), 
+        xaxt='n',
+        col = sex_cols,
+        main = "",
+        cex.main=2,
+        cex.axis=2)
+mtext("Gonad",3,outer = FALSE,cex=1.5,line=-1)
+axis(2,lwd=2,labels = NA)
+text(cex=2, x=colMeans(bp), y=-100, labs, xpd=NA, srt=35, adj=1)
+
+barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], 
+        beside = TRUE, 
+        ylim = c(0, max(bias_cat_liver)+20), 
+        xaxt='n',
+        col = sex_cols,
+        main = "",
+        cex.main=2,
+        cex.axis=2)
+axis(2,lwd=2, labels = NA)
+text(cex=2, x=colMeans(bp), y=-2, labs, xpd=NA, srt=35,adj=1)
+mtext("Liver",3,outer = FALSE,cex=1.5,line=-1)
+
+mtext("Number of Genes",2,outer=TRUE, cex=1.5, line=2.25)
+mtext("Bias category",1, outer=TRUE, cex=1.5, line=4)
+
+outer_legend("right", 
+       legend = c("Female\nbiased", "Male\nbiased"), 
+       pt.bg = sex_cols,
+       pch=22,
+       bty='n',
+       ncol=1,
+       cex=2,
+       y.intersp = 1.5,
+       pt.cex=2)
+
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+There is a weird pattern showing up in the liver where most of the male
+biased genes are showing an “Extreme” level of sex bias. With the
+heatmaps we created above, we likely guess that these extreme biased
+genes are the ones driven by those two male individuals.
+
+## Create a combined figure
+
+``` r
+figSBa <- image_ggplot(image_read_pdf('docs/figs/FigSF_logFC_boxplots.pdf'),interpolate = TRUE)
+figSBb <- image_ggplot(image_read_pdf('docs/figs/FigSB_biasCat_counts.pdf'),interpolate = TRUE)
+figSBc <- image_ggplot(image_read_pdf('docs/figs/FigSB_sexbias_upset.pdf'),interpolate = TRUE)
+
+
+figSB <- wrap_plots(figSBa,
+                    figSBb,
+                    nrow = 2)
+figSB <- figSB + plot_annotation(tag_levels = 'A')
+
+figSB_all <- wrap_plots(figSB,
+                        figSBc,
+                        ncol = 2)
+figSB_all <- figSB_all + plot_annotation(tag_levels = 'A')
+figSB_all
+```
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/figSB-1.png)<!-- -->
+
+``` r
+ggsave("docs/figs/FigSB.pdf", figSB_all, height=8, width=10)
+ggsave("docs/figs/FigSB.png", figSB_all, height=8, width=10)
+```
+
+``` r
+figHMa <- image_ggplot(image_read_pdf('docs/figs/liverMB_heatmap.pdf'),interpolate = TRUE)
+figHMb <- image_ggplot(image_read_pdf('docs/figs/liverFB_heatmap.pdf'),interpolate = TRUE)
+
+figSBHM <- wrap_plots(
+  figSBa,
+  figHMa,
+  figSBb,
+  figHMb,
+  ncol = 2,
+  nrow = 2)
+
+figSBHM <- figSBHM + plot_annotation(tag_levels = 'A')
+figSBHM
+
+ggsave("docs/figs/FigSBHM.pdf", figSBHM, height=8, width=10)
+ggsave("docs/figs/FigSBHM.png", figSBHM, height=8, width=10)
+```
+
+# Gene Ontologogy Analysis and BLASTing the different genes
+
+There are several things that I want to accomplish with the gene
+ontology analysis, to start with I want to classify the sex-biased genes
+and then the sex-specific genes.
+
+## BLASTING against the zebrafish proteome
+
+The first step to the GO analysis is to BLAST the trinity sequences
+against one of the PANTHER organisms. The zebrafish, *Danio reiro*, was
+used for this as it was the only fish in the list.
+
+A BLAST database was generated with the *D. reiro* proteome as:
+`makeblastdb -in ../ncbi_dataset/data/GCF_000002035.6/protein.faa -out d_rerio_prot -dbtyp prot`
+
+The trinity gene IDs that correspond to ALL of the female- or
+male-biased genes were pulled out and saved to `.txt` files.
+
+``` r
+write.table(cbind(rownames(gill_fem_biased)),
+            'FU_femG_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gill_mal_biased)),
+            'FU_malG_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gonad_fem_biased)),
+            'FU_femGon_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(gonad_mal_biased)),
+            'FU_malGon_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(liver_fem_biased)),
+            'FU_femL_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+write.table(cbind(rownames(liver_mal_biased)),
+            'FU_malL_biased_TRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```
+
+The `.txt` files were imported into the RCC and then BLASTed against the
+zebrafish proteome using the following script:
+
+``` bash
+#!/bin/bash
+
+#Create the arguements
+input_dir_TR=$1 #Location of the .txt files that contain the trinity gene IDs
+subset_fasta=$2 #Path to the subset_fasta_file script
+assembly_file=$3 #Name/location of the de novo assembly
+blast_database=$4
+output_dir=$5 #Desired output directory for .fasta and BLAST files
+
+## Loop through all the Trinity gene ID .txt files
+for file in $input_dir_TR/*TRgenes.txt
+    do
+
+    #Extract the sample name from the file name
+    sample=$(basename $file .txt)
+
+    #Get the corresponding sequences for the Trinity Gene IDs
+    echo "Running subset_fasta_file for ${sample}..."
+    $subset_fasta -c -f $assembly_file -l $input_dir_TR/${sample}.txt
+
+    #Rename the automated output from the subset_fasta_file script
+    fasta_out=$(basename $assembly_file fasta)
+    mv $fasta_out.subset.fasta ${sample}.fasta
+
+    #Blast the sequences
+    echo "Running BLAST for ${sample}..."
+    blastn -db $blast_database -query ${sample}.fasta -out ${sample}_blast.txt \
+        -evalue 0.001 \
+        -num_threads 12 \
+        -outfmt "6 qseqid qstart qend stitle sstart send evalue bitscore length pident gaps"
+
+    #Move the outputs into desired output directory
+    mv ${sample}* $output_dir
+
+done
+```
+
+This script was run as
+`bash bash_scripts/blast_pipeline.sh fuscus_high_exp_genes/high_expTG_names other_scripts/subset_fasta_file trinity_supertran_fuscus.fasta blastx ../genomes/d_rerio_prot/d_reiro_prot _reiro_blast.txt fuscus_high_exp_genes/high_exp_results/`.
+
+The trinity gene IDs that correspond to all of the sex-specific genes
+were pulled out above. Those were BLASTed with the script above using
+**blastn** against the *Syngnathus scovelli* genome as:
+`bash bash_scripts/blast_pipeline.sh fuscus_high_exp_genes/high_expTG_names other_scripts/subset_fasta_file trinity_supertran_fuscus.fasta blastn ../genomes/s_scov/s_scov_genome _blast.txt fuscus_high_exp_genes/high_exp_results/`.
+
+## Read in and filter the BLAST results
+
+I then exported all of the blast results as .txt files from the RCC and
+need to first read them into R so that I can filter the results and make
+sure only one hit is kept per gene.
+
+Not that I have all of the BLAST files for SS genes and SB genes in R I
+am going to filter them:
+
+``` r
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered <- lapply(FU_blast_list, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end", "reiro_prot_info", "prot_id", "reiro_prot_start", "reiro_prot_end", "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID in scovelli, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$","\\1",uni_gene_subset_lowe_highpid$reiro_prot_info))>1){
+    
+    
+      uni_gene_subset_lowe_highpid<-uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+```
+
+``` r
+#Use lapply to apply the function to each dataset stored in the list created above
+blast_output_filtered_SS <- lapply(FU_blast_list_sex_specific, function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <- c("trin_geneid", "trin_gene_start", "trin_gene_end",
+                        "scov_gene_info", "scov_prot_info",
+                        "scov_gene_start", "scov_gene_end", 
+                        "evalue", "bit_score", "length", "pident", "gaps")
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID$trin_geneid){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- subset(data_frame, trin_geneid==gene)
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue ==
+                                                   min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- 
+      uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident ==
+                                   max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+
+    # check that there is a single gene ID in scovelli, if not, only first row is kept
+    if(length(gsub("^.*(GeneID:\\d+)\\].*$",
+                   "\\1",
+                   uni_gene_subset_lowe_highpid$scov_gene_info))>1){
+      
+      uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe_highpid[1,]
+    }
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+})
+```
+
+## Collect gene names corresponding to each protein -sex-biased genes
+
+In order to run PANTHER we need IDs that follow one of their supported
+formats. From NCBI, the gene name works (e.g. rpl27). That information
+is not automatically supplied with the BLAST output, but we can use the
+.gff file from NCBI to pull out the gene names that correspond to the
+proteinID (e.g. NP_956018.1).
+
+``` r
+#Read in the GFF file for zebrafish that has info about the geneID
+reiro_gff <- read.delim("data/d_reiro_genomic.gff",
+                        header = FALSE,
+                        comment.char = "#")
+
+#Keep only the columns I want and rename them
+reiro_gff <- reiro_gff[,c(1:5,9)]
+colnames(reiro_gff) <- c("seqname", "source", "feature", "start", "end", "gene_info")
+
+#Subset the dataset to only include the rows we're interested in
+genes <- reiro_gff[reiro_gff$feature == "CDS",]
+
+#Pull out the gene name that corresponds to each protein ID
+genes$gene_name <- gsub("^(.*;)(gene=)(\\w+\\d*);(.*$)", "\\3", genes$gene_info)
+genes$prot_id <- gsub("^(.*;)(protein_id=)(.*)$", "\\3", genes$gene_info)
+
+#Merge the gene names pulled out above with the rest of the BLAST datasets based on the proteinID
+blast_output_merged <- lapply(blast_output_filtered, function(dataframe){
+  
+   output <- merge(dataframe, unique(genes[,7:8]), by = "prot_id")
+  
+   return(output)
+})
+```
+
+I now need to save only the gene_id for all of the BLASTed genes to then
+upload to PANTHER.
+
+``` r
+write.table(c(blast_output_merged$FU_femG_biased_TRgenes_reiro_blast$gene_name, 
+              blast_output_merged$FU_femGon_biased_TRgenes_reiro_blast$gene_name,
+              blast_output_merged$FU_femL_biased_TRgenes_reiro_blast$gene_name, 
+              blast_output_merged$FU_malG_biased_TRgenes_reiro_blast$gene_name, 
+              blast_output_merged$FU_malGon_biased_TRgenes_reiro_blast$gene_name, 
+              blast_output_merged$FU_malL_biased_TRgenes_reiro_blast$gene_name),
+           'FU_GOnames_SBG.txt', 
+            sep = " ", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+
+write.table(c(blast_output_merged$FU_femL_biased_TRgenes_reiro_blast$gene_name, 
+              blast_output_merged$FU_malL_biased_TRgenes_reiro_blast$gene_name),
+           'FUL_GOnames_SBG.txt', 
+            sep = " ", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
+```
+
+## Pull out the gene names and protein ID for sex-specific BLAST
+
+Once all the BLAST results for the sex-specific genes have been filtered
+I want to pull out specifically the name of the gene and the protein ID
+from the `scov_gene_info` column and save them as their own column.
+
+``` r
+for (i in 1:length(blast_output_filtered_SS)) {
+  
+  #Pulling out the gene name and adding it to a new column
+  blast_output_filtered_SS[[i]]$gene <- gsub("^(.*)(gene=)(\\w+\\d*)(.*$)",
+                                             "\\3",
+                                             blast_output_filtered_SS[[i]]$scov_gene_info)
+  
+  #Pulling out the protein name and adding it to a new column
+  blast_output_filtered_SS[[i]]$protein <- gsub("^(.*)(protein=)(.*)([[:graph:]]\\s[[:graph:]])(protein_id=)(.*$)",
+                                                "\\3",
+                                                blast_output_filtered_SS[[i]]$scov_gene_info)
+  
+  
+}
+```
+
+Now that I have isolated the gene names and protein IDS I want to reform
+the BLAST results so that they can all be compiled into one single
+dataset.
+
+``` r
+#Create a long format dataset that has the tissue information, BLAST gene and protein, 
+#geneID, and sex 
+blast_long_SS <- data.frame(
+  tissue=c(rep("Gill", 
+               sum(nrow(blast_output_filtered_SS$FU_femG_specific_TRgenes_blast),
+                   nrow(blast_output_filtered_SS$FU_malG_specific_TRgenes_blast))),
+           rep("Gonad", 
+               sum(nrow(blast_output_filtered_SS$FU_femGon_specific_TRgenes_blast),
+                   nrow(blast_output_filtered_SS$FU_malGon_specific_TRgenes_blast))),
+           rep("Liver",
+               sum(nrow(blast_output_filtered_SS$FU_femL_specific_TRgenes_blast),
+                   nrow(blast_output_filtered_SS$FU_malL_specific_TRgenes_blast)))
+         ),
+  sex=c(rep("Female",
+            nrow(blast_output_filtered_SS$FU_femG_specific_TRgenes_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$FU_malG_specific_TRgenes_blast)),
+        rep("Female",
+            nrow(blast_output_filtered_SS$FU_femGon_specific_TRgenes_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$FU_malGon_specific_TRgenes_blast)),
+        rep("Female",
+            nrow(blast_output_filtered_SS$FU_femL_specific_TRgenes_blast)),
+        rep("Male",
+            nrow(blast_output_filtered_SS$FU_malL_specific_TRgenes_blast))
+        ),
+  gene=c(blast_output_filtered_SS$FU_femG_specific_TRgenes_blast$gene,
+         blast_output_filtered_SS$FU_malG_specific_TRgenes_blast$gene,
+         blast_output_filtered_SS$FU_femGon_specific_TRgenes_blast$gene,
+         blast_output_filtered_SS$FU_malGon_specific_TRgenes_blast$gene,
+         blast_output_filtered_SS$FU_femL_specific_TRgenes_blast$gene,
+         blast_output_filtered_SS$FU_malL_specific_TRgenes_blast$gene
+         ),
+  protein=c(blast_output_filtered_SS$FU_femG_specific_TRgenes_blast$protein,
+            blast_output_filtered_SS$FU_malG_specific_TRgenes_blast$protein,
+            blast_output_filtered_SS$FU_femGon_specific_TRgenes_blast$protein,
+            blast_output_filtered_SS$FU_malGon_specific_TRgenes_blast$protein,
+            blast_output_filtered_SS$FU_femL_specific_TRgenes_blast$protein,
+            blast_output_filtered_SS$FU_malL_specific_TRgenes_blast$protein
+            ),
+  trinityID=c(blast_output_filtered_SS$FU_femG_specific_TRgenes_blast$trin_geneid,
+              blast_output_filtered_SS$FU_malG_specific_TRgenes_blast$trin_geneid,
+              blast_output_filtered_SS$FU_femGon_specific_TRgenes_blast$trin_geneid,
+              blast_output_filtered_SS$FU_malGon_specific_TRgenes_blast$trin_geneid,
+              blast_output_filtered_SS$FU_femL_specific_TRgenes_blast$trin_geneid,
+              blast_output_filtered_SS$FU_malL_specific_TRgenes_blast$trin_geneid
+              )
+  )
+
+#write.csv(blast_long_SS, "FU_BLAST_results_sex_specific.csv", row.names = FALSE)
+```
+
+## Reading in the PANTHER results - Sex-biased Genes
+
+In PANTHER I uploaded the `FU_GOnames_SBG.txt` file, selected *Danio
+rerio* as the organism, and then chose “Functional classification viewed
+in gene list” as the analysis type.
+
+I exported those results to a .txt file and will now be reading that
+into R and visualizing the results.
+
+``` r
+#Read in the .txt file containing PANTHER results
+panther <- read.delim("data/pantherGeneList_SBG.txt", 
+                      header = FALSE)
+
+#Add the approporiate column names for the PANTHER data
+colnames(panther) <- c("GeneID", "MappedID", 
+                       "GeneName", "pantherFAM", 
+                       "panther_prot_class", "species")
+
+#Add the identified PANTHER protein classes to the BLAST datasets
+blast_output_merged$FU_femG_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_femG_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FU_femGon_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_femGon_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FU_femL_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_femL_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FU_malG_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_malG_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FU_malGon_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_malGon_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+blast_output_merged$FU_malL_biased_TRgenes_reiro_blast <-
+  merge(blast_output_merged$FU_malL_biased_TRgenes_reiro_blast, 
+        panther[, c(2,5)], 
+        by.x = "gene_name", 
+        by.y = "MappedID", 
+        all.x = TRUE)
+```
+
+Now that we have the PANTHER protein classes attached to all of the
+successfully BLASTed sex-biased genes within each organ, we can plot the
+proportions of genes falling into each category to see what is most
+important for each of the organ types.
+
+``` r
+#Count the number of genes that are falling into each protein class
+go_tables <- lapply(blast_output_merged, function(dat){
+  
+  #Create a table that counts the number of genes falling within each PANTHER prot. class
+  panther_table <- data.frame(table(dat$panther_prot_class))
+  
+  #Make sure the protein names are in there as a character
+  panther_table$Var1 <- as.character(panther_table$Var1)
+  
+  #Change all of the null results to say Unclassified
+  panther_table$Var1[panther_table$Var1==""] <- "Unclassified"
+
+  return(panther_table)
+  })
+
+#Merge all of the different organ data into one dataset
+#Create an empty dataframe to store all of the values in
+all_go_dat <- data.frame(matrix(ncol=4,nrow=0))
+
+#Add column names to that empty dataset
+colnames(all_go_dat) <- c(
+  colnames(go_tables$FU_femG_biased_TRgenes_reiro_blast),
+  "bias_cat", "tissue")
+
+#Create a vector of you tissues, in the same order that they appear in the go_table list
+tissues <- c("Gill", "Gonad", "Liver", 
+             "Gill", "Gonad", "Liver")
+
+#Loop through all of the go_tables and combine into one
+for(i in 1:length(go_tables)){
+  #browser()
+  tmp <- go_tables[[i]]
+  if (nrow(tmp) == 0) {
+    print(tmp)
+  }else{
+  
+  tmp$bias_cat <- names(go_tables)[i]
+  tmp$tissue <- tissues[[i]]
+  all_go_dat <- rbind(all_go_dat, tmp)}
+  
+}
+
+#Calculate the frequency at which each protein class occurs within the different tissue types
+##Create an empty dataset to store the values in
+all_go_sums <- data.frame(matrix(ncol = 4,
+                                 nrow = 0))
+
+##Add appropriate column names
+colnames(all_go_sums) <- c("Freq", "prot_class", 
+                           "tissue", "prop")
+
+##Loop through each organ type to calculate frequencies
+for(organ in unique(all_go_dat$tissue)){
+  
+  #subset the dataset based on the organ
+  tmp <- all_go_dat[all_go_dat$tissue == organ, ]
+  
+  #Sum up all of the genes in each category
+  go_sums <- as.data.frame(tapply(tmp$Freq, tmp$Var1, sum))
+  
+  #Add the protein class as a column rather than row names
+  go_sums$prot_class <- rownames(go_sums)
+  
+  #Change the column name to "Frequency"
+  colnames(go_sums)[1] <- "Freq"
+  
+  #Add the organ in a separate column and remove rownames
+  go_sums$tissue <- organ
+  rownames(go_sums) <- NULL
+  
+  #Calculate the respective proportion for each protein class
+  go_sums$prop <- go_sums$Freq/sum(go_sums$Freq)
+  
+  #Export the data to the previously created dataframe
+  all_go_sums <- rbind(all_go_sums, go_sums)
+}
+
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
+for(class in unique(all_go_sums$prot_class)){
+  
+  #Pull out the rows that contain that protein class
+  match_rows <- which(all_go_sums$prot_class==class)
+  
+  #If any of the proportions associated with those rows is less than 0.02, classify as other
+  if(any(all_go_sums$prop[match_rows]>0.02)==FALSE){
+    
+    all_go_sums$prot_class[match_rows] <- "other"
+    
+  }
+}
+
+
+#write.csv(all_go_sums, "data/GO_freq_SBG.csv", row.names = FALSE)
+
+#Generate the GO plot
+organ_cols <- c("Gill" = "#20B2AA", "Gonad" = "#EEB422",
+                "Liver" = "#EE8262")
+
+#pdf("docs/figs/FigGO_SBGbarplot.pdf",height=8, width=12)
+
+all_go_sums$prot_class <- str_wrap(all_go_sums$prot_class, 
+                                       width = 60)
+
+ggplot(all_go_sums[!(all_go_sums$prot_class %in% c("other", "Unclassified")),], 
+       aes(fct_rev(prot_class), prop, fill = tissue)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = organ_cols) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,size=20),
+        axis.text.y = element_text(size=15, #hjust = 0.5, 
+                                   margin = margin(b = 20),
+                                   vjust = 0.5),
+        text=element_text(size=20),
+        legend.position = "bottom",
+        axis.ticks.length.y = unit(.25, "cm")) +
+  coord_flip() + 
+  labs(y="Proportion of sex-biased genes", x="")
+```
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/plot-panther-SBG-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
+
+## Looking at GO groups for the male- and female-biased genes
+
+``` r
+#Calculate the frequency at which each protein class occurs within the different tissue types
+##Create an empty dataset to store the values in
+all_go_sums_liver <- data.frame(matrix(ncol = 5,
+                                      nrow = 0))
+
+##Add appropriate column names
+colnames(all_go_sums_liver) <- c(colnames(all_go_dat),
+                                "prop")
+
+##Loop through each bias type to calculate frequencies
+for (bias in c("FU_femL_biased_TRgenes_reiro_blast",
+               "FU_malL_biased_TRgenes_reiro_blast")) {
+  
+  tmp <- all_go_dat[all_go_dat$bias_cat == bias, ]
+  
+  #Calculate the respective proportion for each protein class
+  tmp$prop <- tmp$Freq/sum(tmp$Freq)
+  
+  #Export the data to the previously created dataframe
+  all_go_sums_liver <- rbind(tmp, all_go_sums_liver)
+  
+}
+
+
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
+for(class in unique(all_go_sums_liver$Var1)){
+  
+  #Pull out the rows that contain that protein class
+  match_rows <- which(all_go_sums_liver$Var1==class)
+  
+  #If any of the proportions associated with those rows is less than 0.02, classify as other
+  if(any(all_go_sums_liver$prop[match_rows]>0.01)==FALSE){
+    
+    all_go_sums_liver$Var1[match_rows] <- "other"
+    
+  }
+}
+
+#Generate the GO plot
+bias_col <- c("FU_femL_biased_TRgenes_reiro_blast" = "#7fc97f", 
+               "FU_malL_biased_TRgenes_reiro_blast" = "#beaed4")
+
+
+#pdf("docs/figs/FigGO_SBGliver.pdf",height=10, width=12)
+
+ggplot(all_go_sums_liver[!(all_go_sums_liver$Var1 %in% c("other", "Unclassified")),], 
+       aes(fct_rev(Var1), prop, fill = bias_cat)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = bias_col) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust=1,size=20),
+        axis.text.y = element_text(size=15, hjust = 1,
+                                   vjust = 0.3),
+        text=element_text(size=20),
+        legend.position = "bottom",
+        axis.ticks.length.y = unit(.25, "cm")) +
+  coord_flip() + 
+  labs(y="Proportion of sex-biased genes", x="")
+```
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/plot-panther-SBG-liver-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
+
+``` r
+#Calculate the frequency at which each protein class occurs within the different tissue types
+##Create an empty dataset to store the values in
+all_go_sums_gonad <- data.frame(matrix(ncol = 5,
+                                      nrow = 0))
+
+##Add appropriate column names
+colnames(all_go_sums_gonad) <- c(colnames(all_go_dat),
+                                "prop")
+
+##Loop through each bias type to calculate frequencies
+for (bias in c("FU_femGon_biased_TRgenes_reiro_blast",
+               "FU_malGon_biased_TRgenes_reiro_blast")) {
+  
+  tmp <- all_go_dat[all_go_dat$bias_cat == bias, ]
+  
+  #Calculate the respective proportion for each protein class
+  tmp$prop <- tmp$Freq/sum(tmp$Freq)
+  
+  #Export the data to the previously created dataframe
+  all_go_sums_gonad <- rbind(tmp, all_go_sums_gonad)
+  
+}
+
+
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
+for(class in unique(all_go_sums_gonad$Var1)){
+  
+  #Pull out the rows that contain that protein class
+  match_rows <- which(all_go_sums_gonad$Var1==class)
+  
+  #If any of the proportions associated with those rows is less than 0.02, classify as other
+  if(any(all_go_sums_gonad$prop[match_rows]>0.01)==FALSE){
+    
+    all_go_sums_gonad$Var1[match_rows] <- "other"
+    
+  }
+}
+
+#Generate the GO plot
+bias_col <- c("FU_femGon_biased_TRgenes_reiro_blast" = "#7fc97f", 
+               "FU_malGon_biased_TRgenes_reiro_blast" = "#beaed4")
+
+
+#pdf("docs/figs/FigGO_SBGgonad.pdf",height=10, width=12)
+
+ggplot(all_go_sums_gonad[!(all_go_sums_gonad$Var1 %in% c("other", "Unclassified")),], 
+       aes(fct_rev(Var1), prop, fill = bias_cat)) +   
+  geom_bar(position = "dodge", stat="identity") +
+  scale_fill_manual(values = bias_col) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust=1,size=20),
+        axis.text.y = element_text(size=15, hjust = 1,
+                                   vjust = 0.3),
+        text=element_text(size=20),
+        legend.position = "bottom",
+        axis.ticks.length.y = unit(.25, "cm")) +
+  coord_flip() + 
+  labs(y="Proportion of sex-biased genes", x="")
+```
+
+![](fuscus_diff_expr_analysis_files/figure-gfm/plot-panther-SBG-gonads-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
+
+## Create combined Gene Ontology Figure
+
+``` r
+#Combine the GO figures
+figGOa <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGbarplot.pdf'),
+                        interpolate = TRUE)
+figGOb <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGliver.pdf'),
+                        interpolate = TRUE)
+figGOc <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGgonad.pdf'),
+                           interpolate = TRUE)
+
+
+figGO <- wrap_plots(figGOa,
+                    figGOb,
+                    figGOc,
+                    ncol = 3)
+
+figGO <- figGO + plot_annotation(tag_levels = 'A')
+
+ggsave("docs/figs/FigGO_all.pdf", figGO, height=5, width=12)
+ggsave("docs/figs/FigGO_all.png", figGO, height=5, width=12)
+```
+
+``` r
+write.table(blast_output_merged$FU_femGon_biased_TRgenes_reiro_blast$gene_name,
+            'FU_GOnames_SBG_ovary.txt',
+            sep = " ",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+
+write.table(blast_output_merged$FU_malGon_biased_TRgenes_reiro_blast$gene_name,
+            'FU_GOnames_SBG_testes.txt',
+            sep = " ",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+
+write.table(blast_output_merged$FU_femL_biased_TRgenes_reiro_blast$gene_name,
+            'FU_GOnames_SBG_fLiver.txt',
+            sep = " ",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = FALSE)
+
+write.table(blast_output_merged$FU_malL_biased_TRgenes_reiro_blast$gene_name,
+            'FU_GOnames_SBG_mLiver.txt',
+            sep = " ",
+            quote=FALSE,
+            row.names = FALSE,
             col.names = FALSE)
 ```

@@ -29,21 +29,19 @@ library(DESeq2)
 library(pheatmap)
 library(RColorBrewer)
 library(PCAtools)
+library(ggplot2)
+
 library(spfTools)
 library(magick)
+library(pdftools)
 library(patchwork)
+
 library(ggpubr)
 library(cowplot)
 library(UpSetR)
-library(ggplot2)
-library(kableExtra)
-library(tidyverse)
 library(knitr)
-library(webshot)
-library(htmltools)
-library(dplyr)
-library(pdftools)
-
+library(stringr)
+library(tidyverse)
 ```
 
 ``` {r read-data}
@@ -1519,7 +1517,7 @@ listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
                      "FB Liver" = rownames(liver_fem_biased))
 
 #Plot exported and color added via illustrator
-pdf("docs/figs/FigSB_sexbias_upset.pdf",width = 10, height=7)
+#pdf("docs/figs/FigSB_sexbias_upset.pdf",width = 10, height=7)
 upset(fromList(listInputall),
       mainbar.y.label = "# Shared Sex-Biased Genes",
       sets.x.label = "# Sex-Biased Genes",
@@ -1529,7 +1527,7 @@ upset(fromList(listInputall),
       text.scale = c(2, 2, 2, 1.5, 2, 1.5)
 )
 
-dev.off()
+#dev.off()
 
 ```
 
@@ -1636,7 +1634,7 @@ for (dataset in DE_models) {
 ### Investigating the results of the sex-specific subsetting
 Let's now take a look at how many sex-specific genes we have in each tissue type:
 
-```{r sex-specific-counts, echo = FALSE, eval = FALSE}
+```{r sex-specific-counts, echo = FALSE}
 FU_sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2),
                                   sex = c(rep("M", 3),
                                           rep("F", 3)),
@@ -1648,30 +1646,7 @@ FU_sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Gonad", "Liver"), 2
                                                 nrow(FU_sex_specific_genes$Liver_female_specific))
                                   )
 
-output_table <- FU_sex_specific_counts %>% 
-  group_by(tissue, sex) %>% 
-  summarise("Number of Sex-specific Genes" = sum(num_genes)) %>%
-  kable(caption = "Sex-specific Genes", format = "html",
-        col.names = c("Tissue Type", "Sex", "Number of Sex-specific Genes")) %>% 
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
-
-# Save the table to a temporary HTML file
-html_file <- tempfile(fileext = ".html")
-save_kable(output_table, file = html_file)
-
-# Ensure you have PhantomJS installed (required by webshot)
-#webshot::install_phantomjs()
-
-# Capture the HTML file as a PNG
-webshot(html_file, file = "sex_specific_genes_table.png")
-
-```
-
-```{r show-ss-table, eval = FALSE}
-
-ss_genes <- image_ggplot(image_read('docs/figs/sex_specific_genes_table.png'),interpolate = TRUE)
-
-ss_genes
+knitr::kable(FU_sex_specific_counts)
 
 ```
 
@@ -1875,21 +1850,26 @@ There is a weird pattern showing up in the liver where most of the male biased g
 
 figSBa <- image_ggplot(image_read_pdf('docs/figs/FigSF_logFC_boxplots.pdf'),interpolate = TRUE)
 figSBb <- image_ggplot(image_read_pdf('docs/figs/FigSB_biasCat_counts.pdf'),interpolate = TRUE)
+figSBc <- image_ggplot(image_read_pdf('docs/figs/FigSB_sexbias_upset.pdf'),interpolate = TRUE)
 
-figSB <- wrap_plots(
-  figSBa,
-  figSBb,
-  nrow = 2)
 
+figSB <- wrap_plots(figSBa,
+                    figSBb,
+                    nrow = 2)
 figSB <- figSB + plot_annotation(tag_levels = 'A')
-figSB
 
-ggsave("docs/figs/FigSB.pdf", figSB, height=8, width=10)
-ggsave("docs/figs/FigSB.png", figSB, height=8, width=10)
+figSB_all <- wrap_plots(figSB,
+                        figSBc,
+                        ncol = 2)
+figSB_all <- figSB_all + plot_annotation(tag_levels = 'A')
+figSB_all
+
+ggsave("docs/figs/FigSB.pdf", figSB_all, height=8, width=10)
+ggsave("docs/figs/FigSB.png", figSB_all, height=8, width=10)
 
 ```
 
-```{r figSB-HM, message=FALSE}
+```{r figSB-HM, message=FALSE, eval = FALSE}
 
 figHMa <- image_ggplot(image_read_pdf('docs/figs/liverMB_heatmap.pdf'),interpolate = TRUE)
 figHMb <- image_ggplot(image_read_pdf('docs/figs/liverFB_heatmap.pdf'),interpolate = TRUE)
@@ -1909,6 +1889,7 @@ ggsave("docs/figs/FigSBHM.pdf", figSBHM, height=8, width=10)
 ggsave("docs/figs/FigSBHM.png", figSBHM, height=8, width=10)
 
 ```
+
 # Gene Ontologogy Analysis and BLASTing the different genes
 There are several things that I want to accomplish with the gene ontology analysis, to start with I want to classify the sex-biased genes and then the sex-specific genes.
 
@@ -2001,7 +1982,7 @@ for(file_name in FU_blast_files){
 
 ```
 
-```{r readin_blast_results_SSgenes, echo=FALSE}
+```{r readin_blast_results_SSgenes, echo=FALSE, eval=FALSE}
 #Create a list of the files I want
 FU_blast_files_sex_specific <- list.files(blast_path, pattern = "specific")
 
@@ -2073,7 +2054,7 @@ blast_output_filtered <- lapply(FU_blast_list, function(data_frame){
 
 ```
 
-```{r filter-BLAST-SS}
+```{r filter-BLAST-SS, eval = FALSE}
 #Use lapply to apply the function to each dataset stored in the list created above
 blast_output_filtered_SS <- lapply(FU_blast_list_sex_specific, function(data_frame){
  
@@ -2179,7 +2160,7 @@ write.table(c(blast_output_merged$FU_femL_biased_TRgenes_reiro_blast$gene_name,
 ## Pull out the gene names and protein ID for sex-specific BLAST
 Once all the BLAST results for the sex-specific genes have been filtered I want to pull out specifically the name of the gene and the protein ID from the  `scov_gene_info` column and save them as their own column. 
 
-```{r scov-geneIDs}
+```{r scov-geneIDs, eval=FALSE}
 for (i in 1:length(blast_output_filtered_SS)) {
   
   #Pulling out the gene name and adding it to a new column
@@ -2199,7 +2180,7 @@ for (i in 1:length(blast_output_filtered_SS)) {
 
 Now that I have isolated the gene names and protein IDS I want to reform the BLAST results so that they can all be compiled into one single dataset.
 
-```{r long_BLASTSS}
+```{r long_BLASTSS, eval=FALSE}
 #Create a long format dataset that has the tissue information, BLAST gene and protein, 
 #geneID, and sex 
 blast_long_SS <- data.frame(
@@ -2388,7 +2369,7 @@ for(organ in unique(all_go_dat$tissue)){
   all_go_sums <- rbind(all_go_sums, go_sums)
 }
 
-#Change all of the protein classes that have a frequency of less than 0.01 to "Other"
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
 for(class in unique(all_go_sums$prot_class)){
   
   #Pull out the rows that contain that protein class
@@ -2397,27 +2378,24 @@ for(class in unique(all_go_sums$prot_class)){
   #If any of the proportions associated with those rows is less than 0.02, classify as other
   if(any(all_go_sums$prop[match_rows]>0.01)==FALSE){
     
-    all_go_sums$prot_class[match_rows] <- " other"
+    all_go_sums$prot_class[match_rows] <- "other"
     
   }
 }
 
-#Change format of "Unclassified so it will come first"
-all_go_sums$prot_class[all_go_sums$prot_class=="Unclassified"] <-  " unclassified"
 
 #write.csv(all_go_sums, "data/GO_freq_SBG.csv", row.names = FALSE)
+
 #Generate the GO plot
 organ_cols <- c("Gill" = "#20B2AA", "Gonad" = "#EEB422",
                 "Liver" = "#EE8262")
 
-pdf("docs/figs/FigGO_SBGbarplot2.pdf",height=14, width=18)
+#pdf("docs/figs/FigGO_SBGbarplot.pdf",height=12, width=14)
 
 all_go_sums$prot_class <- str_wrap(all_go_sums$prot_class, 
                                        width = 60)
-all_go_sums$prot_class[all_go_sums$prot_class=="unclassified"]<- " unclassified"
-all_go_sums$prot_class[all_go_sums$prot_class=="other"]<- " other"
 
-ggplot(all_go_sums, 
+ggplot(all_go_sums[!(all_go_sums$prot_class %in% c("other", "Unclassified")),], 
        aes(fct_rev(prot_class), prop, fill = tissue)) +   
   geom_bar(position = "dodge", stat="identity") +
   scale_fill_manual(values = organ_cols) +
@@ -2426,20 +2404,21 @@ ggplot(all_go_sums,
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,size=20),
-        axis.text.y = element_text(size=15, hjust = 0.5, 
+        axis.text.y = element_text(size=15, #hjust = 0.5, 
                                    margin = margin(b = 20),
-                                   vjust = 0.75),
+                                   vjust = 0.5),
         text=element_text(size=20),
         legend.position = "bottom",
         axis.ticks.length.y = unit(.25, "cm")) +
   coord_flip() + 
   labs(y="Proportion of sex-biased genes", x="")
 
-dev.off()
+#dev.off()
 
 ```
 
 ## Looking at GO groups for the male- and female-biased genes
+
 ```{r plot-panther-SBG-liver}
 #Calculate the frequency at which each protein class occurs within the different tissue types
 ##Create an empty dataset to store the values in
@@ -2465,31 +2444,28 @@ for (bias in c("FU_femL_biased_TRgenes_reiro_blast",
 }
 
 
-#Change all of the protein classes that have a frequency of less than 0.01 to "Other"
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
 for(class in unique(all_go_sums_liver$Var1)){
   
   #Pull out the rows that contain that protein class
   match_rows <- which(all_go_sums_liver$Var1==class)
   
-  #If any of the proportions associated with those rows is less than 0.01, classify as other
+  #If any of the proportions associated with those rows is less than 0.02, classify as other
   if(any(all_go_sums_liver$prop[match_rows]>0.01)==FALSE){
     
-    all_go_sums_liver$Var1[match_rows] <- " other"
+    all_go_sums_liver$Var1[match_rows] <- "other"
     
   }
 }
-
-#Change format of "Unclassified so it will come first"
-all_go_sums_liver$Var1[all_go_sums_liver$Var1=="Unclassified"] <-  " unclassified"
 
 #Generate the GO plot
 bias_col <- c("FU_femL_biased_TRgenes_reiro_blast" = "#7fc97f", 
                "FU_malL_biased_TRgenes_reiro_blast" = "#beaed4")
 
 
-pdf("docs/figs/FigGO_SBGliver.pdf",height=14, width=12)
+#pdf("docs/figs/FigGO_SBGliver.pdf",height=10, width=12)
 
-ggplot(all_go_sums_liver, 
+ggplot(all_go_sums_liver[!(all_go_sums_liver$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
   geom_bar(position = "dodge", stat="identity") +
   scale_fill_manual(values = bias_col) +
@@ -2508,7 +2484,7 @@ ggplot(all_go_sums_liver,
   coord_flip() + 
   labs(y="Proportion of sex-biased genes", x="")
 
-dev.off()
+#dev.off()
 
 ```
 
@@ -2537,31 +2513,28 @@ for (bias in c("FU_femGon_biased_TRgenes_reiro_blast",
 }
 
 
-#Change all of the protein classes that have a frequency of less than 0.01 to "Other"
+#Change all of the protein classes that have a frequency of less than 0.02 to "Other"
 for(class in unique(all_go_sums_gonad$Var1)){
   
   #Pull out the rows that contain that protein class
   match_rows <- which(all_go_sums_gonad$Var1==class)
   
-  #If any of the proportions associated with those rows is less than 0.01, classify as other
+  #If any of the proportions associated with those rows is less than 0.02, classify as other
   if(any(all_go_sums_gonad$prop[match_rows]>0.01)==FALSE){
     
-    all_go_sums_gonad$Var1[match_rows] <- " other"
+    all_go_sums_gonad$Var1[match_rows] <- "other"
     
   }
 }
-
-#Change format of "Unclassified so it will come first"
-all_go_sums_gonad$Var1[all_go_sums_gonad$Var1=="Unclassified"] <-  " unclassified"
 
 #Generate the GO plot
 bias_col <- c("FU_femGon_biased_TRgenes_reiro_blast" = "#7fc97f", 
                "FU_malGon_biased_TRgenes_reiro_blast" = "#beaed4")
 
 
-pdf("docs/figs/FigGO_SBGgonad.pdf",height=14, width=12)
+#pdf("docs/figs/FigGO_SBGgonad.pdf",height=10, width=12)
 
-ggplot(all_go_sums_gonad, 
+ggplot(all_go_sums_gonad[!(all_go_sums_gonad$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
   geom_bar(position = "dodge", stat="identity") +
   scale_fill_manual(values = bias_col) +
@@ -2580,23 +2553,31 @@ ggplot(all_go_sums_gonad,
   coord_flip() + 
   labs(y="Proportion of sex-biased genes", x="")
 
-dev.off()
+#dev.off()
 
 ```
 
+## Create combined Gene Ontology Figure
+
 ```{r}
 #Combine the GO figures
-figGOa <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGliver.pdf'),
+figGOa <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGbarplot.pdf'),
                         interpolate = TRUE)
-figGOb <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGgonad.pdf'),
+figGOb <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGliver.pdf'),
+                        interpolate = TRUE)
+figGOc <- image_ggplot(image_read_pdf('docs/figs/FigGO_SBGgonad.pdf'),
                            interpolate = TRUE)
 
-# put the patchworks together
-figGO <-  wrap_plots(figGOa, figGOb, ncol=2) + 
-  plot_annotation(tag_levels = 'A') 
+figGO <- figGOb + figGOc
 
-ggsave("docs/figs/FigGO_indv.pdf", figGO, height=5, width=8)
-ggsave("docs/figs/FigGO_indv.png", figGO, height=5, width=8)
+figGO <- wrap_plots(figGOa,
+                    figGO,
+                    nrow = 2)
+
+figGO <- figGO + plot_annotation(tag_levels = 'A')
+
+ggsave("docs/figs/FigGO_all.pdf", figGO, height=10, width=8)
+ggsave("docs/figs/FigGO_all.png", figGO, height=5, width=12)
 ```
 
 
