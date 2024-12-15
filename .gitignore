@@ -38,6 +38,9 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+#Salmon output files
+*.sf
+
 # R Environment Variables
 .Renviron
 stigmatopora/S_nigra/data/cory_BLAST/FL_femL_top50TRgenes.fasta
