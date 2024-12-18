@@ -1,7 +1,7 @@
 Tissue Specificity in *Syngnathus fuscus*
 ================
 Coley Tosto
-2024-12-06
+2024-12-19
 
 
 
@@ -34,6 +34,7 @@ library(spfTools)
 library(ggplot2)
 library(EnvStats)
 library(dplyr)
+
 library(magick)
 library(patchwork)
 library(pdftools)
@@ -1088,9 +1089,6 @@ logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
 Now that the dataset is properly curated, I can plot all of the
 information:
 
-    ## png 
-    ##   2
-
 <figure>
 <img
 src="fuscus_tissue_specificity_files/figure-gfm/tau-v-biascat-plot-all-vp-1.png"
@@ -1101,8 +1099,86 @@ versus male biased versus unbiased and jitters were added to show all of
 the raw tau values.</figcaption>
 </figure>
 
-    ## png 
-    ##   2
+Let’s also look at the plot without all the jitters added:
+
+<figure>
+<img
+src="fuscus_tissue_specificity_files/figure-gfm/tau-v-biascat-plot-all-vp2-1.png"
+alt="Violin plot showing tissue specifcity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased." />
+<figcaption aria-hidden="true">Violin plot showing tissue specifcity
+(tau) across the different bias levels. Color denotes female-biased
+versus male biased versus unbiased.</figcaption>
+</figure>
+
+Remove the violin and boxplots from groups that have a sample size of
+less than 10
+
+``` r
+#pdf("docs/figs/Fig4B_tau_biascat_violin_jitter2.pdf",width = 12, height=3.75)
+# Preprocessing to create a new variable indicating sample size greater than 10
+logFC_long_all <- logFC_long_all %>%
+  group_by(bias_cat, tissue, bias) %>%
+  mutate(sample_size = n()) %>%
+  ungroup() %>%
+  mutate(plot_type = ifelse(sample_size > 10, "box_violin", "jitter"))
+
+# Plotting
+ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias)) +
+  geom_violin(data = filter(logFC_long_all, plot_type == "box_violin"), 
+              position = position_dodge(), draw_quantiles = c(0.5)) +
+  geom_boxplot(data = filter(logFC_long_all, plot_type == "box_violin"), 
+               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "MB",],
+                           plot_type == "jitter"),
+             aes(x = as.numeric(bias_cat) + 0.185, y = tau),
+             size=1.5, 
+             position = position_jitter(width = 0.10),
+             bg=paste0(my_colors["MB"],"75"),
+             col=my_colors["MB"], pch = 21) +
+  geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "FB",],
+                           plot_type == "jitter"), 
+             aes(x=as.numeric(bias_cat)-0.185, y=tau),
+             size=1.5, 
+             position = position_jitter(width = 0.10),
+             bg=paste0(my_colors["FB"], "75"),
+             col=my_colors["FB"],pch=21) +
+  scale_x_discrete(labels= bias_labs) +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=16)) +
+  labs(x = "Bias Category", y = expression(tau["TPM"]))  +
+  guides(fill = guide_legend(title = "Bias", order = 3)) +
+  guides(color = guide_legend(title = "Bias", order = 3)) +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "FB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = my_colors["FB"]
+  ) +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "MB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = 0.95,
+              color = my_colors["MB"]
+  ) +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "UB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = my_colors["UB"]
+  )
+```
+
+![](fuscus_tissue_specificity_files/figure-gfm/tau-v-biascat-plot-all-vp3-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
+
+Generate the $\tau$ v. sex-bias plot in correct format for constructing
+the final figure.
 
 ``` r
 logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
@@ -1115,7 +1191,7 @@ organ_cols <- c("Gill" = "#20B2AA",
 
 organs <- levels(logFC_long_all$tissue)
 
-pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+#pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
 par(oma = c(2,2,1,2),
     mar = c(2,2,1,2),
     xpd = FALSE)
@@ -1177,23 +1253,26 @@ outer_legend("top",
 
 mtext("|log fold change|",1,cex=2, line=2)
 mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
-dev.off()
 ```
 
-    ## png 
-    ##   2
+![](fuscus_tissue_specificity_files/figure-gfm/tau-v-sexbias-fig-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
+
+Combine the two plots together for the figure:
 
 ``` r
 figtaua <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_biascat_violins.pdf'),interpolate = TRUE)
 figtaub <- image_ggplot(image_read_pdf('docs/figs/Fig_tau_sexbias.pdf'),interpolate = TRUE)
 
 
-figtau<-wrap_plots(
-  figtaub,
-  figtaua,
-  ncol=2
-)
-figtau<-figtau + plot_annotation(tag_levels = 'A')
+figtau<-wrap_plots(figtaub,
+                   figtaua,
+                   ncol=2)
+
+figtau <- figtau + plot_annotation(tag_levels = 'A')
 figtau
 ```
 
@@ -1204,13 +1283,15 @@ ggsave("docs/figs/FigTau.pdf",figtau,height = 4, width=16)
 ggsave("docs/figs/FigTau.png",figtau,height = 4, width=16)
 ```
 
+Investigate the impact of male-biased genes on patterns shown:
+
 ``` r
 logFC_noMB <- logFC_long_all[logFC_long_all$bias != "MB", ]
 logFC_noMB$tissue <- factor(logFC_noMB$tissue, 
                             levels = c("Gonad", "Liver", "Gill"), 
                             ordered = TRUE)
 
-pdf("docs/figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+#pdf("docs/figs/Fig_tau_sexbias_noMB.pdf", width = 8, height=5)
 par(oma = c(2,2,1,2),
     mar = c(2,2,1,2),
     xpd = FALSE)
@@ -1272,8 +1353,10 @@ outer_legend("top",
 
 mtext("|log fold change|",1,cex=2, line=2)
 mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
-dev.off()
 ```
 
-    ## png 
-    ##   2
+![](fuscus_tissue_specificity_files/figure-gfm/tau-v-sexbas-noMB-1.png)<!-- -->
+
+``` r
+#dev.off()
+```
