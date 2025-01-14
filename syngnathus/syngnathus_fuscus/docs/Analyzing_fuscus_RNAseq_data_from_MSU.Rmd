@@ -5,11 +5,6 @@ date: "`r Sys.Date()`"
 output:
   github_document:
     toc: true
-    #html_document:
-        #code_folding: show
-        #toc: yes
-        #toc_float: yes
-        #number_sections: yes
 ---
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',fig_path="../figs/")
@@ -85,38 +80,144 @@ This script was run as `nohup bash bash_scripts/fastqc_script.sh fuscus_kmer_cor
 
 From the General stats reported in the MultiQC report we can see that following this filtering/trimming process we end up with an average of 42 &pm; 6.2 million reads per sample for a total of 2.54 billion reads.
 
-# Mapping reads to _S. scovelli_ genome
-There is currently a genome that exists for a closely related species within the same genus as _S. fuscus_. As a result of this, rather than constructing a _de novo_ transcriptome assembly, I am going to use that genome to map the reads back to.
+# De novo transcriptome assembly
+To ensure all three species of _Syngnathus_ are processed in the same way, the assembly was also generated with Trinity as I did for _Syngnathus floridae_.
 
-There are several programs that have the capability of doing this. The two main things that I will be looking to increase are run time (how much space and time will running these programs take up) and accuracy (what proportion of my reads are mapping back to the genome). Some of the alignment programs include:
-
-  - `STAR`
-  - `HISAT2`
-  - `Bowtie2`
-  - `BWA`
-
-A previous study comparing these different alignment software ([Musich et al., 2021](https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2021.657240/full)) highlighted that `Bowtie2` with local alignment mode and `BWA` had the highest alignment rate followed by `STAR` and lastly `HISAT2`. However, `Bowtie2` with the local alignment took the longest to run followed by `STAR` and `BWA` which were similar and lastly, `HISAT2` which was by far the fastest. For `HISAT2` and `STAR` it appears that they are able to better handle reads that are >1,000bp compared to the other aligners.
-
-Outside of these components, one other important component to keep in mind is the fact that one data source is genomic while the other is transcriptomic. Where this presents potential issues is in the fragmentation associated with transcriptomic data, which when unrecognized, translates to large gaps in comparison to the genome. To mediate this, some of the aligners have been designed to recognize this, including `STAR` and `HISAT2`. They are able to do so by allowing the option of inputting a transcriptome alongside the reference.
-
-Based on the above, I am going to use `STAR` as a starting point.
-
-There are two major components involved with using `STAR`, generating a genome index and aligning the reads. The STAR commands on command line have the following format:
+```{bash trinity_script, file='bash/trinity.sh', eval = FALSE}
 
 ```
-STAR --option1-name option1-value(s) --option2-name option2-value(s) . . .
+
+This script was run in a screen session as `bash bash_scripts trinity.sh FU_trinity_samples.txt trinity_out_dir_fuscus_June2023`.
+
+# Post-assembly Quality Control - On the Trinity assembly
+## Using BUSCO to assess composition or 'completeness' of assembly
+`BUSCO` was installed in the `busco` conda environment on the RCC. `BUSCO v 5.2.2` was used.
+
+```{bash run_busco, file='bash/busco_tran.sh', eval = FALSE}
+
 ```
 
-## Indexing the genome an aligning reads with STAR
-STAR was installed via a conda environment on the RCC called `STAR`. `STAR v 2.7.10b` was used.
+The lineage chosen for _S fuscus_ was `actinopterygii_odb10` since it is the closest clade provided with BUSCO. This script was run as `nohup bash bash_scripts/busco_tran.sh trinity_out_dir_fuscus_June2023.Trinity.fasta actinopterygii_odb10 busco_out_fuscus > busco.log 2>&1 &`.
+
+#### Short Summary
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_out_dir_fuscus_June2023.Trinity.fasta
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:94.7%[S:7.6%,D:87.1%],F:2.4%,M:2.9%,n:3640
+        3447    Complete BUSCOs (C)
+        277     Complete and single-copy BUSCOs (S)
+        3170    Complete and duplicated BUSCOs (D)
+        87      Fragmented BUSCOs (F)
+        106     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+Very similar results to what was found with _S. floridae_ prior to any thinning. Good completeness but high duplication (likely due to the multiple isoforms that are outputted from Trinity).
+
+#### Plot
+<p float="center">
+
+<img src="../imgs/busco_fuscus_trinity.png" style="width:650px;"/> 
+
+</p>
+
+## Trinity transcriptome contig Nx Statistics
+```{bash N50_script, file='bash/trinity_N50.sh', eval = FALSE}
+
+```
+
+#### Results
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':	323048
+Total trinity transcripts:	534363
+Percent GC: 46.61
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+	Contig N10: 7775
+	Contig N20: 5458
+	Contig N30: 4161
+	Contig N40: 3192
+	Contig N50: 2414
+
+	Median contig length: 456
+	Average contig: 1088.98
+	Total assembled bases: 581911276
 
 
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
 
+	Contig N10: 5947
+	Contig N20: 3778
+	Contig N30: 2391
+	Contig N40: 1502
+	Contig N50: 979
 
-# Alignment and abundance estimations {.tabset}
+	Median contig length: 346
+	Average contig: 656.63
+	Total assembled bases: 212122880
+```
+
+Based on the longest isoform we can see that 50% of the assembled bases are found in transcript contigs that are at least 979 bases in length. This is lower than the 1307 N50 from _Syngnathus floridae_.
+
+## Trinity transcriptome contig Ex90N50 Statistic and gene count
+#### Create an Abundance Matrix
+
+```
+#Get a list of the salmon quant.sf files so you don't have to list them individually
+find . -maxdepth 2 -name "*quant.sf" | tee FUsalmon.quant_files.txt
+```
+
+```{bash trinity_matrix, file='bash/trinity_abund_est.sh', eval=FALSE}
+
+```
+
+This script was run as `nohup bash bash_scripts/trinity_abund_est.sh `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta.gene_trans_map `pwd`/fuscus_salmon_quant/FUsalmon.quant_files.txt fuscus_salmon > trin_abund.log 2>&1 &`. The shell wrapper (`/bin/sh -c`) was added to the script to ensure the ouput files were sent to the right place.
+
+#### Calculate the Ex90N50 stat
+
+```{bash ex90, file='bash/exn50.sh', eval=FALSE}
+
+```
+
+This script was run as ` bash bash_scripts/exn50.sh `pwd`/fuscus_salmon.isoform.TMM.EXPR.matrix `pwd`/trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_exN50.stats`
+
+| Ex      | ExN50   | num_genes |
+|:--------|:--------|:----------|
+|    2    |   281   |     1     |
+|    4    |  2370   |     2     |
+|    6    |  2370   |     3     |
+|    7    |  1570   |     4     |
+|   ...   |   ...   |    ...    |
+|   90    |  2981   |  25899    |
+|   99    |  2431   |  492686   |
+|   100   |  2414   |  534363   |
+
+We can then plot the Ex value (first column) against the ExN50 values:
+
+`sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/coley_files/ && /usr/local/bin/util/misc/plot_ExN50_statistic.Rscript /home/rccuser/shared/coley_files/fuscus_exN50.stats"`
+
+the Ex90N50 for _S. fuscus_ (2981) is slightly higher but very similar to the Ex90N50 for _S. floridae_ (2918).
+
+# Alignment and abundance estimations
 Salmon was installed locally on the RCC. It must be run as `/usr/local/bin/salmon`. `Salmon v 1.10.1` was used.
 
-## Generate the index {-}
+## Generate the index
 `salmon index` was used for this step. The index is built only **once** per transcriptome.
 
 ```{bash salmon-build-index, file='bash/salmon_txome_indicies.sh', eval = FALSE}
@@ -125,7 +226,7 @@ Salmon was installed locally on the RCC. It must be run as `/usr/local/bin/salmo
 
 The script was run as `nohup bash bash_scripts/salmon_txome_indicies.sh trinity_out_dir_fuscus_June2023.Trinity.fasta fuscus_salmon_index 31 > salmon_index.log 2>&1 &`. A kmer length of 31 was used upon recommendation from the Salmon website.
 
-## Quantify the samples {-}
+## Quantify the samples
 After building the index this is run on every individual read pair.
 
 ```{bash salmon-quant, file='bash/salmon_quant.sh', eval=FALSE}
@@ -183,9 +284,9 @@ SuperTranscripts were generated to reduce redundancy while still retaining all o
 
 This script was run in a screen session as `bash bash_scripts/trin_super_transcripts.sh trinity_out_dir_fuscus_June2023.Trinity.fasta`. It took about 11 minutes to run.
 
-## Re-evaluating the quality of the assembly {.tabset}
-### BUSCO {-}
-#### Short summary {-}
+## Re-evaluating the quality of the assembly
+### BUSCO
+#### Short summary
 ```
 # BUSCO version is: 5.2.2 
 # The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
@@ -207,7 +308,7 @@ Dependencies and versions:
 	metaeuk: 6.a5d39d9
 ```
 
-#### Graphing results {-}
+#### Graphing results
 
 <p float="center">
 
@@ -215,8 +316,8 @@ Dependencies and versions:
 
 </p>
 
-### Examining RNA-Seq read representation (via Salmon) {-}
-#### Mapping Rate {-}
+### Examining RNA-Seq read representation (via Salmon)
+#### Mapping Rate
 |   Sample   |  Trinity Assembly  | SuperTranscript Assembly |
 |:----------:|:------------------:|:------------------------:|
 |   FUG10M2  |       99.8809%     |         96.3946%         |
@@ -252,6 +353,7 @@ Dependencies and versions:
 
 # Prepping for differential expression analysis
 ## Importing transcript abundance with tximport
+
 ```{r create-sample-file}
 ##Create a file containing information about the samples
 ID <- c("FUG10M2", "FUG11F1", "FUG11M2", "FUG11M4", "FUG12M1", "FUG13F1", "FUG13F4", "FUG15M5", "FUG2F2", "FUG3F2",
@@ -270,6 +372,7 @@ write.table(samples, file = "FU_samples.txt", quote = FALSE, sep = "\t", col.nam
 ```
 
 Generating the transcript abundance was done on the RCC via R command line:
+
 ```{r tximport, eval=FALSE}
 #Enter R
 conda activate R
