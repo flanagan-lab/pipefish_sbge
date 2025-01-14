@@ -748,7 +748,7 @@ sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/r
 ```
 # BUSCO version is: 5.2.2
 # The lineage dataset is: actinopterygii_odb10 (Creation date: 2021-02-19, number of genomes: 26, number of BUSCOs: 3640)
-# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/coley_files/trinity_genes.fasta
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/emily_files/trinity_genes.fasta
 # BUSCO was run in mode: transcriptome
 
         ***** Results: *****
@@ -766,7 +766,59 @@ Dependencies and versions:
         metaeuk: 6.a5d39d9
 
 ```
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
 
+### Trinity transcriptome contig Nx Statistics {-}
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+
+  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+  - This can be done using the built in TrinityStats.pl script within trinity.
+  - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
+
+```{bash N50_script, file='bash/trinity_N50.sh', eval = FALSE}
+
+```
+
+This script was run as `bash ../scripts/trinity_N50.sh `pwd`/nigra_supertranscript.fasta nigra_N50.txt`
+
+### N50 stats
+
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  182622
+Total trinity transcripts:      182622
+Percent GC: 44.29
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 7525
+        Contig N20: 5278
+        Contig N30: 3846
+        Contig N40: 2636
+        Contig N50: 1582
+
+        Median contig length: 347
+        Average contig: 761.11
+        Total assembled bases: 138995208
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 7525
+        Contig N20: 5278
+        Contig N30: 3846
+        Contig N40: 2636
+        Contig N50: 1582
+
+        Median contig length: 347
+        Average contig: 761.11
+        Total assembled bases: 138995208
 
 # Prepping for differential expression analysis
 ## Importing transcript abundance with tximport
