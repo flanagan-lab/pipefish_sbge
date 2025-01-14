@@ -926,19 +926,33 @@ upset(fromList(listInputFB),
  #           row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
-listInputall <- list("Testis" = rownames(gonad_mal_biased),
+listInputall <- list("Female Gill" = rownames(gill_fem_biased),
                   "Male Gill"=rownames(gill_mal_biased), 
-                  "Male Liver"=rownames(liver_mal_biased),
-                  "Ovaries" = rownames(gonad_fem_biased),
-                  "Female Gill"=rownames(gill_fem_biased), 
-                  "Female Liver"=rownames(liver_fem_biased))
+                  "Female Liver"=rownames(liver_fem_biased),
+                  "Male Liver" = rownames(liver_mal_biased),
+                  "Ovaries"=rownames(gonad_fem_biased), 
+                  "Testes"=rownames(gonad_mal_biased))
 
+# Define the desired order of sets
+desired_order <- c("Female Gill", "Male Gill", "Female Liver", "Male Liver", "Ovaries", "Testes")
+
+# Create the UpSet object with custom set order
 upset(fromList(listInputall),
+      sets = desired_order,
       mainbar.y.label = "Number of Shared Sex-Biased Genes",
       sets.x.label = "Total Number of Sex-Biased Genes",
       point.size = 3,
       nsets = 6,
-      nintersects = NA)
+      nintersects = NA,
+      order.by = "degree",
+      keep.order = TRUE)
+
+#upset(fromList(listInputall),
+ #     mainbar.y.label = "Number of Shared Sex-Biased Genes",
+  #    sets.x.label = "Total Number of Sex-Biased Genes",
+   #   point.size = 3,
+    #  nsets = 6,
+     # nintersects = NA)
 
 ```
 
@@ -1647,16 +1661,16 @@ blast_output_filtered$SN_maleL_allTRgenes_blast <- merge(all_MLiver_df, blast_ou
 
 ```{r export-datasets}
 #BLAST results gills
-write.csv(blast_output_filtered$SN_femG_allTRgenes_blast, "data/SN_BLAST_results_femG.csv", row.names = FALSE)
-write.csv(blast_output_filtered$SN_malG_allTRgenes_blast, "data/SN_BLAST_results_malG.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_femG_allTRgenes_blast, "data/SN_BLAST_results_femG.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_malG_allTRgenes_blast, "data/SN_BLAST_results_malG.csv", row.names = FALSE)
 
 #BLAST results gonads
-write.csv(blast_output_filtered$SN_femGon_allTRgenes_blast, "data/SN_BLAST_results_femGon.csv", row.names = FALSE)
-write.csv(blast_output_filtered$SN_malGon_allTRgenes_blast, "data/SN_BLAST_results_malGon.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_femGon_allTRgenes_blast, "data/SN_BLAST_results_femGon.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_malGon_allTRgenes_blast, "data/SN_BLAST_results_malGon.csv", row.names = FALSE)
 
 #BLAST results liver
-write.csv(blast_output_filtered$SN_femL_allTRgenes_blast, "data/SN_BLAST_results_femL.csv", row.names = FALSE)
-write.csv(blast_output_filtered$SN_malL_allTRgenes_blast, "data/SN_BLAST_results_malL.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_femL_allTRgenes_blast, "data/SN_BLAST_results_femL.csv", row.names = FALSE)
+#write.csv(blast_output_filtered$SN_malL_allTRgenes_blast, "data/SN_BLAST_results_malL.csv", row.names = FALSE)
 ```
 
 
@@ -2135,122 +2149,101 @@ ggplot(all_go_sums,
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-## Looking at GO groups for the male- and female-biased genes
-```{r plot-panther-SBG-liver}
-#Calculate the frequency at which each protein class occurs within the different tissue types
-##Create an empty dataset to store the values in
-all_go_sums_liver <- data.frame(matrix(ncol = 6,
-                                      nrow = 0))
+```{r GO-dotplot}
 
-##Add appropriate column names
-colnames(all_go_sums_liver) <- c(colnames(all_go_dat),
-                                "prop")
+# Define custom color palette
+my_colors <- c("Gonad" = "#EEB422", "Liver" = "#EE8262", "Gill" = "#20B2AA")
 
-##Loop through each bias type to calculate frequencies
-for (bias in c("SN_femL_allTRgenes_danio_blast",
-               "SN_malL_allTRgenes_danio_blast")) {
-  
-  tmp <- all_go_dat[all_go_dat$bias_cat == bias, ]
-  
-  #Calculate the respective proportion for each protein class
-  tmp$prop <- tmp$Freq/sum(tmp$Freq)
-  
-  #Export the data to the previously created dataframe
-  all_go_sums_liver <- rbind(tmp, all_go_sums_liver)
-  
-}
+# Select the relevant columns
+data_plot <- all_go_sums %>%
+  select(tissue, prot_class, prop)
 
+# Create the dot plot
+ggplot(data_plot, aes(x = tissue, y = prot_class, size = prop, fill = tissue)) +
+  geom_point(alpha = 0.7) +
+  scale_fill_manual(values = my_colors) +
+  scale_size_continuous(range = c(1, 15)) +
+  labs(title = "Tissue Distribution of Proteins",
+       x = "Tissue",
+       y = "Protein Class",
+       size = "Proportion",
+       fill = "Tissue Color") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-#Change all of the protein classes that have a frequency of less than 0.01 to "Other"
-for(class in unique(all_go_sums_liver$Var1)){
-  
-  #Pull out the rows that contain that protein class
-  match_rows <- which(all_go_sums_liver$Var1==class)
-  
-  #If any of the proportions associated with those rows is less than 0.01, classify as other
-  if(any(all_go_sums_liver$prop[match_rows]>0.01)==FALSE){
-    
-    all_go_sums_liver$Var1[match_rows] <- " other"
-    
-  }
-}
-
-#Change format of "Unclassified so it will come first"
-all_go_sums_liver$Var1[all_go_sums_liver$Var1=="Unclassified"] <-  " unclassified"
-
-#Generate the GO plot
-bias_col <- c("SN_femL_allTRgenes_danio_blast" = "#7fc97f", 
-               "SN_malL_allTRgenes_danio_blast" = "#beaed4")
-
-
-pdf("figs/FigGO_SBGliver.pdf",height=14, width=12)
-
-ggplot(all_go_sums_liver, 
-       aes(fct_rev(Var1), prop, fill = "bias_cat")) +   
-  geom_bar(position = "dodge", stat="identity") +
-  scale_fill_manual(values = bias_col) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_text(angle = 90, 
-                                   vjust = 0.5, 
-                                   hjust=1,size=20),
-        axis.text.y = element_text(size=15, hjust = 1,
-                                   vjust = 0.3),
-        text=element_text(size=20),
-        legend.position = "bottom",
-        axis.ticks.length.y = unit(.25, "cm")) +
-  coord_flip() + 
-  labs(y="Proportion of sex-biased genes", x="")
-
-dev.off()
 
 ```
 
-```{r}
-#Combine the GO figures
-figGOa <- image_ggplot(image_read_pdf('figs/FigGO_SBGliver.pdf'),
-                        interpolate = TRUE)
-figGOb <- image_ggplot(image_read_pdf('figs/FigGO_SBGgonad.pdf'),
-                           interpolate = TRUE)
+What does it look like if we use the proportion of SBG in each organ?
+```{r GO-dotplot-prop-organs}
+# Import .csv with proportion information
+all_go_sums_prop <- read.csv("data/all_go_sums.csv")
 
-# put the patchworks together
-figGO <-  wrap_plots(figGOa, figGOb, ncol=2) + 
-  plot_annotation(tag_levels = 'A') 
+# Define custom color palette
+my_colors <- c("Gonad" = "#EEB422", "Liver" = "#EE8262", "Gill" = "#20B2AA")
 
-ggsave("figs/FigGO_indv.pdf", figGO, height=5, width=8)
-ggsave("figs/FigGO_indv.png", figGO, height=5, width=8)
+# Select the relevant columns
+data_plot <- all_go_sums_prop %>%
+  select(tissue, prot_class, prop_organ_SBG)
+
+# Create the dot plot
+ggplot(data_plot, aes(x = tissue, y = prot_class, size = prop_organ_SBG, fill = tissue)) +
+  geom_point(alpha = 0.7) +
+  scale_fill_manual(values = my_colors) +
+  scale_size_continuous(range = c(1, 15)) +
+  labs(title = "Tissue Distribution of Proteins",
+       x = "Tissue",
+       y = "Protein Class",
+       size = "Proportion of SBG in Organ",
+       fill = "Tissue Color") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
 ```
-
 
 ```{r export-danio-geneID-INDV, eval=FALSE}
 
 #write.table(blast_output_merged$SN_femGon_allTRgenes_danio_blast$gene_name,
- #           'SN_GOnames_SBG_ovary.txt',
+ #           'data/SN_GOnames_SBG_ovary.txt',
   #          sep = " ",
    #         quote=FALSE,
     #        row.names = FALSE,
      #       col.names = FALSE)
 
 #write.table(blast_output_merged$SN_maleGon_allTRgenes_danio_blast$gene_name,
- #           'SN_GOnames_SBG_testes.txt',
+ #           'data/SN_GOnames_SBG_testes.txt',
   #          sep = " ",
    #         quote=FALSE,
     #        row.names = FALSE,
      #       col.names = FALSE)
 
 #write.table(blast_output_merged$SN_femL_allTRgenes_danio_blast$gene_name,
- #           'SN_GOnames_SBG_fLiver.txt',
+ #           'data/SN_GOnames_SBG_fLiver.txt',
   #          sep = " ",
    #         quote=FALSE,
     #        row.names = FALSE,
      #       col.names = FALSE)
 
 #write.table(blast_output_merged$SN_maleL_allTRgenes_danio_blast$gene_name,
- #           'SN_GOnames_SBG_mLiver.txt',
+ #           'data/SN_GOnames_SBG_mLiver.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
+
+#write.table(blast_output_merged$SN_femG_allTRgenes_danio_blast$gene_name,
+ #           'data/SN_GOnames_SBG_fgill.txt',
+  #          sep = " ",
+   #         quote=FALSE,
+    #        row.names = FALSE,
+     #       col.names = FALSE)
+
+#write.table(blast_output_merged$SN_maleG_allTRgenes_danio_blast$gene_name,
+ #           'data/SN_GOnames_SBG_mgill.txt',
   #          sep = " ",
    #         quote=FALSE,
     #        row.names = FALSE,
      #       col.names = FALSE)
 ```
+
