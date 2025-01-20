@@ -1030,6 +1030,8 @@ logFC_long<- data.frame(
 #write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
 ```
 
+Range -31.11510  40.60296
+
 With the dataset in the proper format now, we can generate the plot
 
 ```{r FC-var-plot, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added on top of the boxplot as jitters."}
