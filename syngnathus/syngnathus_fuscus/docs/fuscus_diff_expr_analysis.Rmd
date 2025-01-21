@@ -1507,6 +1507,19 @@ upset(fromList(listInputFB),
 ```
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
+#Exporting data used to make the Upset plot (run once and them commented out)
+#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+ #           row.names = TRUE)
+#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+ #           row.names = TRUE)
 
 #Checking there is no overlap between the two sexes
 listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
@@ -1781,7 +1794,7 @@ bias_cat_gonad <- bias_cat_table[,, "Gonad"]
 #write.table(bias_cat_gonad, "data/bias_cat_gonad.txt", row.names = TRUE)
 
 bias_cat_liver <- bias_cat_table[,, "Liver"]
-write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+#write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
 
 #Plot the counts for each tissue type
 sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4" )
