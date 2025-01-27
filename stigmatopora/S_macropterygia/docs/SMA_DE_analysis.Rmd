@@ -70,7 +70,7 @@ The data is then pre-filtered to remove low gene counts before running further D
 
 The cutoff here was to remove rows that had counts fewer than 10 across all samples.
 
-Sample S23 (Mapping rate = 33.7558%) and S30 (Mapping rate = 11.6745%) both had lower than expected gene counts, so they were filtered out entirely. S10 and S15 were clustering in unexpected ways, so they were also removed from further analyses. 
+Sample S23 (Mapping rate = 33.7558%) and S30 (Mapping rate = 11.6745%) both had lower than expected gene counts, so they were filtered out entirely. S10 was clustering in unexpected ways, so they were also removed from further analyses. 
 
 ```{r pre-filtering, message=FALSE, warning=FALSE}
 #only keeping rows that have at lead 10 reads total
@@ -78,8 +78,8 @@ keep <- rowSums(counts(dds_SM)) >= 10
 dds_SM <- dds_SM[keep, ]
 
 #Remove all samples that were previously determined to be unfit for inclusion 
-dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10", "S15","S23","S30"))]
-samples <- samples[!(samples$ID %in% c("S10", "S15","S23", "S30")),]
+dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10","S23","S30"))]
+samples <- samples[!(samples$ID %in% c("S10","S23", "S30")),]
 
 ```
 
@@ -621,8 +621,8 @@ ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
                                      colData = samples,
                                      design = ~ group)
 
-##Remove S10, S15, S23, and S30 from the dataset
-ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S15", "S23", "S30"))]
+##Remove S10, S23, and S30 from the dataset
+ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(ddsMF_SM)) >= 10 #& rowSums(counts(ddsMF_SM)) < 1e6
@@ -746,7 +746,7 @@ gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
 
 #Pulling all diff expressed genes in Males
 all_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=138)))
+  gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=137)))
 
 #Run once to create the file and then commented out
 #write.table(all_MGill_trin_genes,
@@ -758,7 +758,7 @@ all_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
 
 #Pulling all diff expressed genes in Females 
 all_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=8)))
+  gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=16)))
 
 #Run once to create the file and then commented out
 #write.table(all_FGill_trin_genes,
@@ -812,7 +812,7 @@ gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
 
 #Pulling all diff expressed genes in Males
 all_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=412)))
+  gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=4781)))
 
 #Run once to create the file and then commented out
 #write.table(all_MGonad_trin_genes,
@@ -824,7 +824,7 @@ all_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
 
 #Pulling all diff expressed genes in Females
 all_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=71)))
+  gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=2466)))
 
 #Run once to create the file and then commented out
 #write.table(all_FGonad_trin_genes,

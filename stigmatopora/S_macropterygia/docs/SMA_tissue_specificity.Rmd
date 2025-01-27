@@ -103,7 +103,7 @@ tpms <- do.call(cbind, lapply(files, function(file){
 }))
 
 #Remove the sample that was removed in the differential expression analysis 
-tpms <- tpms[, !(colnames(tpms) %in% c("S10", "S15", "S23", "S30"))]
+tpms <- tpms[, !(colnames(tpms) %in% c("S10", "S23", "S30"))]
 ```
 
 ## Filtering the TPM dataset
@@ -125,7 +125,7 @@ dds_SM <- DESeqDataSetFromTximport(txi.macropterygia,
                                    design = ~ group)
 
 ##Remove S10, S23, S30 from the dataset
-dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10", "S15", "S23", "S30"))]
+dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10", "S23", "S30"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
 keep <- rowSums(counts(dds_SM)) >= 10 
@@ -202,7 +202,7 @@ I then applied that function across each row in the TPMs matrix with my metadata
 I ran the $\tau$ function with the whole dataset, and then for just males and just females.
 
 ```{r calcTau}
-colData <- colData[!(colData$ID %in% c("S10", "S15", "S23", "S30")),]
+colData <- colData[!(colData$ID %in% c("S10", "S23", "S30")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
 
@@ -321,7 +321,7 @@ gonad_bias_tau <- merge(as.data.frame(gonad_biased), as.data.frame(tau), by = "r
 gill_bias_tau <- merge(as.data.frame(gill_biased), as.data.frame(tau), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau$log2FoldChange)),
      gonad_bias_tau$tau,
      pch=19,
@@ -340,7 +340,7 @@ points(sqrt(abs(gill_bias_tau$log2FoldChange)),
 
 #Add the best fit lines
 abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 3)
 abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
 
 #Add a legend
@@ -530,8 +530,8 @@ biased_bins <- c("low", "med", "high", "extreme", "sex-specific")
 #Create a new column in the dataset and use ifelse statements to set the category limits
 #abs(logFC) was used to account for the fem-biased genes possessing negative values
 logFC_long$bias_cat <- ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3, biased_bins[1],
-                                   ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 4, biased_bins[2],
-                                          ifelse(abs(logFC_long$logFC) >= 4 & abs(logFC_long$logFC) < 8,
+                                   ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5, biased_bins[2],
+                                          ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10,
                                                  biased_bins[3], 
                                                  biased_bins[4])
                                           )
@@ -1017,12 +1017,12 @@ gonad_bias_tau_fem <- merge(as.data.frame(gonad_biased_fem), as.data.frame(tau_f
 gill_bias_tau_fem <- merge(as.data.frame(gill_biased_fem), as.data.frame(tau_fem), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(8.1, 8.1, 8.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau_fem$log2FoldChange)),
      gonad_bias_tau_fem$tau_fem,
      pch=19,
      col = "#EEB42275",
-     xlab="Sex bias (|log2 fold change|)",
+     xlab="Female bias (|log2 fold change|)",
      ylab=expression(tau["TPM"]))
 points(sqrt(abs(liver_bias_tau_fem$log2FoldChange)),
      liver_bias_tau_fem$tau_fem,
@@ -1564,7 +1564,7 @@ gonad_bias_tau_mal <- merge(as.data.frame(gonad_biased_mal), as.data.frame(tau_m
 gill_bias_tau_mal <- merge(as.data.frame(gill_biased_mal), as.data.frame(tau_mal), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau_mal$log2FoldChange)),
      gonad_bias_tau_mal$tau_mal,
      pch=19,
@@ -1605,7 +1605,7 @@ There appears to be a relationship between $\tau$ and male bias for the gonads, 
 ```{r tau-v-bias-cor-mal, echo=FALSE, message=FALSE, warning=FALSE}
 cor.test(gonad_bias_tau_mal$tau_mal, sqrt(abs(gonad_bias_tau_mal$log2FoldChange)), method = "spearman") #sig, positive
 cor.test(liver_bias_tau_mal$tau_mal, sqrt(abs(liver_bias_tau_mal$log2FoldChange)), method = "spearman") #sig, positive
-cor.test(gill_bias_tau_mal$tau_mal, sqrt(abs(gill_bias_tau_mal$log2FoldChange)), method = "spearman") #sig, negative
+cor.test(gill_bias_tau_mal$tau_mal, sqrt(abs(gill_bias_tau_mal$log2FoldChange)), method = "spearman") #not sig, negative
 
 ```
 
@@ -1633,7 +1633,7 @@ gonad_MB_UB_tau <- merge(as.data.frame(gonad_MB_UB), as.data.frame(tau_mal), by 
 gill_MB_UB_tau <- merge(as.data.frame(gill_MB_UB), as.data.frame(tau_mal), by = "row.names")
 
 #Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(gonad_MB_UB_tau$log2FoldChange)),
      gonad_MB_UB_tau$tau,
      pch=19,
