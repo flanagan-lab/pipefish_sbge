@@ -1,0 +1,99 @@
+---
+title: "Generating Figures for all Stigmatopora species"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/all_stigmatopora")
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(pheatmap)
+library(RColorBrewer)
+library(PCAtools)
+library(ggpubr)
+library(cowplot)
+library(UpSetR)
+library(ggplot2)
+library(kableExtra)
+library(tidyverse)
+library(knitr)
+library(magick)
+library(multcompView)
+```
+
+
+```{r}
+all_sbg <- read.csv("sbg_all_stigmatopora.csv")
+
+all_ssg <- read.csv("ssg_all_stigmatopora.csv")
+
+```
+
+```{r sex-biased-gene-pies}
+par(mfrow = c(3,3))
+species <- unique(all_sbg$species)
+
+for (pipefish in species) {
+  
+  tmp <- all_sbg[all_sbg$species == pipefish, ]
+  
+  for (i in 1:length(unique(tmp$organ))) {
+    
+    organ <- tmp$organ[[i]]
+    
+    pie(c(tmp$num_FB[tmp$organ == organ],
+          tmp$num_MB[tmp$organ == organ]),
+        labels = c(tmp$num_FB[tmp$organ == organ],
+                   tmp$num_MB[tmp$organ == organ]),
+        col = c("#7fc97f", "#beaed4"),
+        border = c("#7fc97f", "#beaed4"), main = organ)
+  }
+  
+}
+
+    
+```
+
+```{r sex-specific-gene-pies}
+par(mfrow = c(3,3))
+species <- unique(all_ssg$species)
+
+for (pipefish in species) {
+  
+  tmp <- all_ssg[all_ssg$species == pipefish, ]
+  
+  for (i in 1:length(unique(tmp$organ))) {
+    
+    organ <- tmp$organ[[i]]
+    
+    pie(c(tmp$num_FS[tmp$organ == organ],
+          tmp$num_MS[tmp$organ == organ]),
+        labels = c(tmp$num_FS[tmp$organ == organ],
+                   tmp$num_MS[tmp$organ == organ]),
+        col = c("#7fc97f", "#beaed4"),
+        border = c("#7fc97f", "#beaed4"), main = organ)
+  }
+  
+}
+
+    
+```
+
+
