@@ -31,18 +31,34 @@ library(ggpubr)
 library(cowplot)
 library(UpSetR)
 library(ggplot2)
+library(dplyr)
 library(kableExtra)
 library(tidyverse)
 library(knitr)
 library(magick)
 library(multcompView)
+library(ggimage)
+```
+
+```{r setup}
+
+sex_cols <-c(Female="#7fc97f", 
+            Male="#beaed4")
+spp_cols <- c("nigra" = "#7fa4c9", 
+              "argus" = "#c9a47f", 
+              "macropterygia" = "#c97fa4" )
+organ_shapes <- c("gonad" = 24, 
+                  "liver" = 22, 
+                  "gill" = 21)  
 ```
 
 
-```{r}
+```{r read-datasets}
 all_sbg <- read.csv("sbg_all_stigmatopora.csv")
 
 all_ssg <- read.csv("ssg_all_stigmatopora.csv")
+
+all_tau <- read.csv("rho_tau_stigmatopora.csv")
 
 ```
 
@@ -96,4 +112,137 @@ for (pipefish in species) {
     
 ```
 
+```{r sex-specific-genes-dimorphism-cats}
+#all sex-specific genes combined
+ggplot(all_ssg, aes(x = dimorphism, y = total_SS_genes, shape = organ, fill = species)) +
+  geom_point(size = 6, color = "black", stroke = 1) +  # Black outline, filled markers
+  scale_shape_manual(values = organ_shapes) +
+  scale_fill_manual(values = spp_cols) +  # Fill by species
+  theme_minimal() +
+  labs(x = "Dimorphism", y = "# SS Genes", fill = "Species", shape = "Organ") +
+  theme(
+    text = element_text(size = 14),
+    legend.position = "right"
+  )
+
+#male- and female-specific separately 
+
+# Reshape data to long format
+all_ssg_long <- all_ssg %>%
+  pivot_longer(cols = c(num_FS, num_MS), names_to = "sex_bias", values_to = "count")
+
+# Define colors for FS and MS
+fs_ms_cols <- c("num_FS" = "#7fc97f", "num_MS" = "#beaed4")
+
+# Plot
+ggplot(all_ssg_long, aes(x = dimorphism, y = count, shape = organ, fill = sex_bias)) + 
+  geom_point(size = 6, color = "black", stroke = 1, 
+             position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.8)) +  
+  scale_shape_manual(values = organ_shapes) +
+  scale_fill_manual(values = fs_ms_cols) +  
+  theme_minimal() +
+  labs(x = "Dimorphism", y = "# SS Genes", fill = "Sex Bias", shape = "Organ") +
+  theme(
+    text = element_text(size = 14),
+    legend.position = "right"
+  )
+
+# Ensure x-axis follows "low" -> "med" -> "high"
+all_ssg_long$dimorphism <- factor(all_ssg_long$dimorphism, levels = c("low", "med", "high"))
+
+#plot
+ggplot(all_ssg_long, aes(x = dimorphism, y = count, shape = organ, fill = sex_bias)) + 
+  geom_point(size = 6, color = "black", stroke = 1, 
+             position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.6)) +  
+  scale_shape_manual(values = organ_shapes) +
+  scale_fill_manual(values = fs_ms_cols) +  
+  theme_minimal() +  # Starts with a minimal theme
+  theme(
+    panel.background = element_blank(),  # Removes gray background
+    panel.grid = element_blank(),        # Removes all gridlines
+    axis.line = element_blank(),         # Removes axis lines
+    axis.ticks = element_blank(),        # Removes axis ticks
+    text = element_text(size = 14),
+    legend.position = "right"
+  ) +
+  labs(x = "Dimorphism", y = "# SS Genes", fill = "Sex Bias", shape = "Organ")
+
+```
+
+```{r tau-spp}
+
+# Your dataset
+rho_tau_stigmatopora <- data.frame(
+  species = c("nigra", "nigra", "nigra", 
+              "argus", "argus", "argus", 
+              "macropterygia", "macropterygia", "macropterygia"),
+  organ = c("gonad", "liver", "gill", 
+            "gonad", "liver", "gill", 
+            "gonad", "liver", "gill"),
+  rho = c(0.38, 0.16, 0.2, 
+          0.124, 0.4, 0.28, 
+          0.359, 0.347, -0.073)
+)
+
+# Create the plot
+ggplot(rho_tau_stigmatopora, aes(x = organ, y = rho, color = species)) +
+  geom_point(size = 4) +  # Plot points
+  scale_color_manual(values = spp_cols) +  # Assign colors to species
+  geom_hline(yintercept = 0, linetype = "dashed") +  # Dashed horizontal line at y=0
+  theme_minimal() +
+  labs(x = "Tissue", y = "rho") +
+  theme(
+    legend.title = element_blank(),
+    text = element_text(size = 14)
+  )
+
+```
+
+```{r mal-fem-tau}
+
+# Your dataset
+rho_tau_stigmatopora <- data.frame(
+  species = c("nigra", "nigra", "nigra", 
+              "argus", "argus", "argus", 
+              "macropterygia", "macropterygia", "macropterygia"),
+  organ = c("gonad", "liver", "gill", 
+            "gonad", "liver", "gill", 
+            "gonad", "liver", "gill"),
+  fem_rho = c(0.27, 0.18, 0.06, 
+              -0.064, 0.4, 0.29, 
+              0.168, 0.426, 0.357),
+  mal_rho = c(0.37, 0.22, 0.41, 
+              0.124, 0.002, 0.314, 
+              0.345, 0.347, -0.73)
+)
+
+# Ensure organ is a factor with the correct order
+rho_tau_stigmatopora$organ <- factor(rho_tau_stigmatopora$organ, levels = c("gonad", "liver", "gill"))
+
+# Create plot function
+plot_rho <- function(data, rho_column, title) {
+  ggplot(data, aes(x = organ, y = !!sym(rho_column), color = species)) +
+    geom_point(size = 4) +  # Plot points
+    scale_color_manual(values = spp_cols) +  # Assign colors to species
+    geom_hline(yintercept = 0, linetype = "dashed") +  # Dashed horizontal line at y=0
+    theme_minimal() +
+    labs(x = "Tissue", y = "rho", title = title) +
+    theme(
+      legend.title = element_blank(),
+      text = element_text(size = 14)
+    )
+}
+
+# Plot for Female-biased rho
+plot_fem <- plot_rho(rho_tau_stigmatopora, "fem_rho", "Female-biased rho")
+
+# Plot for Male-biased rho
+plot_mal <- plot_rho(rho_tau_stigmatopora, "mal_rho", "Male-biased rho")
+
+# Print both plots
+print(plot_fem)
+print(plot_mal)
+
+
+```
 
