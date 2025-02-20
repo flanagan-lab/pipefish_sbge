@@ -1,0 +1,89 @@
+---
+title: "fuscus_orthologs"
+author: "Sarah P. Flanagan"
+date: "`r Sys.Date()`"
+output:
+  github_document: 
+    toc: true 
+  #bookdown::pdf_document2:
+    #fig_caption: yes
+    #keep_tex: yes
+    #number_sections: no
+    #toc: false
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="../imgs/")
+```
+
+```{r loadlibs, include=FALSE}
+library(knitr)
+library(kableExtra)
+```
+
+
+The goal is to better understand the sex specific genes -- what's the evolutionary rate? 
+
+So I will first identify orthologs. I've downloaded protein sequences from GenBank:
+
+```{r genomeTable, include=FALSE}
+genomes<- data.frame(
+  species = c(
+    "Syngnathus scovelli",
+    "Syngnathus floridae",
+    "Syngnathus typhle",
+    "Syngnathus acus",
+    "Hippocampus zosterae",
+    "Hippocampus comes"
+  ),
+  assembly_id = c(
+    "GCF_024217435.2",
+    "GCA_010014945.2",
+    "GCF_033458585.1",
+    "GCF_901709675.1",
+    "GCF_025434085.1",
+    "GCF_001891065.2"
+  ),
+  type = c(
+    "proteins",
+    "fasta and annotations",
+    rep("proteins",4)
+  )
+)
+kable(genomes,"latex")
+```
+
+Based on the OrthoFinder tutorial on best practices, I'm using the proteomes where available. I have named these S_scovelli.protein.zip etc. Unfortunately Syngnathus floridae did not have a protein file available.
+
+I've downloaded two Hippocampus protein files because in case we are really interested in changes at the Syngnathus fuscus branch (as opposed to comparing across clades) -- according to the [OrthoFinder tutorial](https://davidemms.github.io/orthofinder_tutorials/orthofinder-best-practices.html):
+
+```
+If you’re interested in what happened on a particular branch of the species tree, then you should likewise ensure good species sampling—ideally at least two species below the branch, at least two species on the closest branch above and two or more species in the outgroup.
+```
+I unzipped the ncbi downloads and pulled all the fasta files out into one folder. I'm skipping S. floridae for now. 
+
+I used the orthofinder tool to identify primary transcripts (not sure it did anything, since these are not ensembl files)
+
+```{bash, eval=FALSE}
+for f in *faa ; do python ~/Programs/OrthoFinder/tools/primary_transcript.py $f ; done
+
+```
+
+
+
+
+
+
+
+
+
+
