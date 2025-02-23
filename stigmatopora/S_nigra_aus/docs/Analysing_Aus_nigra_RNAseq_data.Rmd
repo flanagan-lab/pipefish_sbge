@@ -21,4 +21,112 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 ```
 This pipeline follows a pipeline outlined for _Syngnathus floridae_. Changes in scripts and outputs are outlined in this document. More detail about the programmes used can be found here:https://github.com/coley-tosto/PhD_thesis/blob/main/Chapter_3/docs/Analyzing_floridae_RNAseq_data_from_MSU.Rmd This pipeline was run on the University of Canterbury's RCC.
 
-# Pre-assembly
+# Pre-assembly Quality Control and Filtering
+
+## Trimming the Reads with Trimmomatic
+[Trimmomatic](http://www.usadellab.org/cms/index.php?page=trimmomatic) is commonly used for Illumina paired-end and single ended data.  
+
+### Running trimmomatic across Multiple Pairs of Reads
+
+Trimmomatic was installed on the RCC through conda in a conda environment called **Trim**. Use command `conda activate Trim` before running Trimmomatic. 
+
+
+```{bash}
+#!/bin/bash
+
+#Create the argument
+input_dir=$1 #This should be the location of the RAW reads to be trimmed
+
+for fq in $1*_R1_001.fastq.gz
+        do
+        base=$(basename $fq _R1_001.fastq.gz)
+        echo "Running trimmomatic for ${base}..."
+        time trimmomatic PE -threads 16 $fq $1${base}_R2_001.fastq.gz \
+                $1trimmed/${base}_paired_R1_001.fastq.gz $1trimmed/${base}_unpaired_R1_001.fastq.gz \
+                $1trimmed/${base}_paired_R2_001.fastq.gz $1trimmed/${base}_unpaired__R2_001.fastq.gz \
+                HEADCROP:12 LEADING:3 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50
+done
+
+```
+-   Adapter content was removed prior to receiving the raw reads from Micromon, so the bash script `trim_no_adapter_run.sh` was used. If adapter content is present, use bash script `trimmomatic_run.sh`
+
+-   Before running the script, change the `trimmomatic` line to `echo "..."` to make sure all of the variables are working correctly.
+
+-   Trimmomatic takes about a day to run, so either run it with nohup or screen 
+
+-   Then remove the `echo "..."` and run the script as `nohup bash ../scripts/trim_no_adapter_run.sh ../australia_nigra_raw_reads/ > trim.out 2>&1 &`.
+
+## Using SortMeRNA to remove rRNA contamination
+### Create a new environment and install SortMeRNA in it
+
+SortMeRNA was installed in a conda environment as follows:
+
+```
+conda create -n sortmerna
+conda activate sortmerna
+conda install sortmerna
+
+which sortmerna #check location of installation
+  /home/rccuser/anaconda3/envs/contamination/bin/sortmerna
+```
+
+### Test the installation of SortMeRNA
+
+```
+sortmerna --version
+    SortMeRNA version 4.3.6
+    Build Date: Aug 16 2022
+    sortmerna_build_git_sha:@db8c1983765f61986b46ee686734749eda235dcc@
+    sortmerna_build_git_date:@2022/08/16 11:42:59@
+```
+
+### Download the latest SortMeRNA databases (v4.3.4)
+The `database.tar.gz` file can also be downloaded from [this link](https://github.com/sortmerna/sortmerna/releases).
+
+```
+wget https://github.com/biocore/sortmerna/releases/download/v4.3.4/database.tar.gz
+mkdir rRNA_databases_v4.3.4
+tar -xvf database.tar.gz -C rRNA_databases_v4.3.4
+```
+
+### Run SortMeRNA - creating a for loop to run multiple samples at a time
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1 #location of the reads
+ref_fasta=$2 #desired reference fasta
+output_dir_rrna=$3 #desired location for the reads that are rRNA
+output_dir_norrna=$4 #desired location for the reads that are NOT rRNA
+
+## Loop through all pairs of reads in the input directory
+for pair in $1/*_R1_001.fastq.gz
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $pair _R1_001.fastq.gz)
+
+        #Extract Fish ID
+        ID=$(basename $pair _paired_R1_001.fastq.gz)
+
+        ##Echo the sample name it is currently running
+        echo "Running SortMeRNA for ${ID}..."
+
+        #Define the paths to the input and output files for this sample
+        input1=$1/${sample}_R1_001.fastq.gz
+        input2=$1/${sample}_R2_001.fastq.gz
+
+        #Run SortMeRNA on this pair of reads
+        time sortmerna --threads 16 --ref $2 --reads $input1 --reads $input2 --fastx --aligned $3/${ID} --other $4/${ID} --out2
+
+        #Remove SortMeRNA intermediate files before running again
+        rm -r /home/rccuser/sortmerna/run/kvdb
+
+done
+
+
+```
+
+This script was run as `nohup bash ../../scripts/sortmerna_run.sh paired/ /home/rccuser/shared/rRNA_databases_v4.3.4/smr_v4.3_fast_db.fasta rrna/ no_rrna/ > sortmerna.log 2>&1 &`
+
+SortMeRNA takes 1-2 days to run. 
