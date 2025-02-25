@@ -169,4 +169,37 @@ done
 
 This script was run as `nohup bash ../../scripts/kraken2_run.sh /home/rccuser/shared/kraken2_pluspfp/ no_rrna/ kraken_output/ > kraken2.log 2>&1 &`
 
+## Doing a k-mer based correction with RCorrector
+Rcorrector (RNA-seq error CORRECTOR) is a kmer-based error correction method that is used on RNA-seq data. This program allows for a correction of random sequencing errors in Illumina RNA-seq reads. The downside is you may lose information on things like SNPs and other sequence variants.
+
+
+### Creating a for loop to run multiple samples at a time
+```{bash, eval = FALSE}
+### Creating a for loop to run multiple samples at a time
+#!/bin/bash
+
+#Create arguments
+rcorrector_path=$1 #Path to the run_rcorrector.pl file
+input_dir=$2 #Path to the input directory containing the reads
+output_dir=$3 #Path to the desired output location
+
+##Loop through all pairs of reads in the directory
+for pair in $2/*_1.fq
+        do
+
+        #Extract sample name from the file name
+        sample=$(basename $pair _1.fq)
+
+        #Echo the sample name that is currently running
+        echo "Running rcorrector for ${sample} ..."
+
+        #Run rcorrector on this pair of reads
+        time perl $1/run_rcorrector.pl -t 16 -1 $2/${sample}_1.fq -2 $2/${sample}_2.fq -od $3
+
+done
+
+```
+
+This script was run as `nohup bash ../../scripts/rcorrector_run.sh /home/rccuser/rcorrector/ kraken_output/ rcorrector/ > rcor.log 2>&1 &`
+
 
