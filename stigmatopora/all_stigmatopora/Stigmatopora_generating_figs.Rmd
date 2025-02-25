@@ -212,8 +212,8 @@ rho_tau_stigmatopora <- data.frame(
               -0.064, 0.4, 0.29, 
               0.168, 0.426, 0.357),
   mal_rho = c(0.37, 0.22, 0.41, 
-              0.124, 0.002, 0.314, 
-              0.345, 0.347, -0.73)
+              0.124, 0.30, 0.24, 
+              0.345, 0.199, -0.415)
 )
 
 # Ensure organ is a factor with the correct order
