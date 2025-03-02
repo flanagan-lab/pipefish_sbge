@@ -426,3 +426,120 @@ kmer_length=$3
 The above script was run as: `nohup bash scripts/salmon_txome_indicies.sh S_argus_trinity.Trinity.fasta argus_salmon_index 31 > salmon_index.log 2>&1 &`.
 
 A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). 
+
+### Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_1.cor.fq
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _1.cor.fq)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $1/${sample}_1.cor.fq \
+                -2 $1/${sample}_2.cor.fq \
+                -p 16 -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash ../scripts/salmon_quant.sh trimmed/rcorrector/ aus_nigra_salmon_index/ aus_nigra_salmon_quant > salmon_quant.log 2>&1 &`
+
+Running the above script generates an output with the following organisation:
+```
+/home/rccuser/shared/emily_files/australia_nigra_raw_reads/
+  aus_nigra_salmon_quant/
+    SNM4AJT_S16_L001_quant/
+      aux_info/  
+      cmd_info.json  
+      lib_format_counts.json  
+      libParams/  
+      logs/  
+      quant.sf
+```
+The `quant.sf` file is what is going to be important for the next steps of calculating gene expression as it contains all of the quantification info generated for that sample. The `salmon_quant.log` is also useful and contains information about the mapping rate for each sample, which is a good metric for assembly quality. In general we want to see around 80% of the raw reads mapping back.
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+    do
+
+    echo "$dir"
+
+    #Extract the sample name from the directory
+    sample=$(basename $dir _quant)
+
+    #Echo the sample that is being processed
+    echo "Rename sample ${sample} ..."
+
+    #Rename the quant.sf file
+    mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+    #Rename the log file
+    mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+done
+
+```
+This script was run as `bash ../scripts/rename_salmon.sh aus_nigra_salmon_quant/ aus_nigra_salmon_quant/expression_files/ aus_nigra_salmon_quant/log_files/`.
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+SNF11G_S1_L001_salmon_quant.log:[2025-03-03 09:52:16.455] [jointLog] [info] Mapping rate = 99.7415%
+SNF11L_S2_L001_salmon_quant.log:[2025-03-03 09:59:26.209] [jointLog] [info] Mapping rate = 96.6081%
+SNF11O_S3_L001_salmon_quant.log:[2025-03-03 10:02:54.283] [jointLog] [info] Mapping rate = 99.557%
+SNF12G_S4_L001_salmon_quant.log:[2025-03-03 10:09:16.666] [jointLog] [info] Mapping rate = 99.8431%
+SNF12L_S5_L001_salmon_quant.log:[2025-03-03 10:22:08.899] [jointLog] [info] Mapping rate = 66.3544%
+SNF4A3G_S6_L001_salmon_quant.log:[2025-03-03 10:25:59.297] [jointLog] [info] Mapping rate = 99.881%
+SNF4A3L_S7_L001_salmon_quant.log:[2025-03-03 10:39:14.610] [jointLog] [info] Mapping rate = 68.8287%
+SNM29G_S8_L001_salmon_quant.log:[2025-03-03 10:41:32.561] [jointLog] [info] Mapping rate = 99.7039%
+SNM29L_S9_L001_salmon_quant.log:[2025-03-03 10:49:15.230] [jointLog] [info] Mapping rate = 77.1082%
+SNM29T_S10_L001_salmon_quant.log:[2025-03-03 10:52:54.793] [jointLog] [info] Mapping rate = 78.4749%
+SNM3AJG_S11_L001_salmon_quant.log:[2025-03-03 10:55:38.473] [jointLog] [info] Mapping rate = 99.6117%
+SNM3AJL_S12_L001_salmon_quant.log:[2025-03-03 11:07:42.257] [jointLog] [info] Mapping rate = 81.5231%
+SNM3AJT_S13_L001_salmon_quant.log:[2025-03-03 11:10:22.983] [jointLog] [info] Mapping rate = 99.9147%
+SNM4AJG_S14_L001_salmon_quant.log:[2025-03-03 11:21:18.805] [jointLog] [info] Mapping rate = 99.3639%
+SNM4AJL_S15_L001_salmon_quant.log:[2025-03-03 11:28:20.766] [jointLog] [info] Mapping rate = 77.0104%
+SNM4AJT_S16_L001_salmon_quant.log:[2025-03-03 11:30:06.239] [jointLog] [info] Mapping rate = 99.895%
+```
+# Assembly thinning and redundancy reduction
+
+## Using Super transcripts
+A SuperTranscript is constructed by collapsing unique and common sequence regions among your splicing isoforms into a single linear sequence. While the resulting SuperTranscript may not necessarily exist in a real biological context, they allow for assembly thinning to occur without any sequence loss. Here assembly thinning is not the main objective, but rather a nice side effect.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+trinity_out=$1 #The .fasta file generated by the Trinity run
+
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/rccuser/shared/emily_files/ && /usr/local/bin/Analysis/SuperTranscripts/Trinity_gene_splice_modeler.py --incl_malign --trinity_fasta $trinity_out"
+
+```
+
+This script was run as `nohup bash ../scripts/super_transcripts.sh `pwd`/aus_nigra_trinity.Trinity.fasta > super.log 2>&1 &`
+
+## Re-evaluating quality of the assembly {.tabset}
+### BUSCO {-}
+#### Short Summary {-}
+```
