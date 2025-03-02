@@ -279,5 +279,26 @@ sudo docker run --rm -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq Trinity --seqType
 
 Trinity was run inside of a **screen** session as `bash ../scripts/trinity_run.sh `pwd`/SNI_aus_samples.txt aus_nigra_trinity`. The `pwd` was added in front of the samples file name as a shortcut since Trinity needs to full path to the file (since it was installed as a docker image).
 
-If you detatch from the **screen** session, you can resume the session using `screen -r`. 
+If you detach from the **screen** session, you can resume the session using `screen -r`. 
 
+# Post-Assembly Quality Control
+## Using BUSCO to assess composition or 'completeness' of assembly
+[BUSCO](https://busco.ezlab.org/busco_userguide.html) (Benchmarking Universal Single-Copy Orthologs) maintains curated sets of universal single-copy genes from OrthoDB and assess the completeness if an assembly by how many of the **universal** genes have matches in the input data and whether those matches are duplicated, fragmented, or full length. 
+
+
+### Running BUSCO on a single transcriptome
+The lineage for _S. argus_ was chosen as `actinopterygii_odb10` since it is the closest clade provided with BUSCO.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome=$1 #Output fasta file from Trinity
+lineage=$2 #chosen dataset for assessment
+out_dir_name=$3 #Desired name for the output directory
+
+busco -i $1 -l $2 -m tran -o $3 -c 16
+
+```
+This script was run as `nohup bash ../scripts/busco_run.sh aus_nigra_trinity.Trinity.fasta actinopterygii_odb10 aus_nigra_busco > busco.log 2>&1 &`
+  
