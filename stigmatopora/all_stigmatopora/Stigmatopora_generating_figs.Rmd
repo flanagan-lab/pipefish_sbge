@@ -221,11 +221,15 @@ rho_tau_stigmatopora$organ <- factor(rho_tau_stigmatopora$organ, levels = c("gon
 
 # Create plot function
 plot_rho <- function(data, rho_column, title) {
+    # Calculate the overall y-axis limits
+  y_min <- -0.5
+  y_max <- 0.5
   ggplot(data, aes(x = organ, y = !!sym(rho_column), color = species)) +
     geom_point(size = 4) +  # Plot points
     scale_color_manual(values = spp_cols) +  # Assign colors to species
     geom_hline(yintercept = 0, linetype = "dashed") +  # Dashed horizontal line at y=0
     theme_minimal() +
+    coord_cartesian(ylim = c(y_min, y_max)) +
     labs(x = "Tissue", y = "rho", title = title) +
     theme(
       legend.title = element_blank(),
