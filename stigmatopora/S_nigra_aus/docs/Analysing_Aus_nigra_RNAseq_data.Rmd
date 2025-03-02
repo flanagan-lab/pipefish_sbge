@@ -301,4 +301,128 @@ busco -i $1 -l $2 -m tran -o $3 -c 16
 
 ```
 This script was run as `nohup bash ../scripts/busco_run.sh aus_nigra_trinity.Trinity.fasta actinopterygii_odb10 aus_nigra_busco > busco.log 2>&1 &`
+
+### Interpreting BUSCO results {.tabset}
+The main results from BUSCO are simplified into categories of _Complete and single-copy_, _Complete and duplicated_, _Fragmented_, or _Missing_. The results from BUSCO will only make sense in the context of the biology of your organism and data types.
+
+The transcriptome was not filtered for isoforms prior to running BUSCO which may then lead to a high proportion of duplicates. Additionally, not all BUSCO genes are necessarily expressed in the tissue/organ under consideration or at that specific timepoint. Therefore, transcriptomes are expected to show varying degrees of completeness. 
+
+#### Short Summary {-}
+```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2024-01-08, number of genomes: 26, number of BUSCOs: 3># Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/emily_files/australia_nigra_raw_reads/aus_n># BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:88.7%[S:18.9%,D:69.8%],F:2.2%,M:9.1%,n:3640
+        3226    Complete BUSCOs (C)
+        687     Complete and single-copy BUSCOs (S)
+        2539    Complete and duplicated BUSCOs (D)
+        80      Fragmented BUSCOs (F)
+        334     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+
+## Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+The Nx statistic is calculated based on the lengths of the assembled transcriptome contigs. This statistic tells us that at least X% of assembled transcript nucleotides are found in contigs that are of Nx length.
+
+  - Traditionally, you compute the N50 where at least **half** of all assembled bases are in transcript contigs of at LEAST the N50 length value.
+  - This can be done using the built in TrinityStats.pl script within trinity.
+  - The input for this function is the resulting _.Trinity.fasta_ file from the Trinity run.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
   
+This script was run as `bash ../scripts/trinity_N50.sh `pwd`/aus_nigra_trinity.Trinity.fasta trinity_stats_output`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  559044
+Total trinity transcripts:      665636
+Percent GC: 44.04
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 5216
+        Contig N20: 3666
+        Contig N30: 2674
+        Contig N40: 1836
+        Contig N50: 1010
+
+        Median contig length: 277
+        Average contig: 553.41
+        Total assembled bases: 368368825
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 3720
+        Contig N20: 1784
+        Contig N30: 611
+        Contig N40: 409
+        Contig N50: 338
+
+        Median contig length: 264
+        Average contig: 380.57
+        Total assembled bases: 212752650
+```
+
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 338 bases in length (going off the stats based on the longest isoform). This is significantly less than the NZ _nigra_, which had an N50 of 1104.
+
+# Alignment and Abundance Estimations
+## Using Salmon
+### Installing Salmon
+Salmon was originally installed in a conda environment, however, there were issues getting conda to install the latest version of salmon and so the docker image of it was used instead:
+```
+docker pull combinelab/salmon
+
+#Check version
+sudo docker run --rm -v`pwd`:`pwd` combinelab/salmon salmon --version
+  salmon 1.10.3
+
+```
+
+### Generating the index
+The function `index` was then used to generate an index on the transcriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. **This index has to be created only once per transcriptome**
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome_file=$1
+desired_index_name=$2
+kmer_length=$3
+
+/usr/local/bin/salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash scripts/salmon_txome_indicies.sh S_argus_trinity.Trinity.fasta argus_salmon_index 31 > salmon_index.log 2>&1 &`.
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). 
