@@ -1146,9 +1146,9 @@ points(sqrt(abs(gill_bias_tau_fem$log2FoldChange)),
 
 
 #Add the best fit lines
-abline(lm(gonad_bias_tau_fem$tau ~ sqrt(abs(gonad_bias_tau_fem$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau_fem$tau ~ sqrt(abs(liver_bias_tau_fem$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
-abline(lm(gill_bias_tau_fem$tau ~ sqrt(abs(gill_bias_tau_fem$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
+abline(lm(gonad_bias_tau_fem$tau_fem ~ sqrt(abs(gonad_bias_tau_fem$log2FoldChange))), col="#EEB422", lwd = 3)
+abline(lm(liver_bias_tau_fem$tau_fem ~ sqrt(abs(liver_bias_tau_fem$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
+abline(lm(gill_bias_tau_fem$tau_fem ~ sqrt(abs(gill_bias_tau_fem$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
 
 #Add a legend
 outer_legend("right",
@@ -1167,7 +1167,7 @@ outer_legend("right",
 There appears to be a relationship between $\tau$ and female bias for the gonads, gills, and the liver. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor-fem, echo=FALSE, message=FALSE, warning=FALSE}
-cor.test(gonad_bias_tau_fem$tau_fem, sqrt(abs(gonad_bias_tau_fem$log2FoldChange)), method = "spearman") #sig. positive 
+cor.test(gonad_bias_tau_fem$tau_fem, sqrt(abs(gonad_bias_tau_fem$log2FoldChange)), method = "spearman") #sig. negative
 cor.test(liver_bias_tau_fem$tau_fem, sqrt(abs(liver_bias_tau_fem$log2FoldChange)), method = "spearman") #sig. positive
 cor.test(gill_bias_tau_fem$tau_fem, sqrt(abs(gill_bias_tau_fem$log2FoldChange)), method = "spearman") #not sig 
 
