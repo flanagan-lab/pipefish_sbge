@@ -537,9 +537,173 @@ sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /bin/sh -c "cd /home/r
 
 ```
 
-This script was run as `nohup bash ../scripts/super_transcripts.sh `pwd`/aus_nigra_trinity.Trinity.fasta > super.log 2>&1 &`
+This script was run as `nohup bash scripts/super_transcripts.sh australia_nigra_raw_reads/aus_nigra_trinity.Trinity.fasta > super.log 2>&1 &`
 
 ## Re-evaluating quality of the assembly {.tabset}
 ### BUSCO {-}
 #### Short Summary {-}
 ```
+# BUSCO version is: 5.2.2
+# The lineage dataset is: actinopterygii_odb10 (Creation date: 2024-01-08, number of genomes: 26, number of BUSCOs: 3
+# Summarized benchmarking in BUSCO notation for file /home/rccuser/shared/emily_files/australia_nigra_raw_reads/super
+# BUSCO was run in mode: transcriptome
+
+        ***** Results: *****
+
+        C:84.1%[S:82.2%,D:1.9%],F:4.3%,M:11.6%,n:3640
+        3061    Complete BUSCOs (C)
+        2993    Complete and single-copy BUSCOs (S)
+        68      Complete and duplicated BUSCOs (D)
+        156     Fragmented BUSCOs (F)
+        423     Missing BUSCOs (M)
+        3640    Total BUSCO groups searched
+
+Dependencies and versions:
+        hmmsearch: 3.1
+        metaeuk: 6.a5d39d9
+```
+## Re-Checking quality with tools installed in Trinity {.tabset}
+Because of the way Trinity was installed on the RCC, all of the additional tools have to be accessed through the docker. The path for us is `/usr/local/bin/util/...`.
+
+### Trinity transcriptome contig Nx Statistics {-}
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+##Create the arguments
+trinity_fasta_file=$1 #This is the output .fasta file from your Trinity run
+trinity_stats_output=$2 #Desired name for your output results
+
+sudo docker run -v`pwd`:`pwd` trinityrnaseq/trinityrnaseq /usr/local/bin/util/TrinityStats.pl \
+        $trinity_fasta_file \
+        >> $trinity_stats_output
+
+```
+
+This script was run as `bash ../scripts/trinity_N50.sh `pwd`/supertranscriptome.fasta super_stats_output.txt`.
+
+The contig N50 values are often exaggerated due to an assembly program generating too many transcript isoforms. To help mitigate this, we can look at the Nx values based on using only the single longest isoform per 'gene'. These Nx values are often lower than the Nx stats based on all assembled contigs.
+
+#### Results {-}
+```
+################################
+## Counts of transcripts, etc.
+################################
+Total trinity 'genes':  559044
+Total trinity transcripts:      559044
+Percent GC: 41.73
+
+########################################
+Stats based on ALL transcript contigs:
+########################################
+
+        Contig N10: 4495
+        Contig N20: 2337
+        Contig N30: 798
+        Contig N40: 455
+        Contig N50: 358
+
+        Median contig length: 266
+        Average contig: 399.69
+        Total assembled bases: 223445026
+
+
+#####################################################
+## Stats based on ONLY LONGEST ISOFORM per 'GENE':
+#####################################################
+
+        Contig N10: 4495
+        Contig N20: 2337
+        Contig N30: 798
+        Contig N40: 455
+        Contig N50: 358
+
+        Median contig length: 266
+        Average contig: 399.69
+        Total assembled bases: 223445026
+```
+Here we can see that 50% of the assembled bases are found in transcript contigs that are at least 358 bases in length (going off the stats based on the longest isoform).
+
+
+
+# Re-evaluating Alignment and Abundance Estimations
+### Generating the index
+The function `index` was then used to generate an index on the supertranscriptome. This index is the structure that salmon uses to quasi-map RNA-seq reads during the quantification step. 
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+transcriptome_file=$1
+desired_index_name=$2
+kmer_length=$3
+
+/usr/local/bin/salmon index -t $1 -i $2 -k $3
+
+```
+
+The above script was run as: `nohup bash ../scripts/salmon_txome_indices.sh supertranscriptome.fasta super_salmon_index 31 > super_index.log 2>&1 &`.
+
+A k-mer length of 31 was chosen as a recommendation from the [salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#using-salmon). 
+
+### Re-Quantifying the samples
+Once the index is built, the samples can be quantified.
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguments
+input_dir=$1
+index_file=$2
+output_dir=$3
+
+for fq in $1/*_1.cor.fq
+        do
+
+        #Extract sample name from the file
+        sample=$(basename $fq _1.cor.fq)
+
+        #Echo sample name that is currently running
+        echo "Processing sample ${sample} ..."
+
+        #Quantify this pair of reads
+        /usr/local/bin/salmon quant -i $index_file -l A \
+                -1 $1/${sample}_1.cor.fq \
+                -2 $1/${sample}_2.cor.fq \
+                -p 16 -o $3/${sample}_quant
+
+done
+```
+
+This script was run as: `nohup bash ../scripts/salmon_quant.sh trimmed/rcorrector/ super_salmon_index/ super_salmon_quant > super_quant.log 2>&1 &`
+
+To make life easier, the quant.sf files and salmon_quant.log files were moved from their nested location to a shared folder and renamed to include the corresponding sample names like so:
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create arguements
+input_dir=$1 #This is the location of all the Salmon quant folders that were generated
+out_dir1=$2 #Desired location for the new renamed quant.sf files
+out_dir2=$3 #Desired location for the new renamed salmon_quant.log files
+
+for dir in $input_dir*_quant
+    do
+
+    echo "$dir"
+
+    #Extract the sample name from the directory
+    sample=$(basename $dir _quant)
+
+    #Echo the sample that is being processed
+    echo "Rename sample ${sample} ..."
+
+    #Rename the quant.sf file
+    mv $dir/quant.sf $out_dir1/${sample}_quant.sf
+
+    #Rename the log file
+    mv $dir/logs/salmon_quant.log $out_dir2/${sample}_salmon_quant.log
+
+done
+
+```
+This script was run as `bash scripts/rename_salmon.sh super_salmon_quant/ super_salmon_quant/expression_files/ super_salmon_quant/log_files/`.
