@@ -706,4 +706,59 @@ for dir in $input_dir*_quant
 done
 
 ```
-This script was run as `bash scripts/rename_salmon.sh super_salmon_quant/ super_salmon_quant/expression_files/ super_salmon_quant/log_files/`.
+This script was run as `bash ../scripts/rename_salmon.sh super_salmon_quant/ super_salmon_quant/expression_files super_salmon_quant/log_files/`.
+
+The mapping rate was pulled from all of the log files with `grep "Mapping rate" *log > map.txt` and the results are below:
+```
+SNF11G_S1_L001_salmon_quant.log:[2025-03-04 07:26:07.319] [jointLog] [info] Mapping rate = 97.9864%
+SNF11L_S2_L001_salmon_quant.log:[2025-03-04 07:27:21.395] [jointLog] [info] Mapping rate = 69.7017%
+SNF11O_S3_L001_salmon_quant.log:[2025-03-04 07:28:03.203] [jointLog] [info] Mapping rate = 98.1042%
+SNF12G_S4_L001_salmon_quant.log:[2025-03-04 07:29:16.177] [jointLog] [info] Mapping rate = 98.3502%
+SNF12L_S5_L001_salmon_quant.log:[2025-03-04 07:31:01.769] [jointLog] [info] Mapping rate = 97.5134%
+SNF4A3G_S6_L001_salmon_quant.log:[2025-03-04 07:32:25.952] [jointLog] [info] Mapping rate = 98.5223%
+SNF4A3L_S7_L001_salmon_quant.log:[2025-03-04 07:33:27.169] [jointLog] [info] Mapping rate = 78.5143%
+SNM29G_S8_L001_salmon_quant.log:[2025-03-04 07:34:35.229] [jointLog] [info] Mapping rate = 97.9756%
+SNM29L_S9_L001_salmon_quant.log:[2025-03-04 07:36:00.256] [jointLog] [info] Mapping rate = 82.4627%
+SNM29T_S10_L001_salmon_quant.log:[2025-03-04 07:36:36.352] [jointLog] [info] Mapping rate = 95.6179%
+SNM3AJG_S11_L001_salmon_quant.log:[2025-03-04 07:37:57.712] [jointLog] [info] Mapping rate = 97.8483%
+SNM3AJL_S12_L001_salmon_quant.log:[2025-03-04 07:38:38.308] [jointLog] [info] Mapping rate = 84.9863%
+SNM3AJT_S13_L001_salmon_quant.log:[2025-03-04 07:39:46.821] [jointLog] [info] Mapping rate = 98.6772%
+SNM4AJG_S14_L001_salmon_quant.log:[2025-03-04 07:41:04.522] [jointLog] [info] Mapping rate = 97.4238%
+SNM4AJL_S15_L001_salmon_quant.log:[2025-03-04 07:41:42.178] [jointLog] [info] Mapping rate = 86.0762%
+SNM4AJT_S16_L001_salmon_quant.log:[2025-03-04 07:42:11.944] [jointLog] [info] Mapping rate = 80.9663%
+```
+
+Generating the transcript abundance was done on the RCC via R command line:
+```{r tximport, eval=FALSE}
+#Enter R
+conda activate R
+R
+
+#Install and load required package
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("tximport")
+library(tximport)
+
+#Read in sample file
+samples <- read.table("SNI_aus_samples.txt", header=TRUE)
+
+#Create list of quant.sf files from salmon
+files <- list.files("super_salmon_quant/expression_files/", full.names = TRUE)
+names(files) <- paste0(samples$ID)
+all(file.exists(files))
+  ## [1] TRUE
+  
+#Pull the transcript-gene relationship from the .gtf file generated during the SuperTranscripts step
+gtf <- gtf <- read.table("aus_nigra_trinity/trinity_genes.gtf", header = FALSE)
+tx2gene <- gtf[,c(10, 10)] #Using the geneID for both the gene and transcript ID as we no longer has isoform information in the SuperTranscripts assembly
+tx2gene <- unique(tx2gene)
+colnames(tx2gene) <- c("gene_id", "transcript_id")
+
+#Building the matrix
+txi.salmon.aus <- tximport(files, type = "salmon", tx2gene = tx2gene)
+head(txi.salmon.aus$counts)
+saveRDS(txi.salmon.aus, "txi.salmon_aus.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
+
+```
