@@ -1254,6 +1254,91 @@ model <- glm.nb(abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
 linear_model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
 ```
 
+```{r mvf-expression}
+#Looking at the relationship between male expression and female expression
+organs <- c(unique(logFC_long$tissue))
+
+dds_SA_exp$organ <- ifelse(dds_SA_exp$organ %in% c("ovaries", "testis"),
+                           paste0("gonad"), 
+                           paste0(dds_SA_exp$organ))
+
+bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
+
+#pdf("figs/Fig_MFexpression.pdf", width = 10, height=4)
+
+par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(1,1,1,0))
+
+for (organ in organs) {
+  
+  #browser()
+  tmp <- as.data.frame(counts(dds_SA_exp, normalized = TRUE)[, dds_SA_exp$organ == organ])
+  tmpF <- as.data.frame(counts(dds_SA_exp, normalized = TRUE)[, dds_SA_exp$organ == organ & dds_SA_exp$sex == "F"])
+  tmpM <- as.data.frame(counts(dds_SA_exp, normalized = TRUE)[, dds_SA_exp$organ == organ & dds_SA_exp$sex == "M"])
+  
+  tmp$Fmedian <- apply(tmpF, 1, median)
+  tmp$Mmedian <- apply(tmpM, 1, median)
+  
+  tmp <- tmp[rownames(tmp) %in% logFC_long[logFC_long$tissue == organ, ]$geneID, ]
+  
+  tmp <- merge(tmp, logFC_long[logFC_long$tissue == organ, ],
+               by.x = 0, 
+               by.y = "geneID", 
+               all = TRUE)
+  ymax <- max(tmp$Mmedian, na.rm = TRUE) + 1
+  xmax <- max(tmp$Fmedian, na.rm = TRUE) + 1
+  
+  plot(tmp$Fmedian, tmp$Mmedian,
+       #ylab = expression('log'[2] * '(Male Expression)'),
+       #xlab = expression('log'[2] * '(Female Expression)'),
+       #axes=FALSE,
+       cex.main=2,
+       #main = organ,
+       col = bias_colors[tmp$bias],
+       pch = 19,
+       cex = ifelse(organ != "Gonad" & tmp$bias %in% c("MB", "FB"),
+                    0.75,
+                    0.25),
+       ylim = c(0, 100),
+       xlim = c(0, 100))
+  
+  
+  
+  #Make the axis lines longer and thicker
+  axis(1, labels=seq(-2, xmax, 2), 
+       line=NA, at=seq(-2, xmax, 2), 
+       lwd=2,xlim=c(0, xmax),cex.axis=1.5,las=1)
+  axis(2, labels=seq(-2, ymax, 2),
+       line=NA, at=seq(-2, ymax, 2), 
+       lwd=2, ylim=c(0,ymax),cex.axis=1.5,las=1)
+  
+  mtext(organ, cex=1.5,outer=FALSE, line=-1)
+  
+}
+
+# add x axis label
+mtext(expression('log'[2] * '(Female Expression)'), side = 1, cex=1.25, outer=TRUE, line=2)
+
+# add y axis label
+mtext(expression('log'[2] * '(Male Expression)'), side = 2, cex=1.25, outer=TRUE, line=2)
+
+# add legend
+spfTools::outer_legend("right",
+                       legend=c("Female\nbiased",
+                                "Male\nbiased",
+                                "Unbiased"),
+                       pt.bg=bias_colors,
+                       pch=22,
+                       bty='n',
+                       ncol=1,
+                       cex=2,
+                       y.intersp = 1.5,
+                       pt.cex=2)
+
+#dev.off()
+
+
+```
+
 ## Categorising sex-specific genes
 Now that we have investigated what the sex-bias is like across the different tissue types I want to dive further into genes with **sex-specific expression**. These are genes expressed only in one sex or the other. I am classifying a sex-specific genes within each tissue as ones where the expression of that gene is less than 10 for all of one sex and there is a median of $\ge 20$ in the other sex. 
 
