@@ -1,0 +1,54 @@
+---
+title: "Differential Expression Analysis in Australian _Stigmatopora nigra_"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_nigra_aus")
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(pheatmap)
+library(RColorBrewer)
+library(PCAtools)
+library(ggpubr)
+library(cowplot)
+library(UpSetR)
+library(ggplot2)
+library(kableExtra)
+library(tidyverse)
+library(knitr)
+library(magick)
+library(multcompView)
+library(spfTools)
+library(patchwork)
+```
+
+``` {r read-data}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.aus <- readRDS("data/txi.salmon_aus.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/SNI_aus_samples.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+```
