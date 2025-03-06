@@ -1100,9 +1100,7 @@ dds_SN_exp$organ <- ifelse(dds_SN_exp$organ %in% c("ovaries", "testis"),
 
 bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
 
-#pdf("figs/Fig_MFexpression.pdf", width = 10, height=4)
-
-par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(1,1,1,0))
+par(mfrow=c(1,3), oma=c(4,4,2,2), mar=c(1,1,1,0))
 
 for (organ in organs) {
   
@@ -1169,8 +1167,6 @@ spfTools::outer_legend("right",
                        cex=2,
                        y.intersp = 1.5,
                        pt.cex=2)
-
-#dev.off()
 
 
 ```
