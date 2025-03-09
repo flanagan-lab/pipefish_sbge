@@ -742,7 +742,7 @@ BiocManager::install("tximport")
 library(tximport)
 
 #Read in sample file
-samples <- read.table("SNI_aus_samples.txt", header=TRUE)
+samples <- read.table("aus_samples.txt", header=TRUE)
 
 #Create list of quant.sf files from salmon
 files <- list.files("super_salmon_quant/expression_files/", full.names = TRUE)
