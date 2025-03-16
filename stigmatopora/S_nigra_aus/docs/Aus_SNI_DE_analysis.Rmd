@@ -976,6 +976,8 @@ Prior to running the for loop, any "outliers" that were determined by DESeq were
 ```{r sex-specific-for-loop}
 #Pulling out the geneIDs for genes that were categorised as "outliers" by DESeq2
 #Calculating the Cooks threshold that would have been used
+ddsMF_aus_exp <- ddsMF_aus_exp[, !(ddsMF_aus_exp$ID %in% c("S3", "S10","S13","S16"))]
+
 np <- length(resultsNames(ddsMF_aus_exp))
 nsamp <- ncol(ddsMF_aus_exp)
 cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
@@ -1074,4 +1076,153 @@ for(organ in organs){
   aus_sex_specific_genes[[organ_femsp]] <- mal0_fem10_organ
   
 } 
+```
+
+
+### Investigating the results of the sex-specific subsetting
+Let's now take a look at how many sex-specific genes we have in each tissue type:
+```{r sex-specific-counts, message=FALSE, warning=FALSE, eval = FALSE}
+sex_specific_counts <- data.frame(tissue = rep(c("Gill", "Liver"), 2),
+                                  sex = c(rep("M", 2),
+                                          rep("F", 2)),
+                                  num_genes = c(nrow(aus_sex_specific_genes$gill_male_specific),
+                                                nrow(aus_sex_specific_genes$liver_male_specific),
+                                                nrow(aus_sex_specific_genes$gill_female_specific),
+                                                nrow(aus_sex_specific_genes$liver_female_specific))
+                                  )
+
+sex_specific_counts %>% 
+  group_by(tissue, sex) %>% 
+  summarise("Number of Sex-specific Genes" = sum(num_genes)) %>%
+  kable(caption = "Sex-specific Genes", format = "html",
+        col.names = c("Tissue Type", "Sex", "Number of Sex-specific Genes")) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+```
+
+To get a better idea what is going on between the sex-specific genes vs the sex-biased genes I first determined how many overlaps there were between our sex-biased and sex-specific genes and then used plotCounts to plot the counts for each gene separately. 
+
+In the **Male Gills** there are `r nrow(aus_sex_specific_genes$gill_male_specific[rownames(aus_sex_specific_genes$gill_male_specific) %in% rownames(gill_mal_biased),])` genes that overlap between sex-biased and sex-specific, and `r nrow(aus_sex_specific_genes$liver_male_specific[rownames(aus_sex_specific_genes$liver_male_specific) %in% rownames(liver_mal_biased),])` overlapping in the **liver**. For females we have `r nrow(aus_sex_specific_genes$gill_female_specific[rownames(aus_sex_specific_genes$gill_female_specific) %in% rownames(gill_fem_biased),])` overlapping sex-specific and sex-biased genes in the **gills**, and `r nrow(aus_sex_specific_genes$liver_female_specific[rownames(aus_sex_specific_genes$liver_female_specific) %in% rownames(liver_fem_biased),])` genes in the **liver**.
+
+### Pulling out the gene IDs for all of the sex-specific genes
+```{r}
+#Run once to create the file and then commented out
+#write.table(cbind(rownames(aus_sex_specific_genes$gill_male_specific)),
+ #           'data/aus_malG_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(aus_sex_specific_genes$gill_female_specific)),
+ #           'data/aus_femG_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+
+#write.table(cbind(rownames(aus_sex_specific_genes$liver_male_specific)),
+ #           'data/aus_malL_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+#write.table(cbind(rownames(aus_sex_specific_genes$liver_female_specific)),
+ #           'data/aus_femL_specific_TRgenes.txt', 
+  #          sep = "", 
+   #         quote=FALSE, 
+    #        row.names = FALSE, 
+     #       col.names = FALSE)
+```
+
+## Creating categories and binning the sex-biased genes based on degree of logFC
+This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:
+
+    1. Low - biased = LFC 2 - 3
+    2. Medium - biased = LFC 3 - 5
+    3. High - biased = LFC 5 - 10
+    4. Extreme sex bias = LFC > 10
+
+Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
+
+```{r bin-sex-bias, fig.width=15}
+
+#Make a vector that contains all of the groupings
+biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+#Create a new column in the dataset and use ifelse statements to set the category limits
+#abs(logFC) was used to account for the fem-biased genes possessing negative values
+logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
+                              biased_bins[1],
+                              ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC) < 3,
+                                     biased_bins[2],
+                                     ifelse(abs(logFC_long$logFC) >= 3 & abs(logFC_long$logFC) < 5,
+                                            biased_bins[3],
+                                            ifelse(abs(logFC_long$logFC) >= 5 & abs(logFC_long$logFC) < 10, 
+                                                   biased_bins[4],
+                                                   biased_bins[5])
+                                            )
+                                     )
+                              ) 
+
+#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their 
+#bias cat. in the dataset
+organs <- c("gill", "gill", "liver", "liver")
+bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
+
+for(i in 1:length(aus_sex_specific_genes)){
+  tmp <- aus_sex_specific_genes[[i]]
+  tmp <- as.data.frame(tmp)
+  tmp$geneID <- rownames(tmp)
+  
+  for(j in 1:nrow(tmp)){
+    
+    one_gene <- tmp[j, ]
+    
+    if(one_gene[["geneID"]] %in%
+       logFC_long[logFC_long$tissue == organs[[i]] &
+                  logFC_long$bias == bias[[i]],"geneID"]){
+       
+      logFC_long[logFC_long$geneID == one_gene[["geneID"]] &
+                   logFC_long$tissue == organs[[i]] &
+                   logFC_long$bias == bias[[i]],
+                 "bias_cat"] <- "Sex-specific"
+    }else{
+      
+      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long),
+                                        nrow=1))
+      colnames(one_gene_dat) <- colnames(logFC_long)
+      
+      one_gene_dat$tissue <- organs[[i]]
+      one_gene_dat$geneID <- one_gene[["geneID"]]
+      one_gene_dat$bias <- bias[[i]]
+      one_gene_dat$bias_cat <- "Sex-specific"
+      rownames(one_gene_dat) <- NULL
+      
+      logFC_long <- rbind(one_gene_dat, logFC_long)
+      
+      rownames(logFC_long) <- NULL
+    }
+  }
+ }
+
+#Create  subset of our long dataset that does not include the non-biased genes
+logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
+
+#Make a table to count the number of genes in each category for each organ
+bias_cat_table <- table(logFC_long_noNB$bias, logFC_long_noNB$bias_cat, logFC_long_noNB$tissue)
+
+#Add the counts of sex-specific genes to the table
+bias_cat_gill <- bias_cat_table[,, "gill"]
+write.table(bias_cat_gill, "data/bias_cat_gills.txt", row.names = TRUE)
+
+bias_cat_liver <- bias_cat_table[,, "liver"]
+write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+
+#Plot the counts for each tissue type
+par(mfrow=c(1, 2))
+barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_liver) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "gill", ylab = "Number of Genes", xlab = "Bias Category")
+barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_liver) + 1), col = c("#7fc97f", "#beaed4"),
+        main = "liver")
+legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
+
 ```
