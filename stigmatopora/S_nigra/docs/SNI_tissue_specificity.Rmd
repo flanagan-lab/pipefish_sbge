@@ -29,7 +29,8 @@ setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_nigra")
 library(DESeq2)
 library(spfTools)
 library(ggplot2)
-
+library(dplyr)
+library(tidyr)
 
 ```
 
@@ -1744,4 +1745,46 @@ outer_legend("right",
              ncol = 1)
 
 
+```
+
+```{r tau-0.75}
+#import dataset
+tau_75 <- read.csv("data/tau_75.csv")
+
+# Reshape the data from wide to long format
+tau_75_long <- tau_75 %>%
+  pivot_longer(
+    cols = c(all_samples, female_samples, male_samples),
+    names_to = "sample_type",
+    values_to = "count"
+  )
+
+# Create three separate plots
+gonad_plot <- ggplot(filter(tau_75_long, tissue == "gonad"),
+                     aes(x = sample_type, y = count)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Gonad Tissue") +
+  ylim(0, 1120)
+
+liver_plot <- ggplot(filter(tau_75_long, tissue == "liver"),
+                     aes(x = sample_type, y = count)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Liver Tissue") +
+  ylim(0, 1120)
+
+gill_plot <- ggplot(filter(tau_75_long, tissue == "gill"),
+                   aes(x = sample_type, y = count)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Gill Tissue") +
+  ylim(0, 1120)
+
+gonad_plot
+liver_plot
+gill_plot
 ```
