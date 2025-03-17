@@ -250,3 +250,47 @@ print(plot_mal)
 
 ```
 
+```{r tau-0.75}
+# Import dataset
+tau_75 <- read.csv("tau_75.csv")
+
+# Reshape the data from wide to long format
+tau_75_long <- tau_75 %>%
+  pivot_longer(
+    cols = c(all_samples, female_samples, male_samples),
+    names_to = "sample_type",
+    values_to = "count"
+  )
+
+# Ensure species order is SNI -> SAR -> SMA
+tau_75_long$species <- factor(tau_75_long$species, levels = c("SNI", "SAR", "SMA"))
+
+# Create three separate plots with species as a grouping variable
+gonad_plot <- ggplot(filter(tau_75_long, tissue == "gonad"),
+                     aes(x = sample_type, y = count, fill = species)) +
+  geom_col(position = "dodge", width = 0.7) + 
+  scale_fill_manual(values = c("SNI" = "#1b9e77", "SAR" = "#d95f02", "SMA" = "#7570b3")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Gonad Tissue") +
+  ylim(0, 1200)
+
+liver_plot <- ggplot(filter(tau_75_long, tissue == "liver"),
+                     aes(x = sample_type, y = count, fill = species)) +
+  geom_col(position = "dodge", width = 0.7) + 
+  scale_fill_manual(values = c("SNI" = "#1b9e77", "SAR" = "#d95f02", "SMA" = "#7570b3")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Liver Tissue") +
+  ylim(0, 200)
+
+gill_plot <- ggplot(filter(tau_75_long, tissue == "gill"),
+                    aes(x = sample_type, y = count, fill = species)) +
+  geom_col(position = "dodge", width = 0.7) + 
+  scale_fill_manual(values = c("SNI" = "#1b9e77", "SAR" = "#d95f02", "SMA" = "#7570b3")) +
+  theme_minimal() +
+  labs(title = "Genes with tau > 0.75 in Gill Tissue") +
+  ylim(0, 200)
+
+gonad_plot
+liver_plot
+gill_plot
+```
