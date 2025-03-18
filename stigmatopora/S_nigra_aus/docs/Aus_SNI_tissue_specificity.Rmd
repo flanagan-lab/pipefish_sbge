@@ -1,0 +1,141 @@
+---
+title: "Tissue Specificity in _Stigmatopora nigra_"
+author: "Emily Beasley"
+date: "`r Sys.Date()`"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: no
+    toc: false
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="figs/")
+```
+
+``` {r library, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_nigra_aus")
+
+#This is a cohesive list of all the libraries used in this document
+
+library(DESeq2)
+library(spfTools)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+```
+
+``` {r read-data, message = FALSE, warning = FALSE}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.aus <- readRDS("data/txi.salmon_aus.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/aus_samples.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+#Format colData to be used in the tau function
+colData <- as.data.frame(samples)
+rownames(colData) <- samples$ID
+```
+
+# Differential Expression Analysis
+The main goal of this analysis is to relate measure of pleiotropic constraints (tissue specificity) to sex bias. In order to do that I need to combine my sex-bias data that I generated in a separate .Rmd with the tau values I will be generating in this document.
+
+Here I am reading in the sex-bias datasets that correspond to each of the organ's single-factor analysis. These datasets include all of the genes where the p-value was not equal to "NA".
+
+```{r read-in-sb-datasets}
+liver_res <- read.csv("data/liver_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+gill_res <- read.csv("data/gill_res.csv", 
+                      row.names = 1, 
+                      header = TRUE)
+```
+
+# Calculating Tissue Specificity
+To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
+
+```
+Name | Length | EffectiveLength | TPM | NumReads
+
+```
+
+## Pulling out TPM values 
+From the Salmon outputs I pulled out the TPM values from each sample.
+
+```{r getTPMs}
+
+#Get the list of file names/paths for all of the quant.sf files
+files <- list.files(pattern = ".sf", path = "data/expression_files",
+                    full.names = TRUE)
+
+#For each quant.sf file pull out the TPM column
+tpms <- do.call(cbind, lapply(files, function(file){
+
+  dat <- read.delim(file, row.names = "Name")
+  tpm <- dat["TPM"]
+  colnames(tpm) <- gsub("data/expression_files/(.*)_quant.sf","\\1",file)
+  
+  return(tpm)
+}))
+
+#Remove the sample that was removed in the differential expression analysis 
+tpms <- tpms[, !(colnames(tpms) %in% c("S3", "S10","S13","S16"))]
+```
+
+## Filtering the TPM dataset
+I want to filter the TPM dataset to remove a few things. These include similar things that I filtered out in the DESeq2 datasets prior to performing the differential expression analysis. This includes:
+  
+  1. Keeping only rows that weren't filtered out in the DEseq2 dataset due to low counts (rowSum $\le$ 10).
+  2. Removing the rows that corresponded to genes that were "outliers" in the DEseq2 analysis.
+  3. Removing the samples from S10, S23, S30.
+
+This will be imperfect filtering in this case because I did individual single-factor analysis within each organ type. To try and make life easier, I am going to run the multi-factor analysis on the DESeq2 dataset and then apply the filtering from that onto the TPM dataset. 
+
+It should also be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
+
+```{r filterTPMs}
+#Running the MF diff. expr. analysis
+#Create the DESeq dataset
+dds_aus <- DESeqDataSetFromTximport(txi.aus,
+                                   colData = samples,
+                                   design = ~ group)
+
+##Remove the samples that were removed for the DE expression analysis
+dds_aus <- dds_aus[, !(dds_aus$ID %in% c("S3", "S10","S13","S16"))]
+
+##Filter the dataset, only keeping rows that have at least 10 reads total
+keep <- rowSums(counts(dds_aus)) >= 10 
+dds_aus <- dds_aus[keep, ]
+
+#Generate the expression values
+dds_aus_exp <- DESeq(dds_aus)
+
+#Filtering the tpm dataset
+#Only keeping the rows that weren't filtered out due to low counts
+tpms <- tpms[rownames(tpms) %in% rownames(dds_aus), ]
+
+#Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
+#Calculating the Cooks threshold that would have been used
+np <- length(resultsNames(dds_aus_exp))
+nsamp <- ncol(dds_aus_exp)
+cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
+
+out_ids <- names(mcols(dds_aus_exp)$maxCooks[mcols(dds_aus_exp)$maxCooks > cooks_thresh])
+
+#Removing the rows in the tpm dataset that were deemed "outliers" by DESeq2
+tpms <- tpms[!(rownames(tpms) %in% out_ids), ]
+
+```
