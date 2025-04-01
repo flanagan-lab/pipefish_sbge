@@ -1030,8 +1030,6 @@ logFC_long<- data.frame(
 #write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
 ```
 
-Range -31.11510  40.60296
-
 With the dataset in the proper format now, we can generate the plot
 
 ```{r FC-var-plot, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added on top of the boxplot as jitters."}
@@ -1053,6 +1051,30 @@ ggplot(logFC_long,
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
 ```
+
+```{r FC-vio-plot-G-L}
+
+  
+#Make the plot
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
+
+ggplot(logFC_long,
+       aes(x = bias, y = abs(logFC), fill = bias)) +
+  geom_violin() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_point(data=logFC_long, aes(x=bias, y=abs(logFC)),
+             size=0.4, 
+             position = position_jitter(width = 0.15)) + 
+  labs(x="Bias Level", y="|logFC|") +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+```
+
 
 There appears to be differences in the logFC across both the organs and the sex-bias groups (male-biased, fem-biased, and non-biased) (Fig. \@ref(fig:FC-var-plot)). Let's explore some analyses to see if we can put some statistical power behind those differences.
 
@@ -1307,31 +1329,6 @@ To get a better idea what is going on between the sex-specific genes vs the sex-
 
 In the **Male Gills** there are `r nrow(SN_sex_specific_genes$Gill_male_specific[rownames(SN_sex_specific_genes$Gill_male_specific) %in% rownames(gill_mal_biased),])` genes that overlap between sex-biased and sex-specific, there are `r nrow(SN_sex_specific_genes$Gonad_male_specific[rownames(SN_sex_specific_genes$Gonad_male_specific) %in% rownames(gonad_mal_biased),])` overlapping in the **gonads** and `r nrow(SN_sex_specific_genes$Liver_male_specific[rownames(SN_sex_specific_genes$Liver_male_specific) %in% rownames(liver_mal_biased),])` overlapping in the **liver**. For females we have `r nrow(SN_sex_specific_genes$Gill_female_specific[rownames(SN_sex_specific_genes$Gill_female_specific) %in% rownames(gill_fem_biased),])` overlapping sex-specific and sex-biased genes in the **gills**, `r nrow(SN_sex_specific_genes$Gonad_female_specific[rownames(SN_sex_specific_genes$Gonad_female_specific) %in% rownames(gonad_fem_biased),])` genes in the **gonads**, and `r nrow(SN_sex_specific_genes$Liver_female_specific[rownames(SN_sex_specific_genes$Liver_female_specific) %in% rownames(liver_fem_biased),])` genes in the **liver**.
 
-```{r gills-sex-specific, eval = FALSE}
-## Female sex-specific
-fem_sp_geneIDs <- rownames(SN_sex_specific_genes$Gill_female_specific)
-
-##Set the plotting window
-par(mfrow=c(1,1))
-
-for(gene in fem_sp_geneIDs){
-  
-  plotCounts(ddsMF_SN[,ddsMF_SN$organ == 'Gill'], gene=gene, intgroup="sex")
-  
-}
-
-## Female sex-biased
-gill_fem_biased_geneIDS <- rownames(gill_fem_biased)
-
-##Set the plotting window
-par(mfrow=c(1,1))
-
-for(gene in gill_fem_biased_geneIDS){
-  
-  plotCounts(ddsMF_SN[,ddsMF_SN$organ == 'Gill'], gene=gene, intgroup="sex", col= 'salmon', pch = 19)
-  
-}
-```
 
 ### Pulling out the gene IDs for all of the sex-specific genes
 ```{r}
@@ -1461,12 +1458,12 @@ bias_cat_liver <- bias_cat_table[,, "Liver"]
 write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
 
 #Plot the counts for each tissue type
-par(mfrow=c(1, 3))
-barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+par(mfrow=c(1, 2))
+barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(500) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Gill", ylab = "Number of Genes", xlab = "Bias Category")
-barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
-        main = "Gonad")
-barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+#barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_table) + 1), col = c("#7fc97f", "#beaed4"),
+ #       main = "Gonad")
+barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(500) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Liver")
 legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
 
