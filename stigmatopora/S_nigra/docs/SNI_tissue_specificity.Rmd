@@ -1774,7 +1774,7 @@ liver_plot <- ggplot(filter(tau_75_long, tissue == "liver"),
   scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
   theme_minimal() +
   labs(title = "Genes with tau > 0.75 in Liver Tissue") +
-  ylim(0, 1120)
+  ylim(0,80)
 
 gill_plot <- ggplot(filter(tau_75_long, tissue == "gill"),
                    aes(x = sample_type, y = count)) +
@@ -1782,7 +1782,7 @@ gill_plot <- ggplot(filter(tau_75_long, tissue == "gill"),
   scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
   theme_minimal() +
   labs(title = "Genes with tau > 0.75 in Gill Tissue") +
-  ylim(0, 1120)
+  ylim(0, 80)
 
 gonad_plot
 liver_plot
