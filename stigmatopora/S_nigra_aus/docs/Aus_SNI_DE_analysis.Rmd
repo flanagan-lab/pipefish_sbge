@@ -258,8 +258,8 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC2, color = organ, shape = sex)) +
   geom_hline(yintercept = 0,
              linetype = 'dashed') +
   geom_vline(xintercept = 0,
-             linetype = 'dashed') + 
-  geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
+             linetype = 'dashed') #+ 
+  #geom_text(aes(label = ID), vjust = -1, hjust = 0.5)
 ```
 
 S7 and S2 are clustering quite far away from any of the other samples. They both had lower mapping rates (69% and 78% respectively). We may remove them from downstream analyses. 
@@ -932,6 +932,29 @@ ggplot(logFC_long,
 
 ```
 
+```{r FC-vio-plot-G-L}
+
+  
+#Make the plot
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
+
+ggplot(logFC_long,
+       aes(x = bias, y = abs(logFC), fill = bias)) +
+  geom_violin() +
+  scale_fill_manual(values = my_colors) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_point(data=logFC_long, aes(x=bias, y=abs(logFC)),
+             size=0.4, 
+             position = position_jitter(width = 0.15)) + 
+  labs(x="Bias Level", y="|logFC|") +
+  guides(fill = guide_legend(title = "Bias Level", order = 3))
+
+```
+
 There appears to be differences in the logFC across both the organs and the sex-bias groups (male-biased, fem-biased, and non-biased) (Fig. \@ref(fig:FC-var-plot)). Let's explore some analyses to see if we can put some statistical power behind those differences.
 
 ```{r FC-var-stats, warning=FALSE, eval=FALSE}
@@ -1212,10 +1235,10 @@ bias_cat_table <- table(logFC_long_noNB$bias, logFC_long_noNB$bias_cat, logFC_lo
 
 #Add the counts of sex-specific genes to the table
 bias_cat_gill <- bias_cat_table[,, "gill"]
-write.table(bias_cat_gill, "data/bias_cat_gills.txt", row.names = TRUE)
+#write.table(bias_cat_gill, "data/bias_cat_gills.txt", row.names = TRUE)
 
 bias_cat_liver <- bias_cat_table[,, "liver"]
-write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+#write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
 
 #Plot the counts for each tissue type
 par(mfrow=c(1, 2))
@@ -1225,4 +1248,72 @@ barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, yl
         main = "liver")
 legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
 
+
 ```
+
+## Gene Ontology Analysis
+We wanted to figure out two things:   
+
+  1) What are the genes that are sex-biased within each tissue type   
+  2) What are the GO terms for those genes.   
+
+To accomplish this I first had to pull out the sequences that corresponded to the Trinity gene IDS pulled out above. Once those sequences were fetched they were blasted against the _Corythoichthys intestinalis_ genome. This was completed with the following bash script on the RCC. 
+
+### Using BLAST in command line
+```{bash, eval = FALSE}
+#Create a BLAST database - Used Corythoichthys intestinalis for our BLAST database
+makeblastdb -in /home/rccuser/shared/emily_files/australia_nigra_raw_reads/c_intestinalis_data/data/GCF_030265065.1/GCF_030265065.1_ASM3026506v1_genomic.fna -out c_intestinalis_genome -dbtype nucl
+```
+
+```{bash, eval = FALSE}
+#!/bin/bash
+
+#Create the arguements
+input_dir_TR=$1 #Location of the .txt files that contain the trinity gene IDs
+subset_fasta=$2 #Path to the subset_fasta_file script
+assembly_file=$3 #Name/location of the de novo assembly
+blast_database=$4
+output_dir=$5 #Desired output directory for .fasta and BLAST files
+
+## Loop through all the Trinity gene ID .txt files
+for file in $input_dir_TR/*TRgenes.txt
+        do
+
+        #Extract the sample name from the file name
+        sample=$(basename $file .txt)
+
+        #Get the corresponding sequences for the Trinity Gene IDs
+        echo "Running subset_fasta_file for ${sample}..."
+        $subset_fasta -c -f $assembly_file -l $input_dir_TR/${sample}.txt
+
+        #Rename the automated output from the subset_fasta_file script
+        fasta_out=$(basename $assembly_file fasta)
+        mv $fasta_out.subset.fasta ${sample}.fasta
+
+        #Blast the sequences
+        echo "Running BLAST for ${sample}..."
+        blastn -db $blast_database -query ${sample}.fasta -out ${sample}_corythoicthys_blast.txt \
+                -evalue 0.001 \
+                -num_threads 12 \
+                -outfmt "6 qseqid qstart qend stitle salltitles sseqid sallseqid sacc sblastnames sstart send evalue bitscore length pident gaps"       
+
+        #Move the outputs into desired output directory
+        mv ${sample}* $output_dir
+
+done
+
+```
+
+This script was run as `bash ../scripts/blast_pipeline.sh TRgenes/ ../scripts/subset_fasta_file supertranscriptome.fasta c_intestinalis_genome/ cory_blast/`
+
+There were no hits on the _C. intestinalis_ genome, so I'll try the _D. rerio_ proteom now. 
+
+### Blasting against the Zebrafish genome
+In order for us to be able to do the GO analysis, we need to BLAST the sequences against one of the PANTHER organisms. The zebrafish, _Danio reiro_ was the only fish in that list.
+
+A BLAST database was generated with the _D. reiro_ proteome as:
+`makeblastdb -in ../ncbi_dataset/data/GCF_000002035.6/protein.faa -out d_rerio_prot -dbtyp prot`
+
+The `blastx_pipeline.sh` script was then used like above to pull out all of the corresponding sequences for each Trinity gene and then to get the BLAST results. The big difference here was that `blastx` was used instead of `blastn` because we are searching nucleotides against a protein database. Once we have the BLAST results we can read and filter them into R as we did before: `bash ../scripts/blastx_pipeline.sh TRgenes/ ../scripts/subset_fasta_file super_trinity_genes.fasta ../../genomes/d_rerio/d_rerio_prot/ TRgenes`
+
+
