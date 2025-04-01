@@ -63,7 +63,7 @@ all_tau <- read.csv("rho_tau_stigmatopora.csv")
 ```
 
 ```{r sex-biased-gene-pies}
-par(mfrow = c(3,3))
+par(mfrow = c(4,3))
 species <- unique(all_sbg$species)
 
 for (pipefish in species) {
