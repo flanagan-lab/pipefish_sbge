@@ -855,6 +855,38 @@ upset(fromList(listInputall),
 
 ```
 
+```{r anz-aus-upset}
+#Import NZ S. nigra data
+nz_gill_mal_biased <- read.table("data/nz_nigra_exp/nz_gill_mal_biased.txt")
+nz_gill_fem_biased <- read.table("data/nz_nigra_exp/nz_gill_fem_biased.txt")
+nz_liver_mal_biased <- read.table("data/nz_nigra_exp/nz_liver_mal_biased.txt")
+nz_liver_fem_biased <- read.table("data/nz_nigra_exp/nz_liver_fem_biased.txt")
+
+#Checking there is no overlap between the two sexes
+listInputall <- list("Aus Male Gill"=rownames(gill_mal_biased), 
+                  "Aus Male Liver"=rownames(liver_mal_biased),
+                  "Aus Female Gill"=rownames(gill_fem_biased), 
+                  "Aus Female Liver"=rownames(liver_fem_biased),
+                  "NZ Male Gill"=rownames(nz_gill_mal_biased),
+                  "NZ Female Gill"=rownames(nz_gill_fem_biased),
+                  "NZ Male Liver"=rownames(nz_liver_mal_biased),
+                  "NZ Female Liver"=rownames(nz_liver_fem_biased))
+
+# Define the desired order of sets
+desired_order <- c("Aus Male Gill", "Aus Female Gill", "Aus Male Liver", "Aus Female Liver", "NZ Male Gill", "NZ Female Gill", "NZ Male Liver", "NZ Female Liver")
+
+# Create the UpSet object with custom set order
+upset(fromList(listInputall),
+      sets = desired_order,
+      mainbar.y.label = "Number of Shared Sex-Biased Genes",
+      sets.x.label = "Total Number of Sex-Biased Genes",
+      point.size = 3,
+      nsets = 8,
+      nintersects = NA,
+      order.by = "degree")
+```
+
+
 ## Variation in FC across sex-bias and tissue type
 I want to create a plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types. To do this I first need to create a "long" dataset in the following format:
 
