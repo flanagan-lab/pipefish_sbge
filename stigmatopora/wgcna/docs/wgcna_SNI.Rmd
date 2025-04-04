@@ -23,16 +23,29 @@ knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ``` {r library, include = TRUE, message = FALSE, warning = FALSE}
 setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/wgcna")
 #This is a cohesive list of all the libraries used in this document
-library(WGCNA)
 library(DESeq2)
 library(flashClust)
 library(tidyverse)
 library(pheatmap)
 library(dplyr)
 library(readr)
+library(WGCNA)
 ```
 
 ## Get expression data for NZ _S. nigra_
+
+``` {r read-data}
+#The abundance matrix generated via salmon and tximport to be used for the DE analysis
+txi.nigra <- readRDS("data/txi.salmon_SN.RDS")
+
+#The samples file generated for tximport
+samples <- read.table("data/SN_samples.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+
+```
 
 ```{r DESeqDataSet, message=FALSE, warning=FALSE}
 #Create the DESeq dataset
@@ -127,12 +140,28 @@ dds_SN_exp <- na.omit(dds_SN_exp)
 dds_aus_exp <- na.omit(dds_aus_exp)
 
 # Ensure genes with very low variance are removed
-dds_SN_exp <- dds_SN_exp[apply(dds_SN_exp, 1, var) > 0, ]
-dds_aus_exp <- dds_aus_exp[apply(dds_aus_exp, 1, var) > 0, ]
+# Get count matrix
+counts_matrix <- counts(dds_SN_exp)
+
+# Filter rows with zero variance
+variances <- apply(counts_matrix, 1, var)
+filtered_counts <- counts_matrix[variances > 0, ]
+
+# Create new DESeqDataSet
+keep <- rownames(filtered_counts) %in% rownames(dds_SN_exp)
+dds_SN_exp_filtered <- dds_SN_exp[keep,]
+
+# Repeat for aus dataset
+counts_matrix <- counts(dds_aus_exp)
+variances <- apply(counts_matrix, 1, var)
+filtered_counts <- counts_matrix[variances > 0, ]
+keep <- rownames(filtered_counts) %in% rownames(dds_aus_exp)
+dds_aus_exp_filtered <- dds_aus_exp[keep,]
 
 # Transpose for WGCNA (samples as rows, genes as columns)
-datExpr_SN <- t(dds_SN_exp)
-datExpr_AUS <- t(dds_aus_exp)
+# Get count matrices and transpose
+datExpr_SN <- t(counts(dds_SN_exp_filtered))
+datExpr_AUS <- t(counts(dds_aus_exp_filtered))
 
 # Verify format
 dim(datExpr_SN) # Should be (samples × genes)
@@ -209,6 +238,14 @@ plotDendroAndColors(geneTree_SN, moduleColors_SN, "Modules NZ", dendroLabels = F
 plotDendroAndColors(geneTree_AUS, moduleColors_AUS, "Modules AUS", dendroLabels = FALSE, hang = 0.03)
 
 ```
+
+The goal is to pick a β value where R² ≥ 0.8, ensuring a scale-free topology.
+
+In my plots:
+-	NZ population: The fit index reaches R² ≈ 0.8 around β = 9–10.
+-	AUS population: The fit index reaches R² ≈ 0.8 around β = 12–13.
+
+This suggests I should select β = 9 or 10 for NZ and β = 12 or 13 for AUS for optimal network construction
 
 ## Relate gene modules to traits
 
@@ -404,6 +441,7 @@ print(sex_biased_modules_AUS)
 
 ```{r tau}
 # Function to calculate tau
+##################################ADD MY OTHER TAU GENERATION FUNCTION####################################
 calculate_tau <- function(expression_matrix) {
   max_expression <- apply(expression_matrix, 1, max)  # Get max expression per gene
   tau_values <- rowSums(1 - expression_matrix / max_expression, na.rm = TRUE) / (ncol(expression_matrix) - 1)
