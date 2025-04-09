@@ -734,3 +734,21 @@ head(txi.salmon.SM$counts)
 saveRDS(txi.salmon.SM, "txi.salmon_SM.RDS") #Move the file off the RCC to continue the Differential Expression analysis in R
 
 ```
+
+To archive data on Genomics Aotearoa, the metadata spreadsheet needs the md5sum. These were acquired in the RCC using this bash script:
+
+```{bash md5sum, eval = FALSE}
+#!/bin/bash
+
+# Loop through all files in the current directory
+for file in *; do
+    # Only process regular files (skip directories)
+    if [ -f "$file" ]; then
+        # Calculate and display MD5 sum
+        md5sum "$file"
+    fi
+done
+
+```
+
+This script was run as `bash ../../scripts/md5sum.sh > checksums.txt`
