@@ -888,4 +888,5 @@ done
 
 ```
 
-This script was run as `bash ../../scripts/md5sum.sh > checksums.txt`
+Make sure you run this script in the directory from where you will be depositing your files.
+This script was run as `bash ../../../../../home/rccuser/shared/emily_files/scripts/md5sum.sh > checksums.txt`
