@@ -1711,3 +1711,114 @@ gonad_plot
 liver_plot
 gill_plot
 ```
+
+```{r comp-correlations}
+# Function to compare two correlation coefficients
+compare_correlations <- function(r1, r2, n1, n2) {
+  # Fisher's Z transformation
+  z1 <- atanh(r1)
+  z2 <- atanh(r2)
+  
+  # Calculate standard error
+  se <- sqrt(1/(n1-3) + 1/(n2-3))
+  
+  # Calculate Z-statistic
+  z_stat <- (z1 - z2)/se
+  
+  # Calculate p-values
+  p_one_tail <- 1 - pnorm(abs(z_stat))
+  p_two_tail <- 2 * p_one_tail
+  
+  return(list(
+    z_statistic = z_stat,
+    p_value_one_tail = p_one_tail,
+    p_value_two_tail = p_two_tail
+  ))
+}
+
+##GONADS
+# First calculate correlations for each group
+female_corr_gonad <- cor.test(
+  gonad_bias_tau_fem$tau_fem,
+  sqrt(abs(gonad_bias_tau_fem$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+male_corr_gonad <- cor.test(
+  gonad_bias_tau_mal$tau_mal,
+  sqrt(abs(gonad_bias_tau_mal$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+# Get sample sizes
+n_female_gonad <- nrow(gonad_bias_tau_fem)
+n_male_gonad <- nrow(gonad_bias_tau_mal)
+
+# Compare correlations
+result <- compare_correlations(female_corr_gonad, male_corr_gonad, n_female_gonad, n_male_gonad)
+
+# Print results
+cat("Comparison of Correlation Coefficients:\n")
+cat(sprintf("Female correlation: %.3f\n", female_corr_gonad))
+cat(sprintf("Male correlation:   %.3f\n", male_corr_gonad))
+cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
+cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
+
+##LIVER
+# First calculate correlations for each group
+female_corr_liver <- cor.test(
+  liver_bias_tau_fem$tau_fem,
+  sqrt(abs(liver_bias_tau_fem$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+male_corr_liver <- cor.test(
+  liver_bias_tau_mal$tau_mal,
+  sqrt(abs(liver_bias_tau_mal$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+# Get sample sizes
+n_female_liver <- nrow(liver_bias_tau_fem)
+n_male_liver <- nrow(liver_bias_tau_mal)
+
+# Compare correlations
+result <- compare_correlations(female_corr_liver, male_corr_liver, n_female_liver, n_male_liver)
+
+# Print results
+cat("Comparison of Correlation Coefficients:\n")
+cat(sprintf("Female correlation: %.3f\n", female_corr_liver))
+cat(sprintf("Male correlation:   %.3f\n", male_corr_liver))
+cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
+cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
+
+##GILLS
+# First calculate correlations for each group
+female_corr_gill <- cor.test(
+  gill_bias_tau_fem$tau_fem,
+  sqrt(abs(gill_bias_tau_fem$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+male_corr_gill <- cor.test(
+  gill_bias_tau_mal$tau_mal,
+  sqrt(abs(gill_bias_tau_mal$log2FoldChange)),
+  method = "spearman"
+)$estimate[["rho"]]
+
+# Get sample sizes
+n_female_gill <- nrow(gill_bias_tau_fem)
+n_male_gill <- nrow(gill_bias_tau_mal)
+
+# Compare correlations
+result <- compare_correlations(female_corr_gill, male_corr_gill, n_female_gill, n_male_gill)
+
+# Print results
+cat("Comparison of Correlation Coefficients:\n")
+cat(sprintf("Female correlation: %.3f\n", female_corr_gill))
+cat(sprintf("Male correlation:   %.3f\n", male_corr_gill))
+cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
+cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
+
+```
+
