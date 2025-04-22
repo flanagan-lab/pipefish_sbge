@@ -19,7 +19,7 @@ There are a number of public repositories in which you may wish to archive your 
 
 # Why archive data in public repositories?
 
-Archiving raw reads in a public repository like NCBI SRA is cruicial for multiple reasons - both in terms of scientific integrity, in accordance with principles of kaitiakitanga and data sovereignty (for samples collected in Aotearoa New Zealand), and in alignment with *Fair* and *CARE* principles. Here's a brief breakdown of some of the key reasons to archive data:
+Archiving raw reads in a public repository like NCBI SRA is crucial for multiple reasons - in terms of scientific integrity, in accordance with principles of kaitiakitanga and data sovereignty (for samples collected in Aotearoa New Zealand), and in alignment with *Fair* and *CARE* principles. Here's a brief breakdown of some of the key reasons to archive data:
 
 ## Why Archive Raw Reads at All?
 
@@ -70,7 +70,7 @@ CARE applies especially to Indigenous data and culturally sensitive genomic data
 
 4. You've completed appropriate quality checks and metadata documentation, ensuring your data meet FAIR principles.
 
-5. *You have ethical and Māori data governance considerations in place, especially if your data involves taonga species or Māori participants, as GA promotes a Te Ao Māori framework and Indigenous data sovereignty.*
+5. You have ethical and Māori data governance considerations in place, especially if your data involves taonga species or Māori participants, as GA promotes a Te Ao Māori framework and Indigenous data sovereignty.
 
 6. You're transitioning from active analysis to archival, and you want to ensure long-term storage in a New Zealand-based, trusted genomics repository.
 
@@ -80,7 +80,7 @@ CARE applies especially to Indigenous data and culturally sensitive genomic data
 To upload data to the NCBI Sequence Read Archive (SRA), you'll need to go through several steps involving account creation, metadata preparation, data formatting, and actual submission. Submission through the portal on the NCBI website [NCBI website](https://www.ncbi.nlm.nih.gov/ "NCBI website") is fairly straightforward, but I'll go through each step:
 
 ## Create an NCBI account
-Go to [NCBI website] (https://www.ncbi.nlm.nih.gov/ "NCBI website") and create an account if you don't already have one. You can link your ORCHID with your NCBI account and use the same login information if you already have an ORCHID. 
+Go to [NCBI website](https://www.ncbi.nlm.nih.gov/ "NCBI website") and create an account if you don't already have one. You can link your ORCHID with your NCBI account and use the same log in information if you already have an ORCHID. 
 
 ## Register a BioProject and BioSample
 These act as containers for your sequencing data and metadata:
@@ -118,7 +118,7 @@ I uploaded my files with FTP in the University of Canterbury's Remote Computing 
 2. From the SRA Submission Portal, you can obtain:
    * Server address: ftp-private.ncbi.nlm.nih.gov
    * Username: subftp
-   * Password: Provided in the portal
+   * Password: [Provided in the portal]
    * Account folder path: uploads/[your.email_xxxxx]
 3. Upload files through the RCC
    * Navigate into the directory which contains *only the reads you wish to upload*.
@@ -126,6 +126,8 @@ I uploaded my files with FTP in the University of Canterbury's Remote Computing 
 ```{bash ftp, eval = FALSE}
 # Initialise FTP connection
 ftp -i
+
+#Establish FTP connection
 ftp ftp-private.ncbi.nlm.nih.gov
 
 # Login with credentials 
@@ -148,7 +150,6 @@ mput *.fastq.gz
 The prompt `[anpqy?]?` appears during FTP operations when using commands like mget (multiple get) or mput (multiple put). It's asking how you want to handle multiple files in the operation.
 
 Each letter represents a different option:
-
 a - Accept all remaining files without further prompts
 n - Skip all remaining files
 p - Toggle prompt mode (turn it off/on)
@@ -164,11 +165,11 @@ Type 'p' to turn off prompting completely (useful for large transfers)
 
 Choose whichever option is appropriate for you - I chose p as my transfer was large. 
 
-Once this is running, *detatch from the screen session* by using `ctrl+a d`. If you do not detach, it may interrupt the connection when you shut your computer down or exit the RCC. 
+Once this is running, *detach from the screen session* by using `ctrl+a d`. If you do not detach, it may interrupt the connection when you shut your computer down or exit the RCC. 
 
 You can check on the progress of your file submission in two ways:
-1. You can resume your screen session using the command: `screen -r [pid.]tty.host`. Replace `[pid.]tty.host` with your chosen screen, it will look something like: `1234567.pts-1.UCRCC0494`. Remember to detach once you're done.
-2. You can return to the SRA Submission Portal, click on the *Select preloaded folder*, and view the number of files uploaded. There is a lag of about 10 on the SRA Submission Portal page, so your best bet is to reattach your screen.
+1. You can resume your screen session using the command: `screen -r [pid.]tty.host`. Replace `[pid.]tty.host` with your chosen screen - it will look something like: `1234567.pts-1.UCRCC0494`. Remember to detach once you're done.
+2. You can return to the SRA Submission Portal, click on the *Select preloaded folder*, and view the number of files uploaded. There is a lag of about 10 minutes on the SRA Submission Portal page, so your best bet is to reattach your screen.
 
 ## Finalise and submit 
 1. Review your metadata and file associations
@@ -187,7 +188,7 @@ To upload data to the Aotearoa Genomic Data Repository (AGDR), you'll need to go
 
 ## Access the AGDR platform
 1. Visit: [AGDR website](https://data.agdr.org.nz/ "ADGR website")
-2. Create an account and login
+2. Create an account and log in
 
 ## Understand submission requirements 
 1. Data Types: AGDR accepts non-human genomic data, particularly from biological and environmental samples originating in Aotearoa New Zealand.
@@ -199,7 +200,11 @@ To upload data to the Aotearoa Genomic Data Repository (AGDR), you'll need to go
 
 ## Prepare your data 
 1. Data formats: ensure your data files are in accepted formats (e.g., FASTQ, BAM, VCF)
-2. Metadata templates: use the provided templates to structure your metadata appropriately. The template can be found here: [ADGR template](https://docs.google.com/spreadsheets/d/1be8T4JalxRopM7pVFzTuempBGlqqhMQ_8MryGsjHI5E/edit?gid=188280636#gid=188280636 "ADGR template"). Download it and fill out the required information. I have written two bash scripts to help fill in some of the metadata required by ADGR. Firstly, ADGR requires the md5sum for each file you're submitting. 
+2. Metadata template: use the provided templates to structure your metadata appropriately. The template can be found here: [ADGR template](https://docs.google.com/spreadsheets/d/1be8T4JalxRopM7pVFzTuempBGlqqhMQ_8MryGsjHI5E/edit?gid=188280636#gid=188280636 "ADGR template"). Download it and fill out the required information. I have written two bash scripts (below) to help fill in some of the metadata required by ADGR. 
+
+Firstly, ADGR requires the md5sum for each file you're submitting. 
+
+Make sure you run this script in the directory from where you will be depositing your files. I am depositing my files from the FlanaganLab research folder, which I mounted in the RCC. Instructions on how to mount this folder can be found here: [SMB mount](https://wiki.canterbury.ac.nz/display/RCC/Data+transfer "SMB mount").
 
 ```{bash md5sum, eval = FALSE}
 #!/bin/bash
@@ -215,15 +220,13 @@ done
 
 ```
 
-Make sure you run this script in the directory from where you will be depositing your files. I am depositing my files from the FlanaganLab research folder. Instructions on how to mount this folder can be found here: [SMB mount](https://wiki.canterbury.ac.nz/display/RCC/Data+transfer "SMB mount").
-
 This script was run as `bash ../../../../../home/rccuser/shared/emily_files/scripts/md5sum.sh > checksums.txt`
 
 Secondly, ADGR requires file sizes in bytes for each of the files you are submitting.
 
-```{bash filesize, eval = FALSE}
+```{bash file-size, eval = FALSE}
 !/bin/bash
-#Create the arguements
+#Create the arguments
 input_dir=$1
 
 # Calculate size for each file
@@ -241,7 +244,7 @@ This script was run as `bash ../../../../../home/rccuser/shared/emily_files/scri
 
 ## Submit your data
 1. Upload process: Log in to your AGDR account and follow the submission process to upload your data and associated metadata through Globus.
-2. Create a Globus account using your institutional login here [Globus](https://www.globus.org/ "Globus")
+2. Create a Globus account using your institutional log in here [Globus](https://www.globus.org/ "Globus")
 3. ADGR doesn't typically accept FTP uploads, so you'll have to download and install Globus Connect Personal: [Globus Connect](https://www.globus.org/globus-connect-personal "Globus Connect")
 4. Set it up to make your local machine a personal endpoint
 5. ADGR will provide the name of the Globus endpoint you should send your files to (e.g., ADGR#ProjectName)
