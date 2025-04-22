@@ -1,0 +1,263 @@
+---
+title: "Archiving data with NCBI and GA"
+author: "Emily Beasley"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: yes
+    keep_tex: true
+  html_document:
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+editor_options:
+  chunk_output_type: console
+---
+
+There are a number of public repositories in which you may wish to archive your data. This RMarkdown follows the steps I took to prepare my metadata and upload raw reads to NCBI Sequence Read Archive (SRA) and Genomics Aotearoa, as well as outlining best practices for choosing an appropriate repository for RNAseq reads. While I am uploading RNAseq raw reads, much of this information is broadly applicable to other sample types. 
+
+# Why archive data in public repositories?
+
+Archiving raw reads in a public repository like NCBI SRA is cruicial for multiple reasons - both in terms of scientific integrity, in accordance with principles of kaitiakitanga and data sovereignty (for samples collected in Aotearoa New Zealand), and in alignment with *Fair* and *CARE* principles. Here's a brief breakdown of some of the key reasons to archive data:
+
+## Why Archive Raw Reads at All?
+
+1. Reproducibility: Raw data allows other researchers to reproduce results, validate findings, and apply new analysis techniques as they emerge.
+
+2. Transparency: It promotes transparency in the scientific process—others can see exactly what data were used and how.
+
+3. Data longevity: Journals or institutions might disappear or change policy, but established repositories ensure long-term access.
+
+4. Reuse and meta-analysis: Raw reads can be re-analysed for different research questions, aggregated in meta-analyses, or used to benchmark tools.
+
+5. Citations and credit: Publicly archived datasets are citable, providing credit to the data generators, and increasing impact.
+
+
+## FAIR Principles (Wilkinson et al., 2016)
+_Findable, Accessible, Interoperable, Reusable_
+
+1. *Findability*: Data is indexed, assigned DOIs or accession numbers, and searchable.
+
+2. *Accessibility*: The data is publicly available with standard access protocols.
+
+3. *Interoperability*: Standardised formats (e.g., FASTQ, BAM) and metadata schemas make data usable across platforms.
+
+4. *Reusability*: Clear licensing and metadata help others understand and repurpose the data appropriately.
+
+
+## CARE Principles (Carroll et al., 2020)
+_Collective Benefit, Authority to Control, Responsibility, Ethics_
+
+CARE applies especially to Indigenous data and culturally sensitive genomic data, adding a layer of ethical responsibility:
+
+1. *Collective Benefit*: Ensures the data benefits the communities it originates from — not just external researchers.
+
+2. *Authority to Control*: Recognises the rights of communities to govern their data.
+
+3. *Responsibility*: Encourages researchers to steward data responsibly, ensuring it’s used ethically.
+
+4. *Ethics*: Respects cultural norms and consent, especially when working with human or community-associated samples.
+
+
+# Cases in which you should upload your data to Genomics Aotearoa
+
+1. Your project is funded or affiliated with Genomics Aotearoa – Uploading data is part of their data-sharing policies and contributes to national efforts in genomics.
+
+2. You are ready to share your genomic data for storage, access, or reuse—either for publication, collaboration, or long-term archiving.
+
+3. You are preparing to publish your research, and data deposition is required for transparency, reproducibility, or to comply with journal or funding requirements.
+
+4. You've completed appropriate quality checks and metadata documentation, ensuring your data meet FAIR principles.
+
+5. *You have ethical and Māori data governance considerations in place, especially if your data involves taonga species or Māori participants, as GA promotes a Te Ao Māori framework and Indigenous data sovereignty.*
+
+6. You're transitioning from active analysis to archival, and you want to ensure long-term storage in a New Zealand-based, trusted genomics repository.
+
+
+# Preparing and uploading data to NCBI
+
+To upload data to the NCBI Sequence Read Archive (SRA), you'll need to go through several steps involving account creation, metadata preparation, data formatting, and actual submission. Submission through the portal on the NCBI website [NCBI website](https://www.ncbi.nlm.nih.gov/ "NCBI website") is fairly straightforward, but I'll go through each step:
+
+## Create an NCBI account
+Go to [NCBI website] (https://www.ncbi.nlm.nih.gov/ "NCBI website") and create an account if you don't already have one. You can link your ORCHID with your NCBI account and use the same login information if you already have an ORCHID. 
+
+## Register a BioProject and BioSample
+These act as containers for your sequencing data and metadata:
+
+*BioProject* 
+1. Go to the BioProject Submission Portal [BioProject](https://submit.ncbi.nlm.nih.gov/subs/bioproject/ "BioProject")
+2. Provide information about your project (title, description, objectives, etc.)
+3. Submit and save the BioProject accession number (e.g., PRJNA123456)
+
+*BioSample*
+1. Go to the BioSample Submission Portal [BioSample](https://submit.ncbi.nlm.nih.gov/subs/biosample/ "Bio Sample")
+2. Link each sample to your BioProject
+3. Describe each sample (organism, tissue, treatment, etc.)
+4. Submit and save the BioSample accession numbers (e.g., SAMN12345678)
+
+## Prepare your data
+1. Use a standard format - my raw reads are all *FASTQ* (compressed as `.fastq.gz`)
+2. Ensure proper naming conventions (e.g., `sample1_R1.fastq.gz`)
+
+## Create an SRA submission
+1. Go to the SRA Submission Portal [SRA Submission Portal](https://submit.ncbi.nlm.nih.gov/subs/sra/ "SRA Submission Portal")
+2. Select the BioProject you registered earlier
+3. Link to your BioSample(s)
+4. Fill out the library preparation details (platform, layout, library strategy, etc.)
+5. Fill out the metadata spreadsheet (SRA provides one in the portal - it is recommended to fill out the spreadsheet in the portal)
+
+## Upload your files 
+There are three main methods 
+1. Web upload
+2. Aspera Upload
+3. FTP upload
+
+I uploaded my files with FTP in the University of Canterbury's Remote Computing Cluster (RCC). In order to do this, follow these steps:
+1. When you get to step 7 _Files_, select "FTP upload" as your transfer method. This will create a request for a directory into which you can upload your files. 
+2. From the SRA Submission Portal, you can obtain:
+   * Server address: ftp-private.ncbi.nlm.nih.gov
+   * Username: subftp
+   * Password: Provided in the portal
+   * Account folder path: uploads/[your.email_xxxxx]
+3. Upload files through the RCC
+   * Navigate into the directory which contains *only the reads you wish to upload*.
+   * Start a screen session using the command `screen`. This is essential, as an upload may take several days. By running your ftp in a screen session, it will not time out or disconnect. 
+```{bash ftp, eval = FALSE}
+# Initialise FTP connection
+ftp -i
+ftp ftp-private.ncbi.nlm.nih.gov
+
+# Login with credentials 
+User: subftp
+Password: [provided password]
+
+# Navigate to your account folder
+cd uploads/your.email_xxxxx
+
+# Create a submission folder
+mkdir your_submission_folder
+
+# Change to the submission directory
+cd your_submission_folder
+
+# Upload your files
+mput *.fastq.gz
+```
+
+The prompt `[anpqy?]?` appears during FTP operations when using commands like mget (multiple get) or mput (multiple put). It's asking how you want to handle multiple files in the operation.
+
+Each letter represents a different option:
+
+a - Accept all remaining files without further prompts
+n - Skip all remaining files
+p - Toggle prompt mode (turn it off/on)
+q - Quit the current operation
+y - Accept this specific file
+? - Display help about these options
+
+Common scenarios include:
+Type 'y' to accept each file individually
+Type 'a' to accept all remaining files without further prompts
+Type 'n' to skip all remaining files
+Type 'p' to turn off prompting completely (useful for large transfers)
+
+Choose whichever option is appropriate for you - I chose p as my transfer was large. 
+
+Once this is running, *detatch from the screen session* by using `ctrl+a d`. If you do not detach, it may interrupt the connection when you shut your computer down or exit the RCC. 
+
+You can check on the progress of your file submission in two ways:
+1. You can resume your screen session using the command: `screen -r [pid.]tty.host`. Replace `[pid.]tty.host` with your chosen screen, it will look something like: `1234567.pts-1.UCRCC0494`. Remember to detach once you're done.
+2. You can return to the SRA Submission Portal, click on the *Select preloaded folder*, and view the number of files uploaded. There is a lag of about 10 on the SRA Submission Portal page, so your best bet is to reattach your screen.
+
+## Finalise and submit 
+1. Review your metadata and file associations
+2. Click *Submit*
+3. You'll receive confirmation with your SRA accession numbers (e.g., SRR12345678)
+
+## After submission
+1. Your data will be reviewed and validated
+2. You'll get an email once your data is live or if any errors need fixing
+3. You can choose to release the data immediately or hold until publication. You can change the release data at any time. 
+
+
+# Preparing and uploading data to Aotearoa Genomic Data Repository (AGDR)
+
+To upload data to the Aotearoa Genomic Data Repository (AGDR), you'll need to go through several steps involving account creation, metadata preparation, data formatting, and actual submission. Submission through AGDR platform is not as straightforward as NCBI, but there is a lot of guidance on the website [AGDR website](https://data.agdr.org.nz/ "ADGR website"). While many of the requirements are similar to NCBI, there are some important differences, so I'll go through each step:
+
+## Access the AGDR platform
+1. Visit: [AGDR website](https://data.agdr.org.nz/ "ADGR website")
+2. Create an account and login
+
+## Understand submission requirements 
+1. Data Types: AGDR accepts non-human genomic data, particularly from biological and environmental samples originating in Aotearoa New Zealand.
+2. Metadata: Prepare detailed metadata for your dataset, including information about the species, sample collection, sequencing methods, and any associated publications
+
+## Suitability assessment
+1. Fill out the application form found here: [ADGR Submission Process](https://docs.agdr.org.nz/user_guides/submission_process/ "ADGR Submission Process")
+2. After review of your application, you will need to fill out the metadata template (see below) and you will receive specific instructions on how to transfer your data via Globus.
+
+## Prepare your data 
+1. Data formats: ensure your data files are in accepted formats (e.g., FASTQ, BAM, VCF)
+2. Metadata templates: use the provided templates to structure your metadata appropriately. The template can be found here: [ADGR template](https://docs.google.com/spreadsheets/d/1be8T4JalxRopM7pVFzTuempBGlqqhMQ_8MryGsjHI5E/edit?gid=188280636#gid=188280636 "ADGR template"). Download it and fill out the required information. I have written two bash scripts to help fill in some of the metadata required by ADGR. Firstly, ADGR requires the md5sum for each file you're submitting. 
+
+```{bash md5sum, eval = FALSE}
+#!/bin/bash
+
+# Loop through all files in the current directory
+for file in *; do
+    # Only process regular files (skip directories)
+    if [ -f "$file" ]; then
+        # Calculate and display MD5 sum
+        md5sum "$file"
+    fi
+done
+
+```
+
+Make sure you run this script in the directory from where you will be depositing your files. I am depositing my files from the FlanaganLab research folder. Instructions on how to mount this folder can be found here: [SMB mount](https://wiki.canterbury.ac.nz/display/RCC/Data+transfer "SMB mount").
+
+This script was run as `bash ../../../../../home/rccuser/shared/emily_files/scripts/md5sum.sh > checksums.txt`
+
+Secondly, ADGR requires file sizes in bytes for each of the files you are submitting.
+
+```{bash filesize, eval = FALSE}
+!/bin/bash
+#Create the arguements
+input_dir=$1
+
+# Calculate size for each file
+for file in "$1"/*; do
+    if [ -f "$file" ]; then
+        # Use stat for GNU systems (Linux)
+        size=$(stat -c%s "$file" 2>/dev/null)
+        echo "${file##*/}: $size bytes"
+    fi
+done
+
+```
+
+This script was run as `bash ../../../../../home/rccuser/shared/emily_files/scripts/get_file_size.sh > filesize.txt`
+
+## Submit your data
+1. Upload process: Log in to your AGDR account and follow the submission process to upload your data and associated metadata through Globus.
+2. Create a Globus account using your institutional login here [Globus](https://www.globus.org/ "Globus")
+3. ADGR doesn't typically accept FTP uploads, so you'll have to download and install Globus Connect Personal: [Globus Connect](https://www.globus.org/globus-connect-personal "Globus Connect")
+4. Set it up to make your local machine a personal endpoint
+5. ADGR will provide the name of the Globus endpoint you should send your files to (e.g., ADGR#ProjectName)
+6. Log in to the Globus Web App [Globus Web App](https://app.globus.org/ "Globus Web App")
+7. Log in and open the *File Manager*
+8. In the File Manager: 
+   a) On the left pane, select your local endpoint (your computer or institution).
+   b) On the right pane, search and select the ADGR endpoint.
+   c) Navigate to the correct folders on both sides
+   d) Select the files you want to transfer and click *Start*
+9. Review: Your submission will be reviewed for completeness and compliance with AGDR guidelines.
+
+## Data access and governance
+1. Māori data sovereignty: AGDR operates under principles that respect Māori data sovereignty. If your data pertains to taonga species, it will be subject to kaitiaki (guardian) approval for access and use.
+2. Access requests: Researchers can request access to datasets, but approval is granted by the designated kaitiaki. This process ensures that data use aligns with Māori values and expectations.
+
+## Additional resources
+1. ADGR documentation: for detailed guidance, visit the ADGR User Guide [ADGR User Guide](https://docs.agdr.org.nz/ "ADGR User Guide")
+2. Māori ethical frameworks: Familiarise yourself with guidelines like Te Nohonga Kaitiaki [Te Nohonga Kaitiaki](https://www.genomics-aotearoa.org.nz/our-work/completed-projects/te-nohonga-kaitiaki "Te Nohonga Kaitiaki")
