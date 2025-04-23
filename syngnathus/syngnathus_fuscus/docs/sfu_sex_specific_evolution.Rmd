@@ -131,6 +131,13 @@ cp STAR /usr/local/bin
 cp ../bin/STARlong /usr/local/bin
 ```
 
+Finally, need to retrieve the sex-specific transcript sequences, which are on the FlanaganLab server.
+
+```{r}
+"smb://file/Research/FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/06_diff_expr_analysis/02_high_exp_trinity_gene_seqs"
+```
+
+
 
 ```{bash, eval=FALSE}
 # on trinity-em, in shared/coley_files/
