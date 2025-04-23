@@ -1,0 +1,679 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\title{Archiving data with NCBI and GA}
+\author{Emily Beasley}
+\date{2025-04-23}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Archiving data with NCBI and GA},
+  pdfauthor={Emily Beasley},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+There are a number of public repositories in which you may wish to
+archive your data. This RMarkdown follows the steps I took to prepare my
+metadata and upload raw reads to NCBI Sequence Read Archive (SRA) and
+Genomics Aotearoa, as well as outlining best practices for choosing an
+appropriate repository for RNAseq reads. While I am uploading RNAseq raw
+reads, much of this information is broadly applicable to other sample
+types.
+
+\hypertarget{why-archive-data-in-public-repositories}{%
+\section{Why archive data in public
+repositories?}\label{why-archive-data-in-public-repositories}}
+
+Archiving raw reads in a public repository like NCBI SRA is crucial for
+multiple reasons - in terms of scientific integrity, in accordance with
+principles of kaitiakitanga and data sovereignty (for samples collected
+in Aotearoa New Zealand), and in alignment with \emph{FAIR} and
+\emph{CARE} principles. Here's a brief breakdown of some of the key
+reasons to archive data:
+
+\hypertarget{why-archive-raw-reads-at-all}{%
+\subsection{Why Archive Raw Reads at
+All?}\label{why-archive-raw-reads-at-all}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Reproducibility: Raw data allows other researchers to reproduce
+  results, validate findings, and apply new analysis techniques as they
+  emerge.
+\item
+  Transparency: It promotes transparency in the scientific
+  process---others can see exactly what data were used and how.
+\item
+  Data longevity: Journals or institutions might disappear or change
+  policy, but established repositories ensure long-term access.
+\item
+  Reuse and meta-analysis: Raw reads can be re-analysed for different
+  research questions, aggregated in meta-analyses, or used to benchmark
+  tools.
+\item
+  Citations and credit: Publicly archived datasets are citable,
+  providing credit to the data generators, and increasing impact.
+\end{enumerate}
+
+\hypertarget{fair-principles-wilkinson-et-al.-2016}{%
+\subsection{FAIR Principles (Wilkinson et al.,
+2016)}\label{fair-principles-wilkinson-et-al.-2016}}
+
+\emph{Findable, Accessible, Interoperable, Reusable}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \emph{Findability}: Data is indexed, assigned DOIs or accession
+  numbers, and searchable.
+\item
+  \emph{Accessibility}: The data is publicly available with standard
+  access protocols.
+\item
+  \emph{Interoperability}: Standardised formats (e.g., FASTQ, BAM) and
+  metadata schemas make data usable across platforms.
+\item
+  \emph{Reusability}: Clear licensing and metadata help others
+  understand and repurpose the data appropriately.
+\end{enumerate}
+
+\hypertarget{care-principles-carroll-et-al.-2020}{%
+\subsection{CARE Principles (Carroll et al.,
+2020)}\label{care-principles-carroll-et-al.-2020}}
+
+\emph{Collective Benefit, Authority to Control, Responsibility, Ethics}
+
+CARE applies especially to Indigenous data and culturally sensitive
+genomic data, adding a layer of ethical responsibility:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \emph{Collective Benefit}: Ensures the data benefits the communities
+  it originates from --- not just external researchers.
+\item
+  \emph{Authority to Control}: Recognises the rights of communities to
+  govern their data.
+\item
+  \emph{Responsibility}: Encourages researchers to steward data
+  responsibly, ensuring it's used ethically.
+\item
+  \emph{Ethics}: Respects cultural norms and consent, especially when
+  working with human or community-associated samples.
+\end{enumerate}
+
+\hypertarget{cases-in-which-you-should-upload-your-data-to-genomics-aotearoa}{%
+\section{Cases in which you should upload your data to Genomics
+Aotearoa}\label{cases-in-which-you-should-upload-your-data-to-genomics-aotearoa}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Your project is funded or affiliated with Genomics Aotearoa --
+  Uploading data is part of their data-sharing policies and contributes
+  to national efforts in genomics.
+\item
+  You are ready to share your genomic data for storage, access, or
+  reuse---either for publication, collaboration, or long-term archiving.
+\item
+  You are preparing to publish your research, and data deposition is
+  required for transparency, reproducibility, or to comply with journal
+  or funding requirements.
+\item
+  You've completed appropriate quality checks and metadata
+  documentation, ensuring your data meet FAIR principles.
+\item
+  You have ethical and Māori data governance considerations in place,
+  especially if your data involves taonga species or Māori participants,
+  as GA promotes a Te Ao Māori framework and Indigenous data
+  sovereignty.
+\item
+  You're transitioning from active analysis to archival, and you want to
+  ensure long-term storage in a New Zealand-based, trusted genomics
+  repository.
+\end{enumerate}
+
+\hypertarget{preparing-and-uploading-data-to-ncbi}{%
+\section{Preparing and uploading data to
+NCBI}\label{preparing-and-uploading-data-to-ncbi}}
+
+To upload data to the NCBI Sequence Read Archive (SRA), you'll need to
+go through several steps involving account creation, metadata
+preparation, data formatting, and actual submission. Submission through
+the portal on the \href{https://www.ncbi.nlm.nih.gov/}{NCBI website} is
+fairly straightforward, but I'll go through each step:
+
+\hypertarget{create-an-ncbi-account}{%
+\subsection{Create an NCBI account}\label{create-an-ncbi-account}}
+
+Go to \href{https://www.ncbi.nlm.nih.gov/}{NCBI website} and create an
+account if you don't already have one. You can link your ORCHID with
+your NCBI account and use the same log in information if you already
+have an ORCHID.
+
+\hypertarget{register-a-bioproject-and-biosample}{%
+\subsection{Register a BioProject and
+BioSample}\label{register-a-bioproject-and-biosample}}
+
+These act as containers for your sequencing data and metadata:
+
+\emph{BioProject}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Go to the BioProject Submission Portal
+  \href{https://submit.ncbi.nlm.nih.gov/subs/bioproject/}{BioProject}
+\item
+  Provide information about your project (title, description,
+  objectives, etc.)
+\item
+  Submit and save the BioProject accession number (e.g., PRJNA123456)
+\end{enumerate}
+
+\emph{BioSample}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Go to the BioSample Submission Portal
+  \href{https://submit.ncbi.nlm.nih.gov/subs/biosample/}{BioSample}
+\item
+  Link each sample to your BioProject
+\item
+  Describe each sample (organism, tissue, treatment, etc.)
+\item
+  Submit and save the BioSample accession numbers (e.g., SAMN12345678)
+\end{enumerate}
+
+\hypertarget{prepare-your-data}{%
+\subsection{Prepare your data}\label{prepare-your-data}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Use a standard format - my raw reads are all \emph{FASTQ} (compressed
+  as \texttt{.fastq.gz})
+\item
+  Ensure proper naming conventions (e.g., \texttt{sample1\_R1.fastq.gz})
+\end{enumerate}
+
+\hypertarget{create-an-sra-submission}{%
+\subsection{Create an SRA submission}\label{create-an-sra-submission}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Go to the \href{https://submit.ncbi.nlm.nih.gov/subs/sra/}{SRA
+  Submission Portal}
+\item
+  Select the BioProject you registered earlier
+\item
+  Link to your BioSample(s)
+\item
+  Fill out the library preparation details (platform, layout, library
+  strategy, etc.)
+\item
+  Fill out the metadata spreadsheet (SRA provides one in the portal - it
+  is recommended to fill out the spreadsheet in the portal)
+\end{enumerate}
+
+\hypertarget{upload-your-files}{%
+\subsection{Upload your files}\label{upload-your-files}}
+
+There are three main methods
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Web upload
+\item
+  Aspera Upload
+\item
+  FTP upload
+\end{enumerate}
+
+I uploaded my files with FTP in the University of Canterbury's Remote
+Computing Cluster (RCC). In order to do this, follow these steps:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  When you get to step 7 \emph{Files}, select ``FTP upload'' as your
+  transfer method. This will create a request for a directory into which
+  you can upload your files.
+\item
+  From the SRA Submission Portal, you can obtain:
+
+  \begin{itemize}
+  \item
+    Server address: ftp-private.ncbi.nlm.nih.gov
+  \item
+    Username: subftp
+  \item
+    Password: {[}Provided in the portal{]}
+  \item
+    Account folder path: uploads/{[}your.email\_xxxxx{]}
+  \end{itemize}
+\item
+  Upload files through the RCC
+
+  \begin{itemize}
+  \item
+    Navigate into the directory which contains \emph{only the reads you
+    wish to upload}.
+  \item
+    Start a screen session using the command \texttt{screen}. This is
+    essential, as an upload may take several days. By running your ftp
+    in a screen session, it will not time out or disconnect.
+  \end{itemize}
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Initialise FTP connection}
+\FunctionTok{ftp} \AttributeTok{{-}i}
+
+\CommentTok{\#Establish FTP connection}
+\FunctionTok{ftp}\NormalTok{ ftp{-}private.ncbi.nlm.nih.gov}
+
+\CommentTok{\# Login with credentials }
+\ExtensionTok{User:}\NormalTok{ subftp}
+\ExtensionTok{Password:}\NormalTok{ [provided password]}
+
+\CommentTok{\# Navigate to your account folder}
+\BuiltInTok{cd}\NormalTok{ uploads/your.email\_xxxxx}
+
+\CommentTok{\# Create a submission folder}
+\FunctionTok{mkdir}\NormalTok{ your\_submission\_folder}
+
+\CommentTok{\# Change to the submission directory}
+\BuiltInTok{cd}\NormalTok{ your\_submission\_folder}
+
+\CommentTok{\# Upload your files}
+\ExtensionTok{mput} \PreprocessorTok{*}\NormalTok{.fastq.gz}
+\end{Highlighting}
+\end{Shaded}
+
+The prompt \texttt{{[}anpqy?{]}?} appears during FTP operations when
+using commands like mget (multiple get) or mput (multiple put). It's
+asking how you want to handle multiple files in the operation.
+
+Each letter represents a different option:
+
+a - Accept all remaining files without further prompts
+
+n - Skip all remaining files
+
+p - Toggle prompt mode (turn it off/on)
+
+q - Quit the current operation
+
+y - Accept this specific file
+
+? - Display help about these options
+
+Common scenarios include:
+
+Type `y' to accept each file individually
+
+Type `a' to accept all remaining files without further prompts
+
+Type `n' to skip all remaining files
+
+Type `p' to turn off prompting completely (useful for large transfers)
+
+Choose whichever option is appropriate for you - I chose p as my
+transfer was large.
+
+Once this is running, \emph{detach from the screen session} by using
+\texttt{ctrl+a\ d}. If you do not detach, it may interrupt the
+connection when you shut your computer down or exit the RCC.
+
+You can check on the progress of your file submission in two ways:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  You can resume your screen session using the command:
+  \texttt{screen\ -r\ {[}pid.{]}tty.host}. Replace
+  \texttt{{[}pid.{]}tty.host} with your chosen screen - it will look
+  something like: \texttt{1234567.pts-1.UCRCC0494}. Remember to detach
+  once you're done.
+\item
+  You can return to the SRA Submission Portal, click on the \emph{Select
+  preloaded folder}, and view the number of files uploaded. There is a
+  lag of about 10 minutes on the SRA Submission Portal page, so your
+  best bet is to reattach your screen.
+\end{enumerate}
+
+\hypertarget{finalise-and-submit}{%
+\subsection{Finalise and submit}\label{finalise-and-submit}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Review your metadata and file associations
+\item
+  Click \emph{Submit}
+\item
+  You'll receive confirmation with your SRA accession numbers (e.g.,
+  SRR12345678)
+\end{enumerate}
+
+\hypertarget{after-submission}{%
+\subsection{After submission}\label{after-submission}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Your data will be reviewed and validated
+\item
+  You'll get an email once your data is live or if any errors need
+  fixing
+\item
+  You can choose to release the data immediately or hold until
+  publication. You can change the release data at any time.
+\end{enumerate}
+
+\hypertarget{preparing-and-uploading-data-to-aotearoa-genomic-data-repository-agdr}{%
+\section{Preparing and uploading data to Aotearoa Genomic Data
+Repository
+(AGDR)}\label{preparing-and-uploading-data-to-aotearoa-genomic-data-repository-agdr}}
+
+To upload data to the Aotearoa Genomic Data Repository (AGDR), you'll
+need to go through several steps involving account creation, metadata
+preparation, data formatting, and actual submission. Submission through
+AGDR platform is not as straightforward as NCBI, but there is a lot of
+guidance on the \href{https://data.agdr.org.nz/}{AGDR website}. While
+many of the requirements are similar to NCBI, there are some important
+differences, so I'll go through each step:
+
+\hypertarget{access-the-agdr-platform}{%
+\subsection{Access the AGDR platform}\label{access-the-agdr-platform}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Visit: \href{https://data.agdr.org.nz/}{AGDR website}
+\item
+  Create an account and log in
+\end{enumerate}
+
+\hypertarget{understand-submission-requirements}{%
+\subsection{Understand submission
+requirements}\label{understand-submission-requirements}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Data Types: AGDR accepts non-human genomic data, particularly from
+  biological and environmental samples originating in Aotearoa New
+  Zealand.
+\item
+  Metadata: Prepare detailed metadata for your dataset, including
+  information about the species, sample collection, sequencing methods,
+  and any associated publications
+\end{enumerate}
+
+\hypertarget{suitability-assessment}{%
+\subsection{Suitability assessment}\label{suitability-assessment}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Fill out the application form found here:
+  \href{https://docs.agdr.org.nz/user_guides/submission_process/}{ADGR
+  Submission Process}
+\item
+  After review of your application, you will need to fill out the
+  metadata template (see below) and you will receive specific
+  instructions on how to transfer your data via Globus.
+\end{enumerate}
+
+\hypertarget{prepare-your-data-1}{%
+\subsection{Prepare your data}\label{prepare-your-data-1}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Data formats: ensure your data files are in accepted formats (e.g.,
+  FASTQ, BAM, VCF)
+\item
+  Metadata template: use the provided templates to structure your
+  metadata appropriately. The template can be found here:
+  \href{https://docs.google.com/spreadsheets/d/1be8T4JalxRopM7pVFzTuempBGlqqhMQ_8MryGsjHI5E/edit?gid=188280636\#gid=188280636}{ADGR
+  template}. Download it and fill out the required information. I have
+  written two bash scripts (below) to help fill in some of the metadata
+  required by ADGR.
+\end{enumerate}
+
+Firstly, ADGR requires the md5sum for each file you're submitting.
+
+Make sure you run this script in the directory from where you will be
+depositing your files. I am depositing my files from the FlanaganLab
+research folder, which I mounted in the RCC. Instructions on how to
+mount this folder can be found here:
+\href{https://wiki.canterbury.ac.nz/display/RCC/Data+transfer}{SMB
+mount}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#!/bin/bash}
+
+\CommentTok{\# Loop through all files in the current directory}
+\ControlFlowTok{for}\NormalTok{ file }\KeywordTok{in} \PreprocessorTok{*}\KeywordTok{;} \ControlFlowTok{do}
+    \CommentTok{\# Only process regular files (skip directories)}
+    \ControlFlowTok{if} \BuiltInTok{[} \OtherTok{{-}f} \StringTok{"}\VariableTok{$file}\StringTok{"} \BuiltInTok{]}\KeywordTok{;} \ControlFlowTok{then}
+        \CommentTok{\# Calculate and display MD5 sum}
+        \ExtensionTok{md5sum} \StringTok{"}\VariableTok{$file}\StringTok{"}
+    \ControlFlowTok{fi}
+\ControlFlowTok{done}
+\end{Highlighting}
+\end{Shaded}
+
+This script was run as
+\texttt{bash\ ../../../../../home/rccuser/shared/emily\_files/scripts/md5sum.sh\ \textgreater{}\ checksums.txt}
+
+Secondly, ADGR requires file sizes in bytes for each of the files you
+are submitting.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{!/bin/bash}
+\CommentTok{\#Create the arguments}
+\VariableTok{input\_dir}\OperatorTok{=}\VariableTok{$1}
+
+\CommentTok{\# Calculate size for each file}
+\ControlFlowTok{for}\NormalTok{ file }\KeywordTok{in} \StringTok{"}\VariableTok{$1}\StringTok{"}\NormalTok{/}\PreprocessorTok{*}\KeywordTok{;} \ControlFlowTok{do}
+    \ControlFlowTok{if} \BuiltInTok{[} \OtherTok{{-}f} \StringTok{"}\VariableTok{$file}\StringTok{"} \BuiltInTok{]}\KeywordTok{;} \ControlFlowTok{then}
+        \CommentTok{\# Use stat for GNU systems (Linux)}
+        \VariableTok{size}\OperatorTok{=}\VariableTok{$(}\FunctionTok{stat} \AttributeTok{{-}c\%s} \StringTok{"}\VariableTok{$file}\StringTok{"} \DecValTok{2}\OperatorTok{\textgreater{}}\NormalTok{/dev/null}\VariableTok{)}
+        \BuiltInTok{echo} \StringTok{"}\VariableTok{$\{file}\OperatorTok{\#\#}\PreprocessorTok{*}\NormalTok{/}\VariableTok{\}}\StringTok{: }\VariableTok{$size}\StringTok{ bytes"}
+    \ControlFlowTok{fi}
+\ControlFlowTok{done}
+\end{Highlighting}
+\end{Shaded}
+
+This script was run as
+\texttt{bash\ ../../../../../home/rccuser/shared/emily\_files/scripts/get\_file\_size.sh\ \textgreater{}\ filesize.txt}
+
+\hypertarget{submit-your-data}{%
+\subsection{Submit your data}\label{submit-your-data}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Upload process: Log in to your AGDR account and follow the submission
+  process to upload your data and associated metadata through Globus.
+\item
+  Create a Globus account using your institutional log in here
+  \href{https://www.globus.org/}{Globus}
+\item
+  ADGR doesn't typically accept FTP uploads, so you'll have to download
+  and install Globus Connect Personal:
+  \href{https://www.globus.org/globus-connect-personal}{Globus Connect}
+\item
+  Set it up to make your local machine a personal endpoint
+\item
+  ADGR will provide the name of the Globus endpoint you should send your
+  files to (e.g., ADGR\#ProjectName)
+\item
+  Log in to the Globus Web App \href{https://app.globus.org/}{Globus Web
+  App}
+\item
+  Log in and open the \emph{File Manager}
+\item
+  In the File Manager:
+
+  \begin{enumerate}
+  \def\labelenumii{\alph{enumii})}
+  \item
+    On the left pane, select your local endpoint (your computer or
+    institution).
+  \item
+    On the right pane, search and select the ADGR endpoint.
+  \item
+    Navigate to the correct folders on both sides
+  \item
+    Select the files you want to transfer and click \emph{Start}
+  \end{enumerate}
+\item
+  Review: Your submission will be reviewed for completeness and
+  compliance with AGDR guidelines.
+\end{enumerate}
+
+\hypertarget{data-access-and-governance}{%
+\subsection{Data access and
+governance}\label{data-access-and-governance}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Māori data sovereignty: AGDR operates under principles that respect
+  Māori data sovereignty. If your data pertains to taonga species, it
+  will be subject to kaitiaki (guardian) approval for access and use.
+\item
+  Access requests: Researchers can request access to datasets, but
+  approval is granted by the designated kaitiaki. This process ensures
+  that data use aligns with Māori values and expectations.
+\end{enumerate}
+
+\hypertarget{additional-resources}{%
+\subsection{Additional resources}\label{additional-resources}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  ADGR documentation: for detailed guidance, visit the
+  \href{https://docs.agdr.org.nz/}{ADGR User Guide}
+\item
+  Māori ethical frameworks: Familiarise yourself with guidelines like
+  \href{https://www.genomics-aotearoa.org.nz/our-work/completed-projects/te-nohonga-kaitiaki}{Te
+  Nohonga Kaitiaki}
+\end{enumerate}
+
+\end{document}
