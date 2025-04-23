@@ -21,6 +21,7 @@ knitr::opts_knit$set(root.dir='./')
 
 ```{r loadLibs, eval=TRUE}
 library(DESeq2)
+library(Hmisc)
 library(pheatmap)
 library(PCAtools)
 library(ggplot2)
@@ -35,7 +36,7 @@ library(UpSetR)
 library(knitr)
 library(stringr)
 library(tidyverse)
-
+library(EnvStats)
 ```
 
 ```{r setParams, eval=TRUE}
@@ -48,18 +49,18 @@ sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4" )
 
 organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15,
                   Ovaries=15,
-                  Testis=15,)
+                  Testis=15)
 
-organ_cols<-c("Gill" = "#20B2AA",
-              "Gonad" = "#EEB422", 
-              "Liver" = "#EE8262")
+organ_cols<-c("Gill" = "#8da0cb",
+              "Gonad" = "#66c2a5", 
+              "Liver" = "#fc8d62")
 
 ```
 
 ```{r getSamplesInfo, eval=TRUE}
 
 #The samples file generated for tximport
-FU_samples <- read.table("plot_data/FU_samples.txt", header = TRUE)
+FU_samples <- read.table("../figs/plot_data/FU_samples.txt", header = TRUE)
 
 #Make sure the conditions are in the samples file as a factor
 FU_samples$Sex <- as.factor(FU_samples$Sex)
@@ -103,14 +104,13 @@ write.csv(norm_counts, "plot_data/normalized_counts.csv",row.names = TRUE)
 ```
 
 ```{r readCountData}
-norm_counts <- read.csv("plot_data/normalized_counts.csv",row.names = 1)
-vsd_assay <- read.csv("plot_data/vsd_assay.csv",row.names = 1)
+norm_counts <- read.csv("../figs/plot_data/normalized_counts.csv",row.names = 1)
+vsd_assay <- read.csv("../figs/plot_data/vsd_assay.csv",row.names = 1)
 
 ```
 
 ```{r runPCA, eval=FALSE}
-
-pca <- prcomp(t(assay(vsd)))
+pca <- prcomp(t(vsd_assay))
 
 pca_plotting_data<-as.data.frame(pca$x)
 
@@ -120,24 +120,26 @@ pca_plotting_data$Sex <- FU_samples$Sex
 pca_plotting_data$ID <- FU_samples$ID
 
 #Calculate the percent variation attributed to each axis 
-p <- pca(assay(vsd), 
+p <- pca(vsd_assay, 
          metadata = colData(dds_FU_exp))
 percentVar <- round(p$variance, digits = 2)
+```
 
 
+```{r savePCA, eval=FALSE}
 write.csv(pca$rotation[,1:3],
-          "plot_data/pca_rotation.csv", row.names=TRUE)
+          "../figs/plot_data/pca_rotation.csv", row.names=TRUE)
 write.csv(pca_plotting_data,
-          "plot_data/pca_plotting_data.csv", row.names = TRUE)
+          "../figs/plot_data/pca_plotting_data.csv", row.names = TRUE)
 write.table(percentVar,
-            "plot_data/PCA_percents.txt", row.names = FALSE)
+            "../figs/plot_data/PCA_percents.txt", row.names = FALSE)
 
 ```
 
 ```{r getPCAdata}
-pca_plotting_data <- read.csv("plot_data/pca_plotting_data.csv",row.names = 1)
-percentVar <- unlist(read.delim("plot_data/PCA_percents.txt"))
-pca_rotation <- read.csv("plot_data/pca_rotation.csv",row.names = 1)
+pca_plotting_data <- read.csv("../figs/plot_data/pca_plotting_data.csv",row.names = 1)
+percentVar <- unlist(read.delim("../figs/plot_data/PCA_percents.txt"))
+pca_rotation <- read.csv("../figs/plot_data/pca_rotation.csv",row.names = 1)
 ```
 
 
@@ -145,7 +147,7 @@ pca_rotation <- read.csv("plot_data/pca_rotation.csv",row.names = 1)
 
 ```{r fig1a}
 #Create the blank pdf to store the plot in
-pdf("figs/Fig_PCA1v2.pdf",height = 6,width=6)
+pdf("../figs/figure_1/Fig_PCA1v2.pdf",height = 6,width=6)
 
 #Set the plotting parameters
 par(mar=c(4,5,4,1), oma=c(2,2,2,2))
@@ -161,6 +163,8 @@ plot(pca_plotting_data$PC1,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
      ylab = paste0("PC2: ",percentVar[2], "% variance"),
      bty = 'l',
+     xaxt='n',
+     yaxt='n',
      xpd = TRUE)
 
 #Add a legend describing the sex
@@ -179,7 +183,7 @@ dev.off()
 
 ```{r fig1b}
 #Create the blank pdf to store the plot in
-pdf("figs/Fig_PCA1v3.pdf",height = 6,width=6)
+pdf("../figs/figure_1/Fig_PCA1v3.pdf",height = 6,width=6)
 
 #Set the plotting parameters
 par(mar=c(4,5,4,1), oma=c(2,2,2,2))
@@ -195,6 +199,8 @@ plot(pca_plotting_data$PC1,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
      ylab = paste0("PC3: ",percentVar[3], "% variance"),
      bty = 'l',
+     xaxt='n',
+     yaxt='n',
      xpd = TRUE)
 
 #Add  legend describing the organs
@@ -252,7 +258,7 @@ save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
 
 ```{r fig1c}
 
-pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order], 
+pc1 <- pheatmap(vsd_assay[which(abs(pca_rotation[,1]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
                 cluster_cols = FALSE, 
@@ -264,7 +270,7 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC1")
 
-save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
+save_pheatmap_pdf(pc1, "../figs/figure_1/Fig_pc1_heatmap.pdf",
                   width=6,
                   height=6)
 
@@ -272,7 +278,7 @@ save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
 
 
 ```{r fig1d}
-pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order], 
+pc2 <- pheatmap(vsd_assay[which(abs(pca_rotation[,2]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
                 cluster_cols = FALSE, 
@@ -284,14 +290,14 @@ pc2 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,2]) >= 0.02), col_order],
                 annotation_legend = FALSE,
                 main = "Top loading genes on PC2")
 
-save_pheatmap_pdf(pc2, "figs/Fig_pc2_heatmap.pdf",
+save_pheatmap_pdf(pc2, "../figs/figure_1/Fig_pc2_heatmap.pdf",
                   width=6,
                   height=6)
 
 ```
 
 ```{r fig1e}
-pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order], 
+pc3 <- pheatmap(vsd_assay[which(abs(pca_rotation[,3]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
                 cluster_cols = FALSE, 
@@ -303,7 +309,7 @@ pc3 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,3]) >= 0.02), col_order],
                 border_color = NA,
                 main = "Top loading genes on PC3")
 
-save_pheatmap_pdf(pc3, "figs/Fig_pc3_heatmap.pdf",
+save_pheatmap_pdf(pc3, "../figs/figure_1/Fig_pc3_heatmap.pdf",
                   width=6,
                   height=6)
 
@@ -313,11 +319,11 @@ save_pheatmap_pdf(pc3, "figs/Fig_pc3_heatmap.pdf",
 ### Fig. 1 Assembly
 
 ```{r assembleFig1}
-fig1a <- image_ggplot(image_read_pdf('figs/Fig_PCA1v2.pdf'),interpolate = TRUE)
-fig1b <- image_ggplot(image_read_pdf('figs/Fig_PCA1v3.pdf'),interpolate = TRUE)
-fig1c <- image_ggplot(image_read_pdf('figs/Fig_pc1_heatmap.pdf'),interpolate = TRUE)
-fig1d <- image_ggplot(image_read_pdf('figs/Fig_pc2_heatmap.pdf'),interpolate = TRUE)
-fig1e <- image_ggplot(image_read_pdf('figs/Fig_pc3_heatmap.pdf'),interpolate = TRUE)
+fig1a <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_PCA1v2.pdf'),interpolate = TRUE)
+fig1b <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_PCA1v3.pdf'),interpolate = TRUE)
+fig1c <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc1_heatmap.pdf'),interpolate = TRUE)
+fig1d <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc2_heatmap.pdf'),interpolate = TRUE)
+fig1e <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc3_heatmap.pdf'),interpolate = TRUE)
 
 # make two patchworks
 pcas <- fig1a + fig1b
@@ -326,32 +332,33 @@ hms <- fig1c + fig1d + fig1e
 # put the patchworks together
 fig1 <- wrap_plots(pcas,hms,ncol=1)  + plot_annotation(tag_levels = 'A') 
 
-ggsave("figs/Fig1.pdf",fig1, height=4, width=5)
-ggsave("figs/Fig1.png",fig1, height=4, width=5) # also save as a png
+ggsave("../figs/figure_1/Fig1.pdf",fig1, height=4, width=5)
+ggsave("../figs/figure_1/Fig1.png",fig1, height=4, width=5) # also save as a png
 ```
 
 ```{r showAssembledFig1, eval=TRUE}
-knitr::include_graphics("figs/Fig1.png")
+knitr::include_graphics("../figs/figure_1/Fig1.png")
 ```
 
 ## Figure 2
 
 ```{r fig2Data}
-logFC_long <- read.csv("plot_data/logFC_long_sexbias.csv")
+logFC_long <- read.csv("../figs/plot_data/logFC_long_sexbias.csv")
+logFC_long$bias[logFC_long$bias=="NB"]<-"UB" #change for consistent labels
 
-bias_cat_gill <- as.matrix(read.table("plot_data/bias_cat_gills.txt", 
+bias_cat_gill <- as.matrix(read.table("../figs/plot_data/bias_cat_gills.txt", 
                             header = TRUE, row.names = 1))
-bias_cat_gonad <- as.matrix(read.table("plot_data/bias_cat_gonad.txt", 
+bias_cat_gonad <- as.matrix(read.table("../figs/plot_data/bias_cat_gonad.txt", 
                             header = TRUE, row.names = 1))
-bias_cat_liver <- as.matrix(read.table("plot_data/bias_cat_liver.txt", 
+bias_cat_liver <- as.matrix(read.table("../figs/plot_data/bias_cat_liver.txt", 
                             header = TRUE, row.names = 1))
 
-gonad_mal_biased <- read.table("plot_data/gonad_mal_biased.txt", row.names = 1)
-gonad_fem_biased <- read.table("plot_data/gonad_fem_biased.txt", row.names = 1)
-gill_mal_biased <- read.table("plot_data/gill_mal_biased.txt", row.names = 1)
-gill_fem_biased <- read.table("plot_data/gill_fem_biased.txt", row.names = 1)
-liver_mal_biased <- read.table("plot_data/liver_mal_biased.txt", row.names = 1)
-liver_fem_biased <- read.table("plot_data/liver_fem_biased.txt", row.names = 1)
+gonad_mal_biased <- read.table("../figs/plot_data/gonad_mal_biased.txt", row.names = 1)
+gonad_fem_biased <- read.table("../figs/plot_data/gonad_fem_biased.txt", row.names = 1)
+gill_mal_biased <- read.table("../figs/plot_data/gill_mal_biased.txt", row.names = 1)
+gill_fem_biased <- read.table("../figs/plot_data/gill_fem_biased.txt", row.names = 1)
+liver_mal_biased <- read.table("../figs/plot_data/liver_mal_biased.txt", row.names = 1)
+liver_fem_biased <- read.table("../figs/plot_data/liver_fem_biased.txt", row.names = 1)
 
 listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
                      "MB Gill"=rownames(gill_mal_biased), 
@@ -365,7 +372,7 @@ listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
 ### Fig. 2A
 
 ```{r fig2a}
-pdf("figs/FigSF_logFC_boxplots.pdf", width = 10, height=4)
+pdf("../figs/figure_2/FigSF_logFC_boxplots.pdf", width = 10, height=4)
 
 ymax <- max(abs(logFC_long$logFC),
             na.rm = TRUE) + 5
@@ -380,7 +387,7 @@ for(organ in organs){
    # add jittered points
    plot(abs(logFC_long$logFC[logFC_long$tissue==organ]) ~ 
             jitter(as.numeric(as.factor(logFC_long$bias[logFC_long$tissue==organ]))),
-        col="#00000075", 
+        col=sex_bias_colors[logFC_long$bias[logFC_long$tissue==organ]], 
         axes=FALSE,
         cex.main=2,
         xlim=c(0,4),
@@ -445,7 +452,7 @@ dev.off()
 ### Fig. 2B
 
 ```{r fig2b}
-pdf("figs/FigSB_biasCat_counts.pdf",width = 10, height=4)
+pdf("../figs/figure_2/FigSB_biasCat_counts.pdf",width = 10, height=4)
 
 par(mfrow=c(1, 3), oma=c(6,4,2,8), mar=c(1,2.5,1,0), 
     cex.main=2,
@@ -506,7 +513,7 @@ dev.off()
 
 ```{r fig2c, eval=FALSE}
 # color added via illustrator
-pdf("docs/figs/FigSB_sexbias_upset.pdf",width = 10, height=7)
+pdf("../figs/figure_2/FigSB_sexbias_upset_nocolor.pdf",width = 10, height=7)
 
 upset(fromList(listInputall),
       mainbar.y.label = "# Shared Sex-Biased Genes",
@@ -525,9 +532,9 @@ dev.off()
 
 ```{r fig2, message=FALSE}
 
-figSBa <- image_ggplot(image_read_pdf('figs/FigSF_logFC_boxplots.pdf'),interpolate = TRUE)
-figSBb <- image_ggplot(image_read_pdf('figs/FigSB_biasCat_counts.pdf'),interpolate = TRUE)
-figSBc <- image_ggplot(image_read_pdf('figs/FigSB_sexbias_upset.pdf'),interpolate = TRUE)
+figSBa <- image_ggplot(image_read_pdf('../figs/figure_2/FigSF_logFC_boxplots.pdf'),interpolate = TRUE)
+figSBb <- image_ggplot(image_read_pdf('../figs/figure_2/FigSB_biasCat_counts.pdf'),interpolate = TRUE)
+figSBc <- image_ggplot(image_read_pdf('../figs/figure_2/FigSB_sexbias_upset.pdf'),interpolate = TRUE)
 
 
 figSB <- wrap_plots(figSBa,
@@ -541,28 +548,124 @@ figSB_all <- wrap_plots(figSB,
 figSB_all <- figSB_all + plot_annotation(tag_levels = 'A')
 figSB_all
 
-ggsave("figs/Fig2.pdf", figSB_all, height=8, width=10)
-ggsave("figs/Fig2.png", figSB_all, height=8, width=10)
+ggsave("../figs/figure_2/Fig2.pdf", figSB_all, height=8, width=10)
+ggsave("../figs/figure_2/Fig2.png", figSB_all, height=8, width=10)
 
 ```
 
 ```{r showAssembledFig2, eval=TRUE}
-knitr::include_graphics("figs/Fig2.png")
+knitr::include_graphics("../figs/figure_2/Fig2.png")
 ```
 
 ## Figure 3
 
 ```{r fig3Data}
-all_go_sums <- read.csv("plot_data/GO_freq_SBG.csv")
-all_go_sums_gonad <- read.csv("plot_data/GO_freq_SBG_gonad.csv")
-all_go_sums_liver <- read.csv("plot_data/GO_freq_SBG_liver.csv")
-
+all_go_sums <- read.csv("../figs/plot_data/GO_freq_SBG.csv")
+all_go_sums_gonad <- read.csv("../figs/plot_data/GO_freq_SBG_gonad.csv")
+all_go_sums_liver <- read.csv("../figs/plot_data/GO_freq_SBG_liver.csv")
 ```
+
+
+
+```{r fig3DataReformatting}
+# adjust gonads
+all_go_sums_gonad$bias_cat[all_go_sums_gonad$bias_cat=="FU_malGon_biased_TRgenes_reiro_blast"] <- "MB"
+all_go_sums_gonad$bias_cat[all_go_sums_gonad$bias_cat=="FU_femGon_biased_TRgenes_reiro_blast"] <- "FB"
+colnames(all_go_sums_gonad)<-c("prot_class","gonad_number","bias_cat","tissue","gonad_prop")
+
+# adjust liver
+all_go_sums_liver$bias_cat[all_go_sums_liver$bias_cat=="FU_malL_biased_TRgenes_reiro_blast"]<-"MB"
+all_go_sums_liver$bias_cat[all_go_sums_liver$bias_cat=="FU_femL_biased_TRgenes_reiro_blast"]<-"FB"
+colnames(all_go_sums_liver)<-c("prot_class","liver_number","bias_cat","tissue","liver_prop")
+
+# adjust gills
+all_go_sums_gill <- all_go_sums[all_go_sums$tissue=="Gill",]
+all_go_sums_gill$bias_cat <- "UB"
+colnames(all_go_sums_gill)<- c("gill_number","prot_class","tissue","gill_prop","bias_cat")
+all_go_sums_gill<-all_go_sums_gill[,c("prot_class","gill_number","bias_cat","tissue","gill_prop")]
+
+
+# combine info with rbind
+all_go_sums_plot <- rbind(all_go_sums_gonad,all_go_sums_liver)
+
+all_go_sums_plot <- rbind(all_go_sums_plot,all_go_sums[all_go_sums$tissue=="Gill",])
+
+all_go_sums_plot <- all_go_sums_plot[!(all_go_sums_plot$prot_class %in% c("other","Unclassified")),]
+all_go_sums_plot$prot_class[all_go_sums_plot$prot_class=="chromatin/chromatin-binding, or -regulatory protein(PC00077)"] <- "chromatin protein(PC00077)"
+
+# make factors
+all_go_sums_plot$prot_class<-as.factor(all_go_sums_plot$prot_class)
+all_go_sums_plot$tissue <- as.factor(all_go_sums_plot$tissue)
+all_go_sums_plot$bias_cat <- as.factor(all_go_sums_plot$bias_cat,
+                                       levels=c("FB","UB","MB"))
+
+all_go_sums_wide <- pivot_wider(all_go_sums_plot[,colnames(all_go_sums_plot)!="number"], 
+            names_from = c(tissue, bias_cat),
+            values_from = prop)
+all_go_sums_wide[is.na(all_go_sums_wide)]<-0
+```
+
+These aren't yet in the correct order
+
+```{r}
+offsets<-c(-0.1,0,0.1)
+prot_classes<-levels(as.factor(all_go_sums_wide$prot_class))
+tissues <- c("Gill","Gonad","Liver")
+bias<-c("FB","UB","MB")
+
+pdf("../figs/figure_3/FigGO_dots.pdf",height=12, width=7)
+par(mar=c(2,18,1,1))
+plot(
+  x=seq(0.75,3.25,length.out=length(prot_classes)),
+  y=1:length(prot_classes),
+  type='n',
+  bty="l",
+  axes=FALSE,
+  xlab="",
+  ylab=""
+)
+abline(h=1:length(prot_classes),col="lightgrey")
+axis(1,labels=c("","Gills","Gonads","Liver",""),at=0:4,pos=0,lwd.ticks = 0)
+axis(2,
+       labels=c("",rev(prot_classes)), 
+       at = 0:length(prot_classes),
+       las=1,
+       pos=0.75,
+     #lwd.ticks = 0,
+     cex.axis=0.65)
+
+
+for(i in 1:length(tissues)){
+  
+  tissue_dat <- all_go_sums_wide[,c("prot_class",grep(tissues[i],colnames(all_go_sums_wide), value=TRUE))]
+  
+  for(j in 1:length(bias)){
+    
+    plot_dat<-tissue_dat[order(match(tissue_dat$prot_class,prot_classes)),
+                         grep(bias[j],colnames(tissue_dat),value=TRUE)]
+    #browser()
+    if(ncol(plot_dat)>0){
+      points(
+        x=rep(i+offsets[j],
+              length(prot_classes)),
+        y=rev(1:length(prot_classes)),
+        cex=abs(log(unlist(plot_dat[,1])))/3,
+        col=sex_bias_colors[bias[j]],
+        pch=19
+    )
+    }
+    
+  }
+}
+
+dev.off()
+```
+
 
 ### Fig. 3A
 
 ```{r fig3a}
-pdf("figs/FigGO_SBGbarplot.pdf",height=12, width=14)
+pdf("../figs/figure_3/FigGO_SBGbarplot.pdf",height=12, width=14)
 
 all_go_sums$prot_class <- str_wrap(all_go_sums$prot_class, 
                                        width = 60)
@@ -596,7 +699,7 @@ bias_col2 <- c("FU_femL_biased_TRgenes_reiro_blast" = "#7fc97f",
                "FU_malL_biased_TRgenes_reiro_blast" = "#beaed4")
 
 
-pdf("figs/FigGO_SBGliver.pdf",height=10, width=12)
+pdf("../figs/figure_3/FigGO_SBGliver.pdf",height=10, width=12)
 
 ggplot(all_go_sums_liver[!(all_go_sums_liver$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
@@ -628,7 +731,7 @@ bias_col3 <- c("FU_femGon_biased_TRgenes_reiro_blast" = "#7fc97f",
                "FU_malGon_biased_TRgenes_reiro_blast" = "#beaed4")
 
 
-pdf("figs/FigGO_SBGgonad.pdf",height=10, width=12)
+pdf("../figs/figure_3/FigGO_SBGgonad.pdf",height=10, width=12)
 
 ggplot(all_go_sums_gonad[!(all_go_sums_gonad$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
@@ -658,11 +761,11 @@ dev.off()
 ```{r fig3, message=FALSE}
 
 #Combine the GO figures
-figGOa <- image_ggplot(image_read_pdf('figs/FigGO_SBGbarplot.pdf'),
+figGOa <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGbarplot.pdf'),
                         interpolate = TRUE)
-figGOb <- image_ggplot(image_read_pdf('figs/FigGO_SBGliver.pdf'),
+figGOb <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGliver.pdf'),
                         interpolate = TRUE)
-figGOc <- image_ggplot(image_read_pdf('figs/FigGO_SBGgonad.pdf'),
+figGOc <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGgonad.pdf'),
                            interpolate = TRUE)
 
 figGO <- figGOb + figGOc
@@ -673,13 +776,13 @@ figGO <- wrap_plots(figGOa,
 
 fig3 <- figGO + plot_annotation(tag_levels = 'A')
 
-ggsave("figs/Fig3.pdf", fig3, height=10, width=8)
-ggsave("figs/Fig3.png", fig3, height=5, width=12)
+ggsave("../figs/figureE_3/Fig3.pdf", fig3, height=10, width=8)
+ggsave("../figs/figure_3/Fig3.png", fig3, height=5, width=12)
 
 ```
 
 ```{r showAssembledFig3, eval=TRUE}
-knitr::include_graphics("figs/Fig3.png")
+knitr::include_graphics("../figs/figure_3/Fig3.png")
 ```
 
 ## Figure 4
@@ -689,7 +792,7 @@ bias_labs <- c("U","L", "M", "H", "E", "S")
 biased_bins <- c("Low", "Med", "High", "Extreme", "Sex-specific")
 bias_bins <- c("Unbiased",biased_bins)
 
-logFC_long_all <- read.csv("plot_data/logFC_long_taubias_SS.csv")
+logFC_long_all <- read.csv("../figs/plot_data/logFC_long_taubias_SS.csv")
 
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
                                   levels = bias_bins, ordered = TRUE)
@@ -700,11 +803,11 @@ logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
 
 ```{r fig4a}
 logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
-                                levels = c("Gonad", "Liver", "Gill"), 
+                                levels = c("Gill","Gonad", "Liver"), 
                                 ordered = TRUE)
 organs <- levels(logFC_long_all$tissue)
 
-pdf("figs/Fig_tau_sexbias.pdf", width = 8, height=5)
+pdf("../figs/figure_4/Fig_tau_sexbias.pdf", width = 8, height=5)
 par(oma = c(2,2,1,2),
     mar = c(2,2,1,2),
     xpd = FALSE)
@@ -737,9 +840,7 @@ for(organ in organs){
   
   abline(lm(logFC_long_all$tau[logFC_long_all$tissue==organ]~
               sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue==organ]))),
-         col = ifelse(organ == "Gill",
-                      "#6E8B3D",
-                      organ_cols[organ]),
+         col = organ_cols[organ],
          lwd = 3,
          lty = which(organs %in% organ),
          xpd = FALSE)
@@ -747,8 +848,8 @@ for(organ in organs){
 }
 
 outer_legend("top",
-             c("Gonad", "Liver", "Gill"),
-             col = c("#EEB422", "#EE8262", "#6E8B3D"),
+             levels(logFC_long_all$tissue),
+             col = organ_cols[levels(logFC_long_all$tissue)],
              lwd = 3,
              bty = 'n',
              cex = 1.5,
@@ -757,9 +858,9 @@ outer_legend("top",
 
 outer_legend("top",
              c("               ", "            ", "     "),
-             col = c("#EEB422", "#EE8262", "#20B2AA"),
+             col = organ_cols[levels(logFC_long_all$tissue)],
              pch = 21,
-             pt.bg = c("#EEB42275", "#EE826275", "#20B2AA75"),
+             pt.bg = scales::alpha(organ_cols[levels(logFC_long_all$tissue)],0.75),
              bty = 'n',
              cex = 1.5,
              ncol = 3)
@@ -774,7 +875,7 @@ dev.off()
 
 ```{r fig4b, eval = FALSE}
 
-pdf("figs/Fig4B_tau_biascat_violin_jitter2.pdf",width = 12, height=3.75)
+pdf("../figs/figure_4/Fig4B_tau_biascat_violin_jitter2.pdf",width = 12, height=3.75)
 # Preprocessing to create a new variable indicating sample size greater than 10
 logFC_long_all <- logFC_long_all %>%
   group_by(bias_cat, tissue, bias) %>%
@@ -783,18 +884,18 @@ logFC_long_all <- logFC_long_all %>%
   mutate(plot_type = ifelse(sample_size > 10, "box_violin", "jitter"))
 
 # Plotting
-ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias)) +
+ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias, color=bias)) +
   geom_violin(data = filter(logFC_long_all, plot_type == "box_violin"), 
               position = position_dodge(), draw_quantiles = c(0.5)) +
-  geom_boxplot(data = filter(logFC_long_all, plot_type == "box_violin"), 
-               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+ # geom_boxplot(data = filter(logFC_long_all, plot_type == "box_violin"), 
+#               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
   geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "MB",],
                            plot_type == "jitter"),
              aes(x = as.numeric(bias_cat) + 0.185, y = tau),
              size=1.5, 
-             position = position_jitter(width = 0.10),
+             position = position_jitter(width = 0.05),
              bg=paste0(sex_bias_colors["MB"],"75"),
-             col=sex_bias_colors["MB"], pch = 21) +
+             col=sex_bias_colors["MB"], pch = 25) +
   geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "FB",],
                            plot_type == "jitter"), 
              aes(x=as.numeric(bias_cat)-0.185, y=tau),
@@ -803,7 +904,7 @@ ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias)) +
              bg=paste0(sex_bias_colors["FB"], "75"),
              col=sex_bias_colors["FB"],pch=21) +
   scale_x_discrete(labels= bias_labs) +
-  scale_fill_manual(values = sex_bias_colors) +
+  scale_fill_manual(values = alpha(sex_bias_colors,0.65)) +
   facet_grid(. ~ tissue) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
@@ -828,7 +929,8 @@ ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias)) +
               aes(x = bias_cat, y = tau),
               y.pos = -0.05,
               color = sex_bias_colors["UB"]
-  )
+  ) +
+  scale_color_manual(values=sex_bias_colors)
 
 dev.off()
 
@@ -837,8 +939,8 @@ dev.off()
 ### Fig. 4 Assembly
 
 ```{r fig4, message=FALSE}
-figtaua <- image_ggplot(image_read_pdf('figs/Fig_tau_biascat_violins.pdf'),interpolate = TRUE)
-figtaub <- image_ggplot(image_read_pdf('figs/Fig_tau_sexbias.pdf'),interpolate = TRUE)
+figtaua <- image_ggplot(image_read_pdf('../figs/figure_4/Fig4B_tau_biascat_violin_jitter2.pdf'),interpolate = TRUE)
+figtaub <- image_ggplot(image_read_pdf('../figs/figure_4/Fig_tau_sexbias.pdf'),interpolate = TRUE)
 
 
 figtau<-wrap_plots(figtaub,
@@ -848,11 +950,11 @@ figtau<-wrap_plots(figtaub,
 figtau <- figtau + plot_annotation(tag_levels = 'A')
 figtau
 
-ggsave("docs/figs/Fig4.pdf",figtau,height = 4, width=16)
-ggsave("docs/figs/Fig4.png",figtau,height = 4, width=16)
+ggsave("../figs/figure_4/Fig4.pdf",figtau,height = 4, width=16)
+ggsave("../figs/figure_4/Fig4.png",figtau,height = 4, width=16)
 
 ```
 
 ```{r showAssembledFig4, eval=TRUE}
-knitr::include_graphics("figs/Fig4.png")
+knitr::include_graphics("../figs/figure_4/Fig4.png")
 ```
