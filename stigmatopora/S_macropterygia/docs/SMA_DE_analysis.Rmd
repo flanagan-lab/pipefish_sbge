@@ -429,7 +429,7 @@ dev.off()
 ```
 
 #### Creating heatmaps based on the PCA axes
-I now want to generate heatmaps based on the genes that have the highest loadings for each of the PCA axes. I will be using a cut off of 0.02 to determine which genes will be included in the heatmaps. Once again I am doing this for PCA1-4, but will likely only inlcude PCA1-3 in a figure for the maintext and PC4 will go in the supplemental.
+I now want to generate heatmaps based on the genes that have the highest loadings for each of the PCA axes. I will be using a cut off of 0.02 to determine which genes will be included in the heatmaps. Once again I am doing this for PCA1-4, but will likely only include PCA1-3 in a figure for the maintext and PC4 will go in the supplemental.
 
 ```{r setParams-heatmaps}
 
@@ -485,9 +485,9 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
                 main = "Top loading genes on PC1")
 
 
-save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
-                  width=6,
-                  height=6)
+#save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
+ #                 width=6,
+  #                height=6)
 
 ```
 
