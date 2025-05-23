@@ -79,9 +79,19 @@ orthofinder -f orthofinder_input/ -t 8
 
 ```
 
-This will: 1) Run DIAMOND to align proteins, 2) cluster transcripts into orthogroups, 3) Infer orthologs and gene trees. 
+This was run as `./orthofinder -f ../TransDecoder-TransDecoder-v5.7.1/orthofinder_input/`
 
-Then you can use the orthogroups.tsv to merge with expression data. This will allow you to summarise expression values by orthogroup and build a shared expression matric for WGCNA. 
+Running this command will: 1) Run DIAMOND to align proteins, 2) cluster transcripts into orthogroups, 3) Infer orthologs and gene trees. 
+
+Then you can use the orthogroups.tsv to merge with expression data. This will allow you to summarise expression values by orthogroup and build a shared expression matrix for WGCNA. 
+
+Note - CITATION:
+ When publishing work that uses OrthoFinder please cite:
+ Emms D.M. & Kelly S. (2019), Genome Biology 20:238
+
+ If you use the species tree in your work then please also cite:
+ Emms D.M. & Kelly S. (2017), MBE 34(12): 3267-3278
+ Emms D.M. & Kelly S. (2018), bioRxiv https://doi.org/10.1101/267914
 
 ## Get expression data for NZ _S. nigra_
 
@@ -184,6 +194,66 @@ res <- results(dds_aus_exp)
 res
 
 ```
+
+################################### work through this
+
+```{r}
+## Load and prepare orthology data
+orthogroups <- read.delim("data/Orthogroups.tsv", header = TRUE, stringsAsFactors = FALSE, fill = TRUE)
+
+## Function to filter expression data based on orthogroups
+filter_by_orthogroup <- function(expr_data, orthologs, species_column) {
+  # Get unique genes for each species
+  ortholog_pairs <- split(orthologs[, c(species_column, "GeneID")], 
+                         orthologs[[species_column]])
+  
+  # Filter expression data to include only genes with orthologs
+  filtered_genes <- unlist(lapply(names(ortholog_pairs), 
+                                function(sp) ortholog_pairs[[sp]][["GeneID"]]))
+  
+  # Return filtered expression matrix
+  expr_data[, rownames(expr_data) %in% filtered_genes]
+}
+
+## Apply filtering after VST transformation
+datExpr_SN_filtered <- filter_by_orthogroup(datExpr_SN, orthologs, "nz_nigra")
+datExpr_AUS_filtered <- filter_by_orthogroup(datExpr_AUS, orthologs, "aus_nigra")
+
+## Verify dimensions after filtering
+dim(datExpr_SN_filtered)
+dim(datExpr_AUS_filtered)
+
+## Continue with WGCNA analysis using filtered data
+gsg_SN_filtered <- goodSamplesGenes(datExpr_SN_filtered, verbose = 3)
+gsg_AUS_filtered <- goodSamplesGenes(datExpr_AUS_filtered, verbose = 3)
+
+# Remove outliers if present
+if (!gsg_SN_filtered$allOK) {
+  datExpr_SN_filtered <- datExpr_SN_filtered[gsg_SN_filtered$goodSamples, 
+                                            gsg_SN_filtered$goodGenes]
+}
+if (!gsg_AUS_filtered$allOK) {
+  datExpr_AUS_filtered <- datExpr_AUS_filtered[gsg_AUS_filtered$goodSamples,
+                                               gsg_AUS_filtered$goodGenes]
+}
+
+## Re-run soft threshold selection with filtered data
+powers <- c(1:20)
+sft_SN_filtered <- pickSoftThreshold(datExpr_SN_filtered, 
+                                    powerVector = powers, 
+                                    verbose = 5)
+softPower_SN_filtered <- sft_SN_filtered$powerEstimate
+
+sft_AUS_filtered <- pickSoftThreshold(datExpr_AUS_filtered, 
+                                     powerVector = powers, 
+                                     verbose = 5)
+softPower_AUS_filtered <- sft_AUS_filtered$powerEstimate
+```
+
+
+##################################
+
+
 
 ## Format and filter data for WGCNA 
 
