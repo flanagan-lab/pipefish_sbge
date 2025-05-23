@@ -1,0 +1,93 @@
+---
+title: "Comparing Transcriptomic Data of Three Species of _Stigmatopora_ Pipefishes"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/wgcna")
+#This is a cohesive list of all the libraries used in this document
+library(DESeq2)
+library(flashClust)
+library(tidyverse)
+library(pheatmap)
+library(dplyr)
+library(readr)
+library(WGCNA)
+library(foreach)
+library(doParallel)
+```
+
+## Using OrthoFinder in the RCC
+
+Because the transcriptomes were assembled de novo and have no gene annotation, we'll need to use OrthoFinder to be able to meaningfully compare the two populations.
+
+To run OrthoFinder, you need protein sequences. To achieve this, use TransDecoder:
+
+```{bash, transdecoder, eval = FALSE}
+
+# For each transcriptome FASTA
+TransDecoder.LongOrfs -t species1_transcripts.fasta #repeat for each species
+
+TransDecoder.Predict -t species1_transcripts.fasta #repeat for each species
+```
+
+Running `./TransDecoder.LongOrfs` doesn't take long - no more than 10 minutes on the RCC.
+For _S. nigra_ this was run as: `./TransDecoder.LongOrfs -t ./sni_supertranscriptome.fasta`
+For _S. argus_ this was run as: `./TransDecoder.LongOrfs -t ./sar_supertranscriptome.fasta`
+For _S. macropterygia_ this was run as: `./TransDecoder.LongOrfs -t ./sma_supertranscriptome.fasta`
+
+Running `./TransDecoder.Predict` takes much longer - depending on the size of your transcriptome, it could take several hours. For all species, I ran the following code in a screen session. 
+For _S. nigra_ this was run as: `./TransDecoder.Predict -t ./sni_supertranscriptome.fasta`
+For _S. argus_ this was run as: `./TransDecoder.Predict -t ./sar_supertranscriptome.fasta`
+For _S. macropterygia_ this was run as: `./TransDecoder.Predict -t ./sma_supertranscriptome.fasta`
+
+Running this code gives you a `.pep` file for each - your protein sequences.
+
+
+Then you have to prepare the input for OrthoFinder by creating a directory like this:
+
+```{bash, prepare-input, eval = FALSE}
+orthofinder_input/
+  nigra.fa     # <- from TransDecoder
+  argus.fa # <- from TransDecoder
+  mac.fa # <- from TransDecoder
+```
+
+Then you can run OrthoFinder
+
+```{bash, run-orthofinder, eval = FALSE}
+
+orthofinder -f orthofinder_input/ -t 8
+
+```
+
+This was run as `./orthofinder -f ../TransDecoder-TransDecoder-v5.7.1/orthofinder_input/`
+
+Running this command will: 1) Run DIAMOND to align proteins, 2) cluster transcripts into orthogroups, 3) Infer orthologs and gene trees. 
+
+Then you can use the orthogroups.tsv to merge with expression data. This will allow you to summarise expression values by orthogroup and build a shared expression matrix for WGCNA. 
+
+Note - CITATION:
+ When publishing work that uses OrthoFinder please cite:
+ Emms D.M. & Kelly S. (2019), Genome Biology 20:238
+
+ If you use the species tree in your work then please also cite:
+ Emms D.M. & Kelly S. (2017), MBE 34(12): 3267-3278
+ Emms D.M. & Kelly S. (2018), bioRxiv https://doi.org/10.1101/267914
