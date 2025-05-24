@@ -234,7 +234,7 @@ alignment_info <- unique(merge(specific_genes, alignment_gff, by.x="Trinity_gene
 ```
 
 
-most of the genes do not seem to have aligned successfully...but moving forward with those that have...
+Most of the genes do not seem to have aligned successfully to the S. scovelli genome, but I will move forward with those that have.
 
 ```{r}
 aligned<- alignment_info[!is.na(alignment_info$chromosome),]
@@ -261,11 +261,7 @@ gff_coding$Name <- gsub(";.*$","",gff_coding$Name)
 ```
 
 
-Ok so the trick now is that the aligned data have IDs associated with genes, not with proteins. So I need to take all the scovelli orthologs and find the matching gene info........
-
-
-
-I will focus on single copy groups for simplicity.
+Ok so the trick now is that the aligned data have IDs associated with genes, not with proteins. So I need to take all the scovelli orthologs and find the matching gene info (chromosome, location, name, etc). I will focus on single copy groups for simplicity.
 
 ```{r}
 # these should be intermediate_data/ but are also on Dropbox
@@ -361,13 +357,7 @@ cd all_specific_genes/
 
 ```
 
-
-To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the genomes, I think...UGH.
-
-I can download specific gene sequences from NCBI using the genome data viewer, but that's a bit clunky for ~50 genes in 5 species.
-
-
-OK it looks like the CDS files have the protein names! So I can use those -- just need to download them all from ncbi.
+so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the CDS files available from NCBI.
 
 ```{r}
 aligned_sc_simple <- read.csv("Results_Feb11/fuscus_to_scovelli_single_copy_genes.csv")
@@ -385,16 +375,14 @@ write.table(all_gene_names$S_typhle.protein, "generating_alignments/S_typhle_pro
 
 ```
 
-Now I can extract them using my custom code...
+Now I can extract them using my custom extract_genes_fasta program. For it to work, I had to edit the program to allow the names to be simplified (remove anything after the first space in the header).
 
 ```{bash, eval=FALSE}
 # in generating_alignments
 for fa in *fna; do spp=$(echo $fa | perl -pe 's/([A-Z]\_[a-z]+)\_cds_from_genomic.fna/\1/g'); ../extract_genes_fasta -f $fa -l ${spp}_fna_headers.txt -o ${spp}_ -s; done
 ```
 
-This isn't working right because the headers are so stupid and long. So I modified the code to allow for simplifying the names for writing to files, which removes everything after the first space. This seems to have worked.
-
-Let's create a set of files with all the names per orthogroup, so that I can then use those to grep across all samples...
+Now, I need a set of files with all the fasta names per orthogroup, so that I can then use those to grep across all samples. **Note: this needs reversed/not reversed**
 
 ```{r}
 apply(all_gene_names, 1, function(this_row){
@@ -403,24 +391,19 @@ apply(all_gene_names, 1, function(this_row){
 })
 ```
 
-I'll move the trinity gene seqs into this folder and then try a cheeky grep
+I'll move the trinity gene seqs into this folder and then use a cheeky grep + cat + sed to combine all six fasta nucleotide sequences per orthogroup.
 
 ```{bash, eval=FALSE}
 ls *fasta > all_fastas.txt
 # remove windows endlines from the og lists
 sed -i 's/\r//g' OG*.txt
 
-# now use grep to  
+# now use grep plus cat plus sed to merge files into one
 for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | xargs cat | sed 's/>/\n>/g' > $og_id.fasta; done 
  
 ```
 
-Woohoo this looks like it worked! Now I can try aligning them.....
 
-ugh many of them look like they might not align well. One that did (OG0013016) had stop codons...
-
-
-maybe I need to redo this with the transcriptome files instead??
 
 25 May 2025 - I have taken one of the alignments that looked good and deleted sequences that extended beyond the Trinity gene sequence (in geneious). I have run that in hyphy successfully (no evidence of selection). 
 
