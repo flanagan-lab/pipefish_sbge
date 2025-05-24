@@ -178,8 +178,8 @@ From these, what I want to know are how the alignments map to the scovelli genom
 ```{bash, eval=FALSE}
 for bam in $(ls *bam); do
   echo $bam
-  samtools view $bam | sed -E 's/(\w+\t\w+\t\w+\t\w+)\t.*/\1/g' #>> alignments.txt
-done #this is not working correctly
+  samtools view -F 4 $bam | sed -E 's/^(\w+\t\w+\t\w+\.?\w+?\t\w+\t\w+).*$/\1/g' >> alignments.txt # use -F 4 to remove unmatched reads
+done
 ```
 
 ```{bash}
