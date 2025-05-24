@@ -299,6 +299,26 @@ single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup
 
 This results in 49 sex-biased genes (47 unique trinity genes).
 
+### Reversing the alignments that were reverse complements
+
+Most of the alignments are crap -- I think these are meant to be reverse-complemented! I did this manually in geneious for one of them and it worked, and I noticed in the alignments.txt file, many of them have the flag 16, meaning they're the reverse complement of the scovelli gene. 
+
+seqtk should reverse complement... let's see if I can't write a script to do this.
+
+```{r}
+# create header and file
+write("#!/bin/bash","reverse_complement.sh")
+command_string<-"seqtk -r "
+tmp<-apply(alignments[alignments$alginment_key==16,],1,function(x){
+  write(paste0(command_string,
+               x["fuscus_trinity_gene"],".fasta",
+               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
+        "reverse_complement.sh",
+        append = TRUE)
+})
+```
+
+
 ## Preparing sex-biased orthogroups for selection analysis
 
 Ok, so the next step is to get these trinity genes, align them to the single-copy ortholog sets, and then run an analysis of molecular evolution.
@@ -411,21 +431,8 @@ for fa in OG*fasta; do clustalw $fa; done
 
 ```
 
-Most of the alignments are crap -- I think these are meant to be reverse-complemented! I did this manually in geneious for one of them and it worked, and I noticed in the alignments.txt file, many of them have the flag 16, meaning they're the reverse complement of the scovelli gene. 
 
-seqtk should reverse complement... let's see if I can't write a script to do this.
 
-```{r}
-# create header and file
-write("#!/bin/bash","reverse_complement.sh")
-command_string<-"seqtk -r "
-tmp<-apply(alignments[alignments$alginment_key==16,],1,function(x){
-  write(paste0(command_string,
-               x["fuscus_trinity_gene"],".fasta",
-               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
-        "reverse_complement.sh",
-        append = TRUE)
-})
 
 ## Extra: Translating the transcriptome
 
