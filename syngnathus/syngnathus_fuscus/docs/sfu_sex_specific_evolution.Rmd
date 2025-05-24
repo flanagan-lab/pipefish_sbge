@@ -182,8 +182,6 @@ for bam in $(ls *bam); do
 done
 ```
 
-```{bash}
-./subread-2.0.8-Linux-x86_64/bin/featureCounts -t exon -g gene --primary -C -a GCF_024217435.2/genomic.gff -o sex-specific_featureCounts star_fuscus_to_scovelli/FU_femG_specific_TRgenes_Aligned.sortedByCoord.out.bam
 ```
 
 
