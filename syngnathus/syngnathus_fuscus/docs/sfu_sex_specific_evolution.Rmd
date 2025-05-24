@@ -415,3 +415,35 @@ for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | x
 
 Woohoo this looks like it worked! Now I can try aligning them.....
 
+ugh many of them look like they might not align well. One that did (OG0013016) had stop codons...
+
+
+maybe I need to redo this with the transcriptome files instead??
+
+25 May 2025 - I have taken one of the alignments that looked good and deleted sequences that extended beyond the Trinity gene sequence (in geneious). I have run that in hyphy successfully (no evidence of selection). 
+
+So now I need to do all the alignments, clean them up, and run them. I installed clustalw on trinity-big, and then in /mnt/intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution/generating_alignments/ I ran:
+
+```{bash, eval=FALSE}
+for fa in OG*fasta; do clustalw $fa; done
+
+```
+
+Most of the alignments are crap -- I think these are meant to be reverse-complemented! I did this manually in geneious for one of them and it worked, and I noticed in the alignments.txt file, many of them have the flag 16, meaning they're the reverse complement of the scovelli gene. 
+
+seqtk should reverse complement... let's see if I can't write a script to do this.
+
+```{r}
+# create header and file
+write("#!/bin/bash","reverse_complement.sh")
+command_string<-"seqtk -r "
+tmp<-apply(alignments[alignments$alginment_key==16,],1,function(x){
+  write(paste0(command_string,
+               x["fuscus_trinity_gene"],".fasta",
+               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
+        "reverse_complement.sh",
+        append = TRUE)
+})
+```
+
+Then I'll need to re-run some of the above code...
