@@ -298,6 +298,8 @@ single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup
 ```
 
 This results in 49 sex-biased genes (47 unique trinity genes).
+
+## Preparing sex-biased orthogroups for selection analysis
 ```
 
 
