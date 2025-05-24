@@ -34,6 +34,8 @@ library(spfTools)
 
 The goal is to better understand the sex specific genes -- what's the evolutionary rate? 
 
+## Identifying orthologs using genome sequences
+
 So I will first identify orthologs. I've downloaded protein sequences from GenBank:
 
 ```{r genomeTable, include=FALSE}
@@ -96,6 +98,8 @@ library(ape)
 ortho_tree <- ape::read.tree(text="((H_comes.protein:0.0356618,H_zosterae.protein:0.0383317)0.987331:0.062338,(S_scovelli.protein:0.0242953,(S_typhle.protein:0.0260101,S_acus.protein:0.016738)0.563686:0.0118948)0.987331:0.062338);")
 plot(ortho_tree)
 ```
+
+## Align S. fuscus transcriptome to S. scovelli genome
 
 The question is what type of transcripts to use, and how to use them. The easiest/current form is SuperTranscripts, which I don't think will work particularly well for this type of analysis. For sure I want to focus on sex-specific genes only. The question is, what *form* of the genes? Here are my ideas so far:
 
