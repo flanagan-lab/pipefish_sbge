@@ -182,6 +182,8 @@ for bam in $(ls *bam); do
 done
 ```
 
+## Identifying orthologs in aligned transcriptome
+
 ```
 
 
