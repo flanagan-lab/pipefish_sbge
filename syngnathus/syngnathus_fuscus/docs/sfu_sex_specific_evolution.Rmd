@@ -173,7 +173,7 @@ for faa in $(ls sex_specific_transcripts/*fasta); do
 done &
 ```
 
-From these, what I want to know are how the alignments map to the scovelli genome (which genes). So I want to then extract:
+From these, what I want to know are how the alignments map to the scovelli genome (which genes). So I want to then extract just the matches and locations of the matches:
 
 ```{bash, eval=FALSE}
 for bam in $(ls *bam); do
