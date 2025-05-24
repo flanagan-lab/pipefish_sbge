@@ -59,3 +59,9 @@ stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.pdf
 stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.tex
 *.pdf
 *.png
+*.docx
+*.xlsx
+*.tiff
+*results/*
+syngnathus/syngnathus_fuscus/Results_Feb11/
+
