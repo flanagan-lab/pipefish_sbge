@@ -259,6 +259,45 @@ gff_coding$Name <- gsub("^.*Name=(\\w+.*);.*$",
                  gff_coding$description)
 gff_coding$Name <- gsub(";.*$","",gff_coding$Name)
 ```
+
+
+Ok so the trick now is that the aligned data have IDs associated with genes, not with proteins. So I need to take all the scovelli orthologs and find the matching gene info........
+
+
+
+I will focus on single copy groups for simplicity.
+
+```{r}
+# these should be intermediate_data/ but are also on Dropbox
+
+single_copy_groups <- read.table("Results_Feb11/Orthogroups/Orthogroups.tsv", sep='\t', header=TRUE)
+
+single_copy_list <- read.table("Results_Feb11/single_copy_seq.txt")
+single_copy_list <- gsub("Single_Copy_Orthologue_Sequences\\/(.*)\\.fa","\\1",single_copy_list$V1)
+single_copy_groups <- single_copy_groups[single_copy_groups$Orthogroup %in% single_copy_list,]
+```
+
+
+```{r}
+single_copy_gff<-merge(single_copy_groups, 
+                       gff_coding,
+                       by.x="S_scovelli.protein",
+                       by.y="Name",
+                       all.x=TRUE) # this has multiple rows per gene
+
+single_copy_aligned <- merge(single_copy_gff, 
+                             aligned_coding,
+                             by="gene", all.y=TRUE)
+# remove extra rows
+single_copy_aligned <- single_copy_aligned[!duplicated(paste0(single_copy_aligned$Trinity_gene, single_copy_aligned$S_scovelli.protein, single_copy_aligned$sex,single_copy_aligned$organ)),]
+
+# remove ones that didn't match
+aligned_not_single <-single_copy_aligned[is.na(single_copy_aligned$Orthogroup),]
+single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup),]
+
+```
+
+This results in 49 sex-biased genes (47 unique trinity genes).
 ```
 
 
