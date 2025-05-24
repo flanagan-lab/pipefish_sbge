@@ -28,6 +28,7 @@ knitr::opts_knit$set(root.dir='../',
 ```{r loadlibs, include=FALSE}
 library(knitr)
 library(kableExtra)
+library(spfTools)
 ```
 
 
