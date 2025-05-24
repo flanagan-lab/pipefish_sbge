@@ -300,6 +300,47 @@ single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup
 This results in 49 sex-biased genes (47 unique trinity genes).
 
 ## Preparing sex-biased orthogroups for selection analysis
+
+Ok, so the next step is to get these trinity genes, align them to the single-copy ortholog sets, and then run an analysis of molecular evolution.
+
+```{r}
+aligned_sc_simple <- single_copy_aligned[,c("Trinity_gene",
+                                            "sex",
+                                            "organ",
+                                            "gene",
+                                            "S_scovelli.protein",
+                                            "Orthogroup")]
+write.csv(aligned_sc_simple,
+          "fuscus_to_scovelli_single_copy_genes.csv",
+          row.names = FALSE)
+```
+
+Now I want to do the following for each row:
+- extract the trinity gene sequence from the transcriptome file
+- append that sequence to the orthogroup file (or align?)
+
+I think I could write a script to do this per gene methodically, but I think the easiest first step is to extract the transcripts. I can use seqtk subseq to do this if I have a list of the gene names, but it puts them all in one file. So I'll fix my old code to do this job.
+
+```{r}
+write.table(unique(aligned_sc_simple$Trinity_gene),
+           "fuscus_transcripts_to_extract.txt",
+           row.names=FALSE,
+           col.names=FALSE,
+           quote=FALSE)
+```
+
+
+
+```{bash, eval=FALSE}
+cat sex_specific_transcripts/*fasta > all_sex_specific_genes.fa
+
+mkdir all_sex_specific_genes/
+cd all_specific_genes/
+
+ ./extract_genes_fasta -f ../all_sex_specific_genes.fa -l fuscus_transcripts_to_extract.txt
+
+```
+
 ```
 
 
