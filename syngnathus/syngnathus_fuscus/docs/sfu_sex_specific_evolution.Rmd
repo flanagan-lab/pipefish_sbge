@@ -23,6 +23,7 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',
                      fig_path="../imgs/")
+knitr::opts_chunk(eval=FALSE)
 ```
 
 ```{r loadlibs, include=FALSE}
@@ -38,7 +39,7 @@ The goal is to better understand the sex specific genes -- what's the evolutiona
 
 So I will first identify orthologs. I've downloaded protein sequences from GenBank:
 
-```{r genomeTable, include=FALSE}
+```{r genomeTable, include=FALSE, eval=TRUE}
 genomes<- data.frame(
   species = c(
     "Syngnathus scovelli",
@@ -93,7 +94,7 @@ The overall statistics report that of 112330 genes, 111101 were placed in orthog
 
 The species tree looks to correctly reflect the known phylogenetic tree structure:
 
-```{r}
+```{r orthoTree, eval=TRUE}
 library(ape)
 ortho_tree <- ape::read.tree(text="((H_comes.protein:0.0356618,H_zosterae.protein:0.0383317)0.987331:0.062338,(S_scovelli.protein:0.0242953,(S_typhle.protein:0.0260101,S_acus.protein:0.016738)0.563686:0.0118948)0.987331:0.062338);")
 plot(ortho_tree)
@@ -138,7 +139,7 @@ cp ../bin/STARlong /usr/local/bin
 
 Finally, need to retrieve the sex-specific transcript sequences, which are on the FlanaganLab server.
 
-```{r}
+```{bash, eval=FALSE}
 "smb://file/Research/FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/06_diff_expr_analysis/02_high_exp_trinity_gene_seqs"
 ```
 
@@ -193,6 +194,10 @@ gff <- read.delim("genomic.gff",
                   comment.char = "#", 
                   header = FALSE)
 colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+```
+
+
+```{r, eval=TRUE}
 alignments <- read.delim("alignments.txt", header = FALSE)
 colnames(alignments) <- c("fuscus_trinity_gene","alginment_key","chromosome","start","quality")
 
