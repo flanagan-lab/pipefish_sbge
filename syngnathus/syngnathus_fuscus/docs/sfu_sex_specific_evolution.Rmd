@@ -378,7 +378,13 @@ so now I just need to match them to the ortholog info. To run Hyphy, I will need
 aligned_sc_simple <- read.csv("Results_Feb11/fuscus_to_scovelli_single_copy_genes.csv")
 all_gene_names<-merge(aligned_sc_simple, single_copy_groups, by="Orthogroup")
 write.csv(all_gene_names, "Results_Feb11/sc_orthogroups_plus_trinity.csv",row.names = FALSE)
+```
 
+```{r, eval=TRUE}
+all_gene_names<-read.csv("Results_Feb11/sc_orthogroups_plus_trinity.csv")
+```
+
+```{r}
 write.table(all_gene_names$S_scovelli.protein.x, "generating_alignments/S_scovelli_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
 write.table(all_gene_names$H_comes.protein, "generating_alignments/H_comes_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
 write.table(all_gene_names$H_zosterae.protein, "generating_alignments/H_zosterae_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
