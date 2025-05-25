@@ -356,6 +356,18 @@ tmp<-apply(alignments[alignments$alginment_key==16 & alignments$fuscus_trinity_g
         append = TRUE)
 })
 ```
+
+I also will change the contents of the file with the matching gene info
+```{r}
+aligned_sc_simple$Trinity_gene[aligned_sc_simple$Trinity_gene %in% alignments$fuscus_trinity_gene[alignments$alginment_key==16]]<-paste0(aligned_sc_simple$Trinity_gene[aligned_sc_simple$Trinity_gene %in% alignments$fuscus_trinity_gene[alignments$alginment_key==16]],"_reverse")
+write.csv(aligned_sc_simple,
+          "fuscus_to_scovelli_single_copy_genes.csv",
+          row.names = FALSE)
+```
+```{r, eval=TRUE}
+aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
+```
+
 so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the CDS files available from NCBI.
 
 ```{r}
