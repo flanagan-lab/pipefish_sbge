@@ -310,11 +310,9 @@ write.csv(aligned_sc_simple,
 aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
 ```
 
-Now I want to do the following for each row:
-- extract the trinity gene sequence from the transcriptome file
-- append that sequence to the orthogroup file (or align?)
+### Extracting each transcript to its own file
 
-I think I could write a script to do this per gene methodically, but I think the easiest first step is to extract the transcripts. I can use seqtk subseq to do this if I have a list of the gene names, but it puts them all in one file. So I'll fix my old code to do this job.
+Ok, so the next step is to get these trinity genes so I can append them to the orthogroup sequences. I will use my extract_genes_fasta code to do this, so I first need a list of the transcripts to extract. 
 
 ```{r}
 write.table(unique(aligned_sc_simple$Trinity_gene),
