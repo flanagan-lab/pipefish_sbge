@@ -295,26 +295,6 @@ single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup
 
 This results in 49 sex-biased genes (47 unique trinity genes).
 
-### Reversing the alignments that were reverse complements
-
-Most of the alignments are crap -- I think these are meant to be reverse-complemented! I did this manually in geneious for one of them and it worked, and I noticed in the alignments.txt file, many of them have the flag 16, meaning they're the reverse complement of the scovelli gene. 
-
-seqtk should reverse complement... let's see if I can't write a script to do this.
-
-```{r}
-# create header and file
-write("#!/bin/bash","reverse_complement.sh")
-command_string<-"seqtk -r "
-tmp<-apply(alignments[alignments$alginment_key==16,],1,function(x){
-  write(paste0(command_string,
-               x["fuscus_trinity_gene"],".fasta",
-               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
-        "reverse_complement.sh",
-        append = TRUE)
-})
-```
-
-
 ## Preparing sex-biased orthogroups for selection analysis
 
 Ok, so the next step is to get these trinity genes, align them to the single-copy ortholog sets, and then run an analysis of molecular evolution.
@@ -357,6 +337,25 @@ cd all_specific_genes/
 
 ```
 
+
+### Reversing the alignments that were reverse complements
+
+Many of the alignments to the S. scovelli genome were reverse complements (containing the flag 16). So I want to reverse complement those ones and then use the reverse complements for the rest of the analysis. The flags are in the alignments file/object.
+
+I will therefore write a script using those files that will then run seqtk on the relevant files.
+
+```{r}
+# create header and file
+write("#!/bin/bash","reverse_complement.sh")
+command_string<-"seqtk -r "
+tmp<-apply(alignments[alignments$alginment_key==16 & alignments$fuscus_trinity_gene %in% aligned_sc_simple$Trinity_gene,],1,function(x){
+  write(paste0(command_string,
+               x["fuscus_trinity_gene"],".fasta",
+               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
+        "reverse_complement.sh",
+        append = TRUE)
+})
+```
 so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the CDS files available from NCBI.
 
 ```{r}
