@@ -328,11 +328,14 @@ write.table(unique(aligned_sc_simple$Trinity_gene),
 
 
 ```{bash, eval=FALSE}
+# put all gonad/sex-specific fastas into one
 cat sex_specific_transcripts/*fasta > all_sex_specific_genes.fa
 
+# make a new directory for these gene sequences
 mkdir all_sex_specific_genes/
 cd all_specific_genes/
 
+# extract the genes so we have one file per transcript
  ./extract_genes_fasta -f ../all_sex_specific_genes.fa -l fuscus_transcripts_to_extract.txt
 
 ```
