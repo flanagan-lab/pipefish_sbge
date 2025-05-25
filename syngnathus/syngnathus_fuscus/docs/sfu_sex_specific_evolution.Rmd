@@ -321,8 +321,6 @@ write.table(unique(aligned_sc_simple$Trinity_gene),
            quote=FALSE)
 ```
 
-
-
 ```{bash, eval=FALSE}
 # put all gonad/sex-specific fastas into one
 cat sex_specific_transcripts/*fasta > all_sex_specific_genes.fa
@@ -375,7 +373,6 @@ aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
 so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the CDS files available from NCBI.
 
 ```{r}
-aligned_sc_simple <- read.csv("Results_Feb11/fuscus_to_scovelli_single_copy_genes.csv")
 all_gene_names<-merge(aligned_sc_simple, single_copy_groups, by="Orthogroup")
 write.csv(all_gene_names, "Results_Feb11/sc_orthogroups_plus_trinity.csv",row.names = FALSE)
 ```
