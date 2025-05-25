@@ -306,6 +306,9 @@ write.csv(aligned_sc_simple,
           "fuscus_to_scovelli_single_copy_genes.csv",
           row.names = FALSE)
 ```
+```{r, eval=TRUE}
+aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
+```
 
 Now I want to do the following for each row:
 - extract the trinity gene sequence from the transcriptome file
