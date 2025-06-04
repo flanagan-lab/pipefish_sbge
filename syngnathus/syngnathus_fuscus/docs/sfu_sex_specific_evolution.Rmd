@@ -437,7 +437,7 @@ Now I can extract them using my custom extract_genes_fasta program. For it to wo
 for fa in *fna; do spp=$(echo $fa | perl -pe 's/([A-Z]\_[a-z]+)\_cds_from_genomic.fna/\1/g'); ../extract_genes_fasta -f $fa -l ${spp}_fna_headers.txt -o ${spp}_ -s; done
 ```
 
-Now, I need a set of files with all the fasta names per orthogroup, so that I can then use those to grep across all samples. **Note: this needs reversed/not reversed**
+Now, I need a set of files with all the fasta names per orthogroup, so that I can then use those to grep across all samples.
 
 ```{r}
 apply(all_gene_names, 1, function(this_row){
@@ -455,7 +455,6 @@ sed -i 's/\r//g' OG*.txt
 
 # now use grep plus cat plus sed to merge files into one
 for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | xargs cat | sed 's/>/\n>/g' > $og_id.fasta; done 
- 
 ```
 
 
