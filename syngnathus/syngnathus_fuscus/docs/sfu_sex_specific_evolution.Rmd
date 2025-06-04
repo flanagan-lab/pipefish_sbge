@@ -458,13 +458,142 @@ for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | x
 ```
 
 
+### identifying transcripts from gffs
 
-25 May 2025 - I have taken one of the alignments that looked good and deleted sequences that extended beyond the Trinity gene sequence (in geneious). I have run that in hyphy successfully (no evidence of selection). 
+Some of the genes have aligned to scovelli mRNA rather than CDS, so I'll extract transcriptome information. However, I might also need to check if it is reversed.. 
+```{r}
+# includes S. scovelli
+species<-list.files(pattern="_genomic.gff")
+all_gene_names <- all_gene_names[,-6] # remove duplicate S. scov
 
-So now I need to do all the alignments, clean them up, and run them. I installed clustalw on trinity-big, and then in /mnt/intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution/generating_alignments/ I ran:
+transcripts<-lapply(gsub("_genomic.gff","",species), function(this_spp){
+  gff<-parse_gff(paste0(this_spp,"_genomic.gff"))
+  proteins<-all_gene_names[,grep(this_spp, colnames(all_gene_names))]
+  txpts<-do.call(rbind,lapply(proteins, function(prot, gff){
+    prot_gff<-gff[grep(prot,gff$description),]
+    rnas<-unique(gsub("^.*Parent=rna-(XM_\\d+\\.\\d+);.*$",
+                      "\\1",
+                      prot_gff$description))
+    
+    if(length(rnas)>1){
+      rna_gff<-gff[grep(rnas,gff$description),]
+      rna_gff<-rna_gff[rna_gff$type %in% c("mRNA","exon"),]
+      browser()  
+    } else{
+      strand<-unique(gff$strand[grep(rnas, gff$description)])
+      if(strand == "-"){
+        return(data.frame(transcript = rnas, reverse=TRUE))
+      }else{
+        return(data.frame(transcript = rnas, reverse=FALSE))
+      }
+    }
+  }, gff=gff))
+  
+  write.table(unique(txpts$transcript),
+              paste0("transcripts/",this_spp,"_transcript_names.txt"),
+              quote=FALSE,
+              row.names = FALSE, 
+              col.names = FALSE, 
+              eol='\n')
+  txpts$species <- this_spp
+  txpts$Orthogroup <- all_gene_names$Orthogroup
+  return(txpts)
+})
+
+```
+
+```{bash, file='generating_alignments/get_transcript_fastas.sh'}
+
+```
+
+I also believe that I want to reverse any alignments that were on the - strand, so I'll write a script to do that.
+
+```{r}
+# create header and file
+write("#!/bin/bash","transcripts/reverse_complement_transcripts.sh")
+command_string<-"seqtk seq -r "
+tmp<-lapply(transcripts,function(x){
+  y<-x$transcript[x$reverse==TRUE]
+  write(paste0(command_string,
+               unique(x$species),"_",
+               y,".fasta",
+               " > ", unique(x$species),"_",y,"_reverse.fasta"),
+        "transcripts/reverse_complement_transcripts.sh",
+        append = TRUE)
+})
+```
+
+
+And now let's combine them
+
+Now, I need a set of files with all the fasta names per orthogroup, so that I can then use those to grep across all samples.
+
+```{r}
+# from the transcripts object, get all the combined info 
+orthogroup_transcripts <- merge(all_gene_names, transcripts[[1]], by="Orthogroup")
+
+
+orthogroup_transcripts <- orthogroup_transcripts[,c("Orthogroup","Trinity_gene","transcript","reverse","species")]
+colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
+orthogroup_transcripts$H_comes_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$H_comes_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
+orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript")]
+
+orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[2]],by="Orthogroup")
+colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
+orthogroup_transcripts$H_zosterae_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$H_zosterae[orthogroup_transcripts$reverse==TRUE], "_reverse")
+orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript")]
+
+orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[3]],
+                                by="Orthogroup")
+colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
+orthogroup_transcripts$S_acus_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_acus_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
+orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript")]
+
+orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[4]],
+                                by="Orthogroup")
+colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
+orthogroup_transcripts$S_scovelli_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_scovelli_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
+orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript","S_scovelli_transcript")]
+
+
+orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[5]],
+                                by="Orthogroup")
+colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
+orthogroup_transcripts$S_typhle_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_typhle_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
+orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript","S_scovelli_transcript","S_typhle_transcript")]
+
+# specify the reversed fuscus ones if relevant
+
+
+# then write to file
+apply(orthogroup_transcripts, 1, function(this_row){
+  write(this_row[-1],
+        file=paste0("transcripts/",this_row["Orthogroup"],"_transcripts.txt"))
+})
+```
+
+I'll move the trinity gene seqs into this folder and then use a cheeky grep + cat + sed to combine all six fasta nucleotide sequences per orthogroup.
 
 ```{bash, eval=FALSE}
-for fa in OG*fasta; do clustalw $fa; done
+cd transcripts/
+ls *fasta > all_fastas.txt #need to also add TRINITY genes....
+# remove windows endlines from the og lists
+sed -i 's/\r//g' OG*_transcripts.txt
+
+# now use grep plus cat plus sed to merge files into one
+for og in OG*_transcripts.txt; do og_id=$(basename $og _transcripts.txt); grep -f $og all_fastas.txt | xargs cat | sed 's/>/\n>/g' > ${og_id}_transcript.fasta; done 
+```
+
+
+
+Once clustalw is installed, it's very easy to run this on every orthogroup's fasta.
+
+```{bash, eval=FALSE}
+for fa in OG*_transcript.fasta; do clustalw $fa; done
+```
+
+The final step is trimming the alignments. I did this manually in geneious and MEGA, which also allowed me to visually inspect the alignments. Most did not look like proper multiple sequence alignments. 
+
 
 ```
 
