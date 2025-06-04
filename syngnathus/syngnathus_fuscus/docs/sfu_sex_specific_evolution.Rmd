@@ -414,6 +414,9 @@ write.csv(all_gene_names, "Results_Feb11/sc_orthogroups_plus_trinity.csv",row.na
 all_gene_names<-read.csv("Results_Feb11/sc_orthogroups_plus_trinity.csv")
 ```
 
+
+### identifying CDS sequences
+
 ```{r}
 write.table(all_gene_names$S_scovelli.protein.x, "generating_alignments/S_scovelli_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
 write.table(all_gene_names$H_comes.protein, "generating_alignments/H_comes_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
@@ -425,6 +428,7 @@ write.table(all_gene_names$S_typhle.protein, "generating_alignments/S_typhle_pro
 ```{bash, file='generating_alignments/get_headers.sh', eval=FALSE}
 
 ```
+
 
 Now I can extract them using my custom extract_genes_fasta program. For it to work, I had to edit the program to allow the names to be simplified (remove anything after the first space in the header).
 
