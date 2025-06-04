@@ -199,10 +199,7 @@ Now I can try to figure out orthologs of these sex-specific genes... but first I
 ```{r}
 # using files in the FlanaganLab server 
 # setwd to FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution
-gff <- read.delim("genomic.gff",
-                  comment.char = "#", 
-                  header = FALSE)
-colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+gff <- parse_gff("genomic.gff")
 ```
 
 
