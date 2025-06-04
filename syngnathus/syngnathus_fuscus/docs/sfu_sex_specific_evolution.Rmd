@@ -31,6 +31,15 @@ library(knitr)
 library(kableExtra)
 library(spfTools)
 ```
+```{r}
+parse_gff<-function(filename){
+  gff <- read.delim(filename,
+                  comment.char = "#", 
+                  header = FALSE)
+  colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+  return(gff)
+}
+```
 
 
 The goal is to better understand the sex specific genes -- what's the evolutionary rate? 
