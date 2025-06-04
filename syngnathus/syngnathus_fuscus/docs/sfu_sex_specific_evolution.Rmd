@@ -400,10 +400,11 @@ aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
 
 
 
+
 ## Preparing sex-biased orthogroups for selection analysis
 
 
-so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the CDS files available from NCBI.
+so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the files available from NCBI.
 
 ```{r}
 all_gene_names<-merge(aligned_sc_simple, single_copy_groups, by="Orthogroup")
