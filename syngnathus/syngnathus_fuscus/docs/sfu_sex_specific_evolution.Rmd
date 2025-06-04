@@ -248,7 +248,7 @@ alignment_info <- unique(merge(specific_genes, alignment_gff, by.x="Trinity_gene
 ```
 
 
-Most of the genes do not seem to have aligned successfully to the S. scovelli genome, but I will move forward with those that have.
+Most of the 1114 Trinity genes do not seem to have aligned successfully to the S. scovelli genome, but I will move forward with those that have (142 trinity genes)
 
 ```{r}
 aligned<- alignment_info[!is.na(alignment_info$chromosome),]
