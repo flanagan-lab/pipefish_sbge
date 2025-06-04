@@ -376,13 +376,13 @@ I will therefore write a script using those files that will then run seqtk on th
 
 ```{r}
 # create header and file
-write("#!/bin/bash","reverse_complement.sh")
-command_string<-"seqtk -r "
+write("#!/bin/bash","generating_alignments/reverse_complement.sh")
+command_string<-"seqtk seq -r "
 tmp<-apply(alignments[alignments$alginment_key==16 & alignments$fuscus_trinity_gene %in% aligned_sc_simple$Trinity_gene,],1,function(x){
   write(paste0(command_string,
                x["fuscus_trinity_gene"],".fasta",
                " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
-        "reverse_complement.sh",
+        "generating_alignments/reverse_complement.sh",
         append = TRUE)
 })
 ```
