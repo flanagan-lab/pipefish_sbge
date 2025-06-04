@@ -204,6 +204,7 @@ gff <- parse_gff("genomic.gff")
 
 
 ```{r, eval=TRUE}
+# these are 142 transcripts that aligned to the S. scovelli genome
 alignments <- read.delim("alignments.txt", header = FALSE)
 colnames(alignments) <- c("fuscus_trinity_gene","alginment_key","chromosome","start","quality")
 
@@ -230,6 +231,8 @@ alignment_gff$ID <- gsub(";Parent.*$","",
 ```
 
 ```{r}
+# get the info about which genes were sex specific in which tissues
+# now includes ones that did not align
 files<-list.files(path="../06_diff_expr_analysis/01_high_exp_trinity_gene_names",
            pattern="specific",full.names = TRUE)
 specific_genes<-do.call(rbind,lapply(files,function(file){
@@ -250,6 +253,7 @@ Most of the genes do not seem to have aligned successfully to the S. scovelli ge
 ```{r}
 aligned<- alignment_info[!is.na(alignment_info$chromosome),]
 
+# remove any that are not in any type of coding region
 aligned_coding <- aligned[!aligned$type %in% c("region","lnc_RNA"),]
 aligned_coding$gene <- gsub("^.*gene=(\\w+.*);.*$",
                  "\\1",
@@ -298,11 +302,15 @@ single_copy_aligned <- merge(single_copy_gff,
 # remove extra rows
 single_copy_aligned <- single_copy_aligned[!duplicated(paste0(single_copy_aligned$Trinity_gene, single_copy_aligned$S_scovelli.protein, single_copy_aligned$sex,single_copy_aligned$organ)),]
 
+# add alignment key
 # remove ones that didn't match
 aligned_not_single <-single_copy_aligned[is.na(single_copy_aligned$Orthogroup),]
 single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup),]
 
+# remove extra columns related to the protein matching
+# remove extra rows containing multiple cds per protein
 ```
+# in intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution
 
 This results in 49 sex-biased genes (47 unique trinity genes).
 
