@@ -595,11 +595,106 @@ for fa in OG*_transcript.fasta; do clustalw $fa; done
 
 The final step is trimming the alignments. I did this manually in geneious and MEGA, which also allowed me to visually inspect the alignments. Most did not look like proper multiple sequence alignments. 
 
+## Estimating selection with hyphy
 
+So far I've used the online interface of HyPhy rather than using the command line -- with only a few good alignments, it was easier that way. 
+
+```{r}
+library(jsonlite)
+absrel_files<-list.files(pattern="absrel") # in Dropbox generating_alignments
+
+test_results<-do.call(rbind,lapply(absrel_files, function(file){
+  absrel_output<-read_json(file)
+
+  test_result <- absrel_output$`test results`$`positive test results`
+  attributes<-absrel_output$`branch attributes`$`0`
+  fuscus<-attributes[grep("TRINITY", names(attributes))]
+  fuscus_omega <- fuscus[[1]]$`Baseline MG94xREV omega ratio`
+  return(c(test_result, fuscus_omega))
+
+}))
+rownames(test_results)<-absrel_files
+colnames(test_results)<-c("selection", "omega")
+kable(test_results,"latex",booktabs=TRUE)
+```
+
+Let's try to plot the one sequence that I've got that looks nice and is under selection (OG0016693)
+
+```{r, include=FALSE, echo=FALSE, eval=FALSE}
+devtools::install_github("vragh/seqvisr", build_manual = TRUE, build_vignettes = TRUE)
+library(seqvisr)
+msavisr(mymsa="OG0016693_modified.aln",myref="lcl|NC_090856.1_cds_XP_0495882")
 ```
 
 
+```{r, include=FALSE, echo=FALSE, eval=FALSE}
+library(ggmsa) # try this for a visualisation tool?
+nt_sequences <- readDNAStringSet("OG0016693_modified.aln") # from Biostrings
+ggmsa(nt_sequences, 
+      start = 271, 
+      end = 500, 
+      char_width = 0.5, 
+      seq_name = T) + geom_seqlogo()# + geom_msaBar()
+```
 
+```{r}
+library(ggtree)
+
+
+og<-all_gene_names[all_gene_names$Orthogroup=="OG0016693",]
+og<-og[,-6]
+
+absrel_output<-read_json("OG0016693_absrel.json")
+omegas<-as.data.frame(do.call(rbind,lapply(absrel_output$`branch attributes`$`0`, function(x){
+  return(round(x$`Baseline MG94xREV omega ratio`,3))
+} )))
+omegas$species<-lapply(rownames(omegas), function(x, og){
+  ptn<-gsub("^.*(X\\w_\\d+)$","\\1",x)
+  match<-grep(ptn,og[1,],value=T)
+  return(gsub("\\..*$","",names(match)))
+},og=og)
+omegas$species[grep("TRINITY",rownames(omegas))]<-"S_fuscus"
+colnames(omegas)[1]<-"omega"
+
+
+tree<-read.tree("OG0016693.dnd")
+tree$tip.label<-substr(tree$tip.label,1,30)
+
+new_labels<-lapply(tree$tip.label,function(x, og){
+  ptn<-gsub("^.*(X\\w_\\d+)$","\\1",x)
+  match<-grep(ptn,og[1,],value=T)
+  return(gsub("\\..*$","",names(match)))
+},og=og)
+new_labels<-unlist(new_labels)
+new_labels[new_labels=="Trinity_gene"]<-"S_fuscus"
+
+d <- data.frame(label = tree$tip.label, 
+                label2 = new_labels)
+d<- merge(d,omegas,by.x="label2",by.y="species")
+d<-d[,c("label","label2","omega")]
+```
+
+
+```{r sequenceTree, fig.width=1522, fig.height=350}
+p<-ggtree(tree)
+p<-p %<+% d + geom_tiplab(aes(label=label2)) 
+p<- p %>% rotate(8) # move seahorses together
+
+p<- p+ geom_text(aes(x=branch, label=omega), 
+            vjust=-.5, size=3) 
+msaplot(p=p,
+        offset=0.05,
+        width=3.5,
+        height=0.95,
+        fasta="OG0016693_modified.aln", window=c(271,500))
+
+
+```
+
+```{r}
+cols<-c("#B5D6F5FF", "#681A15FF", "#043CB2FF","#DC5750FF", "white")
+
+```
 
 ## Extra: Translating the transcriptome
 
