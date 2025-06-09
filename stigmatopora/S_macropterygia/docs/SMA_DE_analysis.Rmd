@@ -946,8 +946,6 @@ upset(fromList(listInputall),
       keep.order = TRUE,
       order.by = "degree")
 
-
-
 ```
 
 In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
