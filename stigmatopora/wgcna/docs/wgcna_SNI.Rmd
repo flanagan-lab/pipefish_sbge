@@ -32,6 +32,7 @@ library(readr)
 library(WGCNA)
 library(foreach)
 library(doParallel)
+library(matrixStats)
 ```
 
 ## Using OrthoFinder in the RCC
@@ -195,7 +196,7 @@ res
 
 ```
 
-For WGCNA, we need approximately homoscedastic, normalised data, so we need to apply variance stablising transformation.
+For WGCNA, we need approximately homoscedastic, normalised data, so we need to apply variance stabilising transformation.
 
 ```{r VST}
 vsd_SN <- vst(dds_SN_exp, blind = TRUE)
@@ -206,8 +207,25 @@ expr_aus <- assay(vsd_aus)
 
 # Read in OrthoFinder input
 
-```{r readOrthogroup}
+```{r read-filter-Orthogroup}
 ## Load and prepare orthology data
 orthogroups <- read.delim("data/Orthogroups.tsv", header = TRUE, stringsAsFactors = FALSE, fill = TRUE)
+
+# OrthoFinder output: columns are Orthogroup, then species columns
+orthogroup_long <- orthogroups %>%
+  pivot_longer(-Orthogroup, names_to = "Species", values_to = "GeneList") %>%
+  separate_rows(GeneList, sep = ", ") %>%
+  filter(!is.na(GeneList))  # remove empty rows
+
+# Filter for NZ and AUS species genes only
+orthogroup_nz <- orthogroup_long %>% filter(Species == "NZ_Snigra")
+orthogroup_aus <- orthogroup_long %>% filter(Species == "AUS_Snigra")
+
+#Get intersecting orthogroups
+common_orthogroups <- intersect(orthogroup_nz$Orthogroup, orthogroup_aus$Orthogroup)
+
+# Check to make sure there are common orthogroups
+print(length(common_orthogroups)) # there are no common orthogroups
+
 ```
 
