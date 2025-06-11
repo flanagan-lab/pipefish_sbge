@@ -21,7 +21,6 @@ knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 
 ``` {r library, include = TRUE, message = FALSE, warning = FALSE}
-setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/wgcna")
 #This is a cohesive list of all the libraries used in this document
 library(DESeq2)
 library(flashClust)
@@ -196,20 +195,88 @@ res
 
 ```
 
-For WGCNA, we need approximately homoscedastic, normalised data, so we need to apply variance stabilising transformation.
+## Format and filter data for WGCNA 
+For WGCNA, we need approximately homoscedastic, normalised data, so we need to apply variance stabilising transformation (VST).
 
-```{r VST}
-vsd_SN <- vst(dds_SN_exp, blind = TRUE)
-vsd_aus <- vst(dds_aus_exp, blind = TRUE)
-expr_SN <- assay(vsd_SN)
-expr_aus <- assay(vsd_aus)
+```{r}
+## Format, filter, and normalise data for WGCNA
+
+# Remove missing values
+dds_SN_exp <- na.omit(dds_SN_exp)
+dds_aus_exp <- na.omit(dds_aus_exp)
+
+# Function to filter low-variance genes and apply VST
+prepare_wgcna_data <- function(dds_obj) {
+  # Get raw counts
+  counts_matrix <- counts(dds_obj)
+  
+  # Filter out genes with zero variance
+  variances <- apply(counts_matrix, 1, var)
+  filtered_counts <- counts_matrix[variances > 0, ]
+  
+  # Subset DESeqDataSet
+  keep <- rownames(filtered_counts) %in% rownames(dds_obj)
+  dds_filtered <- dds_obj[keep, ]
+  
+  # Apply variance stabilizing transformation
+  vsd <- vst(dds_filtered, blind = FALSE)
+  
+  # Extract and transpose expression matrix
+  datExpr <- t(assay(vsd))
+  
+  return(datExpr)
+}
+
+# Apply to both datasets
+datExpr_SN <- prepare_wgcna_data(dds_SN_exp)
+datExpr_AUS <- prepare_wgcna_data(dds_aus_exp)
+
+# Check dimensions
+dim(datExpr_SN)  # Should be (samples × genes)
+dim(datExpr_AUS)
 ```
 
-# Read in OrthoFinder input
+```{r check-outliers}
+# Check for outliers
+gsg_SN <- goodSamplesGenes(datExpr_SN, verbose = 3)
+gsg_AUS <- goodSamplesGenes(datExpr_AUS, verbose = 3)
+
+# If outliers are detected, remove them
+if (!gsg_SN$allOK) {
+  datExpr_SN <- datExpr_SN[gsg_SN$goodSamples, gsg_SN$goodGenes]
+}
+if (!gsg_AUS$allOK) {
+  datExpr_AUS <- datExpr_AUS[gsg_AUS$goodSamples, gsg_AUS$goodGenes]
+}
+```
+
+# Other datasets you might need
+## OrthoFinder output
 
 ```{r read-filter-Orthogroup}
-## Load and prepare orthology data
+# Orthogroups tsv
 orthogroups <- read.delim("data/Orthogroups.tsv", header = TRUE, stringsAsFactors = FALSE, fill = TRUE)
+
+```
+
+## Tissue and sex differential expression results
+
+```{r DE-res-datasets}
+# Subset of tissue type with log2FC, pvalue, padj, and trinity gene IDs
+gill_res_NZ <- read.csv("data/gill_res_NZ.csv")
+liver_res_NZ <- read.csv("data/liver_res_NZ.csv")
+gill_res_aus <- read.csv("data/gill_res_aus.csv")
+liver_res_aus <- read.csv("data/liver_res_aus.csv")
+
+# Subset of trinity gene IDs that correspond to all differentially expressed genes for males and females
+aus_femG_TRgenes <- read.delim("data/aus_femG_TRgenes.txt")
+aus_femL_TRgenes <- read.delim("data/aus_femL_TRgenes.txt")
+aus_maleG_TRgenes <- read.delim("data/aus_maleG_TRgenes.txt")
+aus_maleL_TRgenes <- read.delim("data/aus_maleL_TRgenes.txt")
+NZ_femG_TRgenes <- read.delim("data/NZ_femG_TRgenes.txt")
+NZ_femL_TRgenes <- read.delim("data/NZ_femL_TRgenes.txt")
+NZ_maleG_TRgenes <- read.delim("data/NZ_maleG_TRgenes.txt")
+NZ_maleL_TRgenes <- read.delim("data/NZ_maleL_TRgenes.txt")
 
 ```
 
