@@ -1,0 +1,17 @@
+ID      sex     organ
+S1	F	gill
+S2	F	liver
+S3	F	gonad
+S4	F	gill
+S5	F	liver
+S6	F	gill
+S7	F	liver
+S8	M	gill
+S9	M	liver
+S10	M	gonad
+S11	M	gill
+S12	M	liver
+S13	M	gonad
+S14	M	gill
+S15	M	liver
+S16	M	gonad
