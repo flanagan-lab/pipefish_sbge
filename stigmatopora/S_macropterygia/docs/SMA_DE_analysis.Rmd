@@ -2488,3 +2488,15 @@ ggsave("figs/FigGO_indv.png", figGO, height=5, width=8)
     #        row.names = FALSE,
      #       col.names = FALSE)
 ```
+
+```{r merge-SB-blast}
+
+logFC_long_tauSB <- read.csv("data/logFC_long_taubiasSB.csv")
+blast_output_all <- read.csv("data/SM_blast_output.csv")
+
+blast_SB_merged <- merge(logFC_long_tauSB, blast_output_all, by = "trin_geneid", all = TRUE)
+
+#write once then comment out
+#write.csv(as.data.frame(blast_SB_merged), "data/SM_blast_SB_merged.csv", row.names = TRUE)
+```
+
