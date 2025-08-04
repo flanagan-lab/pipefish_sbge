@@ -2498,5 +2498,13 @@ blast_SB_merged <- merge(logFC_long_tauSB, blast_output_all, by = "trin_geneid",
 
 #write once then comment out
 #write.csv(as.data.frame(blast_SB_merged), "data/SM_blast_SB_merged.csv", row.names = TRUE)
+
+#add SS dataset
+logFC_long_tauSS <- read.csv("data/logFC_long_taubias_SS.csv")
+
+blast_SB_SS_merged <- merge(blast_SB_merged, logFC_long_tauSS, by = "trin_geneid", all = TRUE)
+
+#write once then comment out
+#write.csv(as.data.frame(blast_SB_SS_merged), "data/SM_blast_SB_SS_merged.csv", row.names = TRUE)
 ```
 
