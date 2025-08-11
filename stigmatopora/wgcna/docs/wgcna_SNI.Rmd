@@ -93,6 +93,38 @@ Note - CITATION:
  Emms D.M. & Kelly S. (2017), MBE 34(12): 3267-3278
  Emms D.M. & Kelly S. (2018), bioRxiv https://doi.org/10.1101/267914
 
+## Potentially useful datasets
+
+# Other datasets you might need
+## OrthoFinder output
+
+```{r read-filter-Orthogroup}
+# Orthogroups tsv
+orthogroups <- read.delim("data/Orthogroups.tsv", header = TRUE, stringsAsFactors = FALSE, fill = TRUE)
+
+```
+
+## Tissue and sex differential expression results
+
+```{r DE-res-datasets}
+# Subset of tissue type with log2FC, pvalue, padj, and trinity gene IDs
+gill_res_NZ <- read.csv("data/gill_res_NZ.csv")
+liver_res_NZ <- read.csv("data/liver_res_NZ.csv")
+gill_res_aus <- read.csv("data/gill_res_aus.csv")
+liver_res_aus <- read.csv("data/liver_res_aus.csv")
+
+# Subset of trinity gene IDs that correspond to all differentially expressed genes for males and females
+aus_femG_TRgenes <- read.delim("data/aus_femG_TRgenes.txt")
+aus_femL_TRgenes <- read.delim("data/aus_femL_TRgenes.txt")
+aus_maleG_TRgenes <- read.delim("data/aus_maleG_TRgenes.txt")
+aus_maleL_TRgenes <- read.delim("data/aus_maleL_TRgenes.txt")
+NZ_femG_TRgenes <- read.delim("data/NZ_femG_TRgenes.txt")
+NZ_femL_TRgenes <- read.delim("data/NZ_femL_TRgenes.txt")
+NZ_maleG_TRgenes <- read.delim("data/NZ_maleG_TRgenes.txt")
+NZ_maleL_TRgenes <- read.delim("data/NZ_maleL_TRgenes.txt")
+
+```
+
 ## Get expression data for NZ _S. nigra_
 
 ``` {r read-data}
@@ -250,33 +282,282 @@ if (!gsg_AUS$allOK) {
 }
 ```
 
-# Other datasets you might need
-## OrthoFinder output
 
-```{r read-filter-Orthogroup}
-# Orthogroups tsv
-orthogroups <- read.delim("data/Orthogroups.tsv", header = TRUE, stringsAsFactors = FALSE, fill = TRUE)
+##### OLD CODE WHERE I STOPPED BEFORE #####
+## Choose soft-thresholding power
+
+```{r soft-thresholding}
+powers <- c(1:20)  # test a range of powers
+
+#This step takes 30-45 min to run 
+pick_soft_threshold <- function(datExpr, powers) {
+  sft <- pickSoftThreshold(datExpr, powerVector = powers, verbose = 5)
+  
+  # Plot scale-free topology fit
+  par(mfrow = c(1,2))
+  plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+       xlab = "Soft Threshold (power)",
+       ylab = "Scale Free Topology Model Fit, signed R^2",
+       type = "n")
+  text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+       labels = powers, col = "red")
+  abline(h = 0.90, col = "blue", lty = 2) # common target
+  
+  # Plot mean connectivity
+  plot(sft$fitIndices[,1], sft$fitIndices[,5],
+       xlab = "Soft Threshold (power)",
+       ylab = "Mean Connectivity", type = "n")
+  text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, col = "red")
+  
+  return(sft)
+}
+
+# Run for NZ & AUS
+sft_SN <- pick_soft_threshold(datExpr_SN, powers)
+sft_AUS <- pick_soft_threshold(datExpr_AUS, powers)
+
+# Choose power where scale-free R^2 > 0.9 and mean connectivity not too low
+softPower_SN <- 10 #
+softPower_AUS <- 13 #
 
 ```
 
-## Tissue and sex differential expression results
+# Build network and detect modules
 
-```{r DE-res-datasets}
-# Subset of tissue type with log2FC, pvalue, padj, and trinity gene IDs
-gill_res_NZ <- read.csv("data/gill_res_NZ.csv")
-liver_res_NZ <- read.csv("data/liver_res_NZ.csv")
-gill_res_aus <- read.csv("data/gill_res_aus.csv")
-liver_res_aus <- read.csv("data/liver_res_aus.csv")
+```{r build-network}
+net_SN <- blockwiseModules(
+  datExpr_SN,
+  power = softPower_SN,
+  TOMType = "unsigned",      # or "signed" depending on correlation type -> "unsigned" keeps positive & negative correlations separate, "signed" merges them into absolute correlations.
+  minModuleSize = 30,        # smaller = more modules
+  reassignThreshold = 0,
+  mergeCutHeight = 0.25,     # controls module merging
+  numericLabels = TRUE,
+  pamRespectsDendro = FALSE,
+  saveTOMs = TRUE,
+  saveTOMFileBase = "TOM_SN",
+  verbose = 3
+)
 
-# Subset of trinity gene IDs that correspond to all differentially expressed genes for males and females
-aus_femG_TRgenes <- read.delim("data/aus_femG_TRgenes.txt")
-aus_femL_TRgenes <- read.delim("data/aus_femL_TRgenes.txt")
-aus_maleG_TRgenes <- read.delim("data/aus_maleG_TRgenes.txt")
-aus_maleL_TRgenes <- read.delim("data/aus_maleL_TRgenes.txt")
-NZ_femG_TRgenes <- read.delim("data/NZ_femG_TRgenes.txt")
-NZ_femL_TRgenes <- read.delim("data/NZ_femL_TRgenes.txt")
-NZ_maleG_TRgenes <- read.delim("data/NZ_maleG_TRgenes.txt")
-NZ_maleL_TRgenes <- read.delim("data/NZ_maleL_TRgenes.txt")
+net_AUS <- blockwiseModules(
+  datExpr_AUS,
+  power = softPower_AUS,
+  TOMType = "unsigned",
+  minModuleSize = 30,
+  reassignThreshold = 0,
+  mergeCutHeight = 0.25,
+  numericLabels = TRUE,
+  pamRespectsDendro = FALSE,
+  saveTOMs = TRUE,
+  saveTOMFileBase = "TOM_AUS",
+  verbose = 3
+)
+```
+
+## Visualise module dendograms
+
+```{r dendograms}
+moduleColors_SN <- labels2colors(net_SN$colors)
+moduleColors_AUS <- labels2colors(net_AUS$colors)
+
+par(mfrow = c(1,2))
+plotDendroAndColors(net_SN$dendrograms[[1]], moduleColors_SN[net_SN$blockGenes[[1]]],
+                    "Module colors - NZ", dendroLabels = FALSE)
+plotDendroAndColors(net_AUS$dendrograms[[1]], moduleColors_AUS[net_AUS$blockGenes[[1]]],
+                    "Module colors - AUS", dendroLabels = FALSE)
+```
+
+## Relate modules to traits
+
+```{r}
+
+# Work through traits - NZ S. nigra
+traitData_SN <- data.frame(
+  sex = as.numeric(samples_SN$sex == "female"),
+  organ = samples_SN$organ
+)
+
+# Convert factors to numeric where needed
+traitData_SN <- data.frame(lapply(traitData_SN, function(x) {
+  if (is.factor(x)) as.numeric(as.factor(x)) else x
+}))
+
+MEs_SN <- moduleEigengenes(datExpr_SN, colors = moduleColors_SN)$eigengenes
+MEs_SN <- orderMEs(MEs_SN)
+
+moduleTraitCor_SN <- cor(MEs_SN, traitData_SN, use = "p")
+moduleTraitP_SN <- corPvalueStudent(moduleTraitCor_SN, nrow(datExpr_SN))
+
+# Heatmap of module-trait correlations
+textMatrix <- paste(signif(moduleTraitCor_SN, 2), "\n(",
+                    signif(moduleTraitP_SN, 1), ")", sep = "")
+dim(textMatrix) <- dim(moduleTraitCor_SN)
+
+labeledHeatmap(Matrix = moduleTraitCor_SN,
+               xLabels = names(traitData_SN),
+               yLabels = names(MEs_SN),
+               ySymbols = names(MEs_SN),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 0.7,
+               zlim = c(-1,1),
+               main = "Module–trait relationships (NZ)")
+
+# Save module assignments & eigengenes
+write.csv(data.frame(Gene = colnames(datExpr_SN),
+                     Module = moduleColors_SN),
+          file = "NZ_module_assignments.csv", row.names = FALSE)
+
+write.csv(MEs_SN, file = "NZ_module_eigengenes.csv")
+```
+
+## Module preservation for NZ vs Aus
+
+```{r}
+# Prepare multi-set data structure for WGCNA 
+# NZ dataset
+multiExpr <- list()
+multiExpr$NZ <- list(data = datExpr_SN)
+multiExpr$AUS <- list(data = datExpr_AUS)
+
+# Matching trait data (optional for preservation, but useful later)
+multiTraits <- list()
+multiTraits$NZ <- samples_SN
+multiTraits$AUS <- samples_AUS
+
+# Colors from each analysis
+colorList <- list(NZ = moduleColors_SN, AUS = moduleColors_AUS)
+
+# Run module preservation
+set.seed(123)  # for reproducibility
+
+preservation <- modulePreservation(
+  multiExpr, 
+  colorList,
+  referenceNetworks = 1,   # 1 = NZ is reference, AUS is test
+  nPermutations = 200,     # increase to 1000+ for final analysis
+  randomSeed = 1,
+  quickCor = 0,            # 0 = more accurate, 1 = faster
+  verbose = 3
+)
+
+# Extract preservation statistics 
+ref = 1
+test = 2
+
+preservation_stats <- preservation$preservation$Z$ref.NZ$inColumnsAlsoPresentIn.AUS
+preservation_stats <- data.frame(Module = rownames(preservation_stats),
+                                 preservation_stats)
+
+# View top modules by preservation Z-summary
+preservation_stats <- preservation_stats[order(-preservation_stats$Zsummary.pres), ]
+
+# Save results
+write.csv(preservation_stats, "NZ_vs_AUS_module_preservation.csv", row.names = FALSE)
+
+#Plot preservation statistics
+library(ggplot2)
+
+ggplot(preservation_stats, aes(x = Module, y = Zsummary.pres)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 10, color = "blue", linetype = "dashed") +
+  geom_hline(yintercept = 2, color = "red", linetype = "dashed") +
+  theme_minimal() +
+  labs(title = "Module Preservation: NZ → AUS",
+       y = "Zsummary Preservation",
+       x = "Module")
+```
+
+# ## Module non-preservation for NZ vs Aus
+
+```{r}
+## Define threshold for "non-preserved"
+non_pres_threshold <- 2  # Zsummary < 2 = little/no preservation
+
+non_pres_modules <- preservation_stats$Module[
+  preservation_stats$Zsummary.pres < non_pres_threshold &
+  preservation_stats$Module != "grey"  # skip unassigned genes
+]
+
+cat("Non-preserved modules:", non_pres_modules, "\n")
+
+
+## Get gene lists for non-preserved modules
+moduleGenes_NZ <- data.frame(
+  Gene = colnames(datExpr_SN),
+  Module = moduleColors_SN
+)
+
+non_pres_geneLists <- lapply(non_pres_modules, function(mod) {
+  moduleGenes_NZ$Gene[moduleGenes_NZ$Module == mod]
+})
+
+names(non_pres_geneLists) <- non_pres_modules
+
+## Load DE gene lists (adjust paths/names as needed)
+# Example: NZ female-biased in gills
+NZ_femG <- read.delim("data/NZ_femG_TRgenes.txt", header = TRUE)$gene_id
+NZ_femL <- read.delim("data/NZ_femL_TRgenes.txt", header = TRUE)$gene_id
+NZ_maleG <- read.delim("data/NZ_maleG_TRgenes.txt", header = TRUE)$gene_id
+NZ_maleL <- read.delim("data/NZ_maleL_TRgenes.txt", header = TRUE)$gene_id
+
+# Combine into one named list for testing
+DE_lists <- list(
+  NZ_femG = NZ_femG,
+  NZ_femL = NZ_femL,
+  NZ_maleG = NZ_maleG,
+  NZ_maleL = NZ_maleL
+)
+
+## Overlap non-preserved modules with DE gene lists
+overlap_results <- data.frame()
+
+for (mod in non_pres_modules) {
+  genes_in_mod <- non_pres_geneLists[[mod]]
+  
+  for (de_name in names(DE_lists)) {
+    genes_in_de <- DE_lists[[de_name]]
+    
+    overlap <- intersect(genes_in_mod, genes_in_de)
+    overlap_count <- length(overlap)
+    
+    # Fisher's exact test for enrichment
+    contingency <- matrix(
+      c(overlap_count,
+        length(genes_in_mod) - overlap_count,
+        length(genes_in_de) - overlap_count,
+        nrow(moduleGenes_NZ) - length(genes_in_mod) - length(genes_in_de) + overlap_count),
+      nrow = 2
+    )
+    
+    fisher_p <- fisher.test(contingency, alternative = "greater")$p.value
+    
+    overlap_results <- rbind(
+      overlap_results,
+      data.frame(
+        Module = mod,
+        DE_list = de_name,
+        Overlap = overlap_count,
+        Module_size = length(genes_in_mod),
+        DE_size = length(genes_in_de),
+        Fisher_p = fisher_p
+      )
+    )
+  }
+}
+
+
+## Adjust p-values & save results
+overlap_results$FDR <- p.adjust(overlap_results$Fisher_p, method = "fdr")
+
+write.csv(overlap_results, "NonPreservedModules_DEGeneOverlap.csv", row.names = FALSE)
+
+
+## View significant enrichments
+sig_overlap <- subset(overlap_results, FDR < 0.05)
+print(sig_overlap)
 
 ```
 
