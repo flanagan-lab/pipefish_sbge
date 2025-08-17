@@ -294,3 +294,23 @@ gonad_plot
 liver_plot
 gill_plot
 ```
+
+```{r proportion-tau75}
+
+# reshape to long format
+tau_75_long <- tau_75 %>%
+  pivot_longer(cols = c(all_samples, female_samples, male_samples),
+               names_to = "sample_type",
+               values_to = "count") %>%
+  mutate(proportion = count / total_genes)
+
+# make a plot
+ggplot(tau_75_long, aes(x = tissue, y = proportion, fill = sample_type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ species) +
+  ylab("Proportion of tau > 0.75 genes") +
+  xlab("Tissue") +
+  theme_minimal()
+
+```
+
