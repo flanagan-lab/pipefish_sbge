@@ -44,6 +44,27 @@ parse_gff<-function(filename){
 
 The goal is to better understand the sex specific genes -- what's the evolutionary rate? 
 
+## Translating the transcriptome
+
+I will translate the transcriptome to be able to use it in the orthofinder analysis with genome sequences
+
+```{bash,eval=FALSE}
+#transdecoder is installed on trinity-big (not on trinity-em)
+# from shared/coley_files/all_sex_specific_genes/
+for fa in *fasta; do ../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t $fa -m 50 --complete_orfs_only; done
+```
+
+Some of them have multiple sequences and they're all in sub-folders now, which is kind of annoying
+
+The manual says it works better on a whole transcriptome than on single genes, so I'll run it on the transcriptome file, I guess. 
+
+```{bash, eval=FALSE}
+# now in shared/coley_files
+../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t  trinity_supertran_fuscus.fasta -m 50 --complete_orfs_only
+```
+
+I had to lower the length threshold to include at one of the sex-specific genes (931), if not more (I only checked that one).
+
 ## Identifying orthologs using genome sequences
 
 So I will first identify orthologs. I've downloaded protein sequences from GenBank:
@@ -696,21 +717,3 @@ cols<-c("#B5D6F5FF", "#681A15FF", "#043CB2FF","#DC5750FF", "white")
 
 ```
 
-## Extra: Translating the transcriptome
-
-```{bash,eval=FALSE}
-#transdecoder is installed on trinity-big (not on trinity-em)
-# from shared/coley_files/all_sex_specific_genes/
-for fa in *fasta; do ../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t $fa -m 50 --complete_orfs_only; done
-```
-
-Some of them have multiple sequences and they're all in sub-folders now, which is kind of annoying
-
-The manual says it works better on a whole transcriptome than on single genes, so I'll run it on the transcriptome file, I guess. 
-
-```{bash, eval=FALSE}
-# now in shared/coley_files
-../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t  trinity_supertran_fuscus.fasta -m 50 --complete_orfs_only
-```
-
-I had to lower the length threshold to include at one of the sex-specific genes (931), if not more (I only checked that one).
