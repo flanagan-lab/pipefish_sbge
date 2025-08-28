@@ -222,6 +222,20 @@ One interesting development is that some of the trinity genes that seem to have 
 deg_sc_orthologs[deg_sc_orthologs$S_fuscus_gene=="TRINITY_DN0_c2_g1",]
 ```
 
+
+## Aligning single-copy orthologs for selection analysis
+
+I installed prank v.250331 from source (from github) and copied the executable to /usr/bin on C001KR.
+
+Now I will try aligning the single copy orthologues using PRANK.
+
+```{bash, eval=FALSE, file='../bash/prank.sh'}
+
+```
+
+
+
+
 ## Align S. fuscus transcriptome to S. scovelli genome
 
 The question is what type of transcripts to use, and how to use them. The easiest/current form is SuperTranscripts, which I don't think will work particularly well for this type of analysis. For sure I want to focus on sex-specific genes only. The question is, what *form* of the genes? Here are my ideas so far:
