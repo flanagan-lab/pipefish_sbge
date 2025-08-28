@@ -120,13 +120,23 @@ This resulted in a folder called primary_transcripts containing the protein fast
 
 ```
 
-The overall statistics report that of 112330 genes, 111101 were placed in orthogroups (`r 111101/112330*100` %), which is good. The total number of single-copy orthogroups is 10,504. 
+I also need to put the outputs from transdecoder into the folder with these primary transcripts 
 
-The species tree looks to correctly reflect the known phylogenetic tree structure:
+Then, I need to run OrthoFinder:
+
+```{bash, eval=FALSE}
+# on C001KR -- can't use dropbox because the "(" breaks things
+ ./orthofinder -f /mnt/BigData/genomes/orthofinder/
+```
+
+
+(genomes only) The overall statistics report that of 726348 genes, 319862 were placed in orthogroups (`r 319862/726348*100` %), which is fairly good considering the messiness of the transcriptome (there were ~112k genes without the transcriptome). The total number of single-copy orthogroups is 2278 (down from 10,504 without the transcriptome). 
+
+The species tree looks to correctly reflect the known phylogenetic tree structure (albeit with a long branch to *S. fuscus*):
 
 ```{r orthoTree, eval=TRUE}
 library(ape)
-ortho_tree <- ape::read.tree(text="((H_comes.protein:0.0356618,H_zosterae.protein:0.0383317)0.987331:0.062338,(S_scovelli.protein:0.0242953,(S_typhle.protein:0.0260101,S_acus.protein:0.016738)0.563686:0.0118948)0.987331:0.062338);")
+ortho_tree <- ape::read.tree(text="((H_comes.protein:0.0300949,H_zosterae.protein:0.0355681)0.947398:0.0607965,((S_scovelli.protein:0.0112549,longest_orfs:0.274165)0.438367:0.0217156,(S_typhle.protein:0.0191163,S_acus.protein:0.0120793)0.490145:0.0126776)0.947398:0.0607965);")
 plot(ortho_tree)
 ```
 
