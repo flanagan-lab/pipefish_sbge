@@ -166,30 +166,19 @@ Are any of the single copy orthologs the sex-biased or sex-specific genes?
 # now includes ones that did not align
 # in FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023
 # on linux: setwd("/run/user/1000/gvfs/smb-share:server=file,share=research/FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/")
-files<-list.files(path="06_diff_expr_analysis/01_high_exp_trinity_gene_names",
-           pattern="specific",full.names = TRUE) 
-specific_genes<-do.call(rbind,lapply(files,function(file){
+files<-c(list.files(path="06_diff_expr_analysis/01_high_exp_trinity_gene_names",
+           pattern="specific",full.names = TRUE),
+         list.files(path="06_diff_expr_analysis/01_high_exp_trinity_gene_names",
+           pattern="biased",full.names = TRUE) )
+         
+degs<-do.call(rbind,lapply(files,function(file){
   dat<-read.delim(file, header=FALSE)
   colnames(dat)<-"Trinity_gene"
   dat$sex <- gsub("^.*FU_(\\w{3})(\\w+).*$","\\1",file)
   dat$organ <- gsub("^.*FU_(\\w{3})(\\w+)_.*_.*$","\\2",file)
+  dat$DEG_cat<-gsub("^.*FU_(\\w{3})(\\w+)_(\\w+)_.*$","\\3",file)
   return(dat)
 }))
-
-files<-list.files(path="06_diff_expr_analysis/01_high_exp_trinity_gene_names",
-           pattern="biased",full.names = TRUE) 
-biased_genes<-do.call(rbind,lapply(files,function(file){
-  dat<-read.delim(file, header=FALSE)
-  colnames(dat)<-"Trinity_gene"
-  dat$sex <- gsub("^.*FU_(\\w{3})(\\w+).*$","\\1",file)
-  dat$organ <- gsub("^.*FU_(\\w{3})(\\w+)_.*_.*$","\\2",file)
-  return(dat)
-}))
-
-
-specific_genes$DEG_cat<-"sex_specific"
-biased_genes$DEG_cat<-"sex_biased"
-degs<-rbind(specific_genes, biased_genes)
 
 # prep the single copy groups for merging
 single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$longest_orfs)
