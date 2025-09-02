@@ -294,3 +294,53 @@ gonad_plot
 liver_plot
 gill_plot
 ```
+
+```{r proportion-tau75}
+
+# reshape to long format
+tau_75_long <- tau_75 %>%
+  pivot_longer(cols = c(all_samples, female_samples, male_samples),
+               names_to = "sample_type",
+               values_to = "count") %>%
+  mutate(proportion = count / total_genes)
+
+# make a plot
+ggplot(tau_75_long, aes(x = tissue, y = proportion, fill = sample_type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ species) +
+  ylab("Proportion of tau > 0.75 genes") +
+  xlab("Tissue") +
+  theme_minimal()
+
+```
+
+```{r prop-tau75-stacked}
+# reshape to long format
+tau_75_long <- tau_75 %>%
+  pivot_longer(cols = c(all_samples, female_samples, male_samples),
+               names_to = "sample_type",
+               values_to = "count") %>%
+  mutate(proportion = count / total_genes)
+
+# create dataset with "above" and "below" categories
+tau_75_stack <- tau_75_long %>%
+  mutate(above = proportion,
+         below = 1 - proportion) %>%
+  pivot_longer(cols = c("above", "below"),
+               names_to = "tau_category",
+               values_to = "prop")
+
+# plot stacked bar chart
+ggplot(tau_75_stack,
+       aes(x = tissue, y = prop, fill = tau_category)) +
+  geom_col(position = "stack") +
+  facet_grid(sample_type ~ species) +
+  scale_fill_manual(values = c("above" = "steelblue", "below" = "grey80"),
+                    labels = c("> 0.75" , "≤ 0.75"),
+                    name = "Tau") +
+  ylab("Proportion of genes") +
+  xlab("Tissue") +
+  theme_minimal()
+
+```
+

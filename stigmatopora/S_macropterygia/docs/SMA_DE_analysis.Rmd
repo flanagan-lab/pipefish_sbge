@@ -946,8 +946,6 @@ upset(fromList(listInputall),
       keep.order = TRUE,
       order.by = "degree")
 
-
-
 ```
 
 In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
@@ -2490,3 +2488,23 @@ ggsave("figs/FigGO_indv.png", figGO, height=5, width=8)
     #        row.names = FALSE,
      #       col.names = FALSE)
 ```
+
+```{r merge-SB-blast}
+
+logFC_long_tauSB <- read.csv("data/logFC_long_taubiasSB.csv")
+blast_output_all <- read.csv("data/SM_blast_output.csv")
+
+blast_SB_merged <- merge(logFC_long_tauSB, blast_output_all, by = "trin_geneid", all = TRUE)
+
+#write once then comment out
+#write.csv(as.data.frame(blast_SB_merged), "data/SM_blast_SB_merged.csv", row.names = TRUE)
+
+#add SS dataset
+logFC_long_tauSS <- read.csv("data/logFC_long_taubias_SS.csv")
+
+blast_SB_SS_merged <- merge(blast_SB_merged, logFC_long_tauSS, by = "trin_geneid", all = TRUE)
+
+#write once then comment out
+#write.csv(as.data.frame(blast_SB_SS_merged), "data/SM_blast_SB_SS_merged.csv", row.names = TRUE)
+```
+
