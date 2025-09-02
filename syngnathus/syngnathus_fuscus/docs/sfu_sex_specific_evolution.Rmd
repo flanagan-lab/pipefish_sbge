@@ -200,9 +200,6 @@ deg_sc_orthologs<-merge(single_copy_groups,
                                  by.y = "Trinity_gene",
                         all.x=TRUE) # keep all single copy orthogroups but not all DEGs
 deg_sc_orthologs<-unique(deg_sc_orthologs)
-```
-
-... but let's summarise for now.
 
 # fill in gaps to avoid NAs
 deg_sc_orthologs$DEG_cat[is.na(deg_sc_orthologs$DEG_cat)]<-"unbiased"
@@ -214,7 +211,7 @@ deg_sc_orthologs$sex<-as.factor(deg_sc_orthologs$sex)
 deg_sc_orthologs$organ<-as.factor(deg_sc_orthologs$organ)
 ```
 
-The ones without an Orthogroup are those that were not in the single copy list, so we'll disregard those for now
+Now we can summarise the information
 
 ```{r}
 summary(deg_sc_orthologs$DEG_cat)
