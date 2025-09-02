@@ -161,7 +161,7 @@ single_copy_groups <- single_copy_groups[single_copy_groups$Orthogroup %in% sing
 Are any of the single copy orthologs the sex-biased or sex-specific genes?
 
 
-```{r}
+```{r getBiasInfo, eval=FALSE}
 # get the info about which genes were sex specific in which tissues
 # now includes ones that did not align
 # in FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023
@@ -204,10 +204,12 @@ biased_genes<-do.call(rbind,lapply(files,function(file){
 
 ```
 
-```{r}
 specific_genes$DEG_cat<-"sex_specific"
 biased_genes$DEG_cat<-"sex_biased"
 degs<-rbind(specific_genes, biased_genes)
+
+# prep the single copy groups for merging
+single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$longest_orfs)
 
 deg_sc_orthologs<-merge(single_copy_groups,
                         degs,
@@ -219,7 +221,7 @@ deg_sc_orthologs<-unique(deg_sc_orthologs)
 
 ... but let's summarise for now.
 
-```{r}
+# fill in gaps to avoid NAs
 deg_sc_orthologs$DEG_cat[is.na(deg_sc_orthologs$DEG_cat)]<-"unbiased"
 deg_sc_orthologs$sex[is.na(deg_sc_orthologs$sex)]<-"unbiased"
 deg_sc_orthologs$organ[is.na(deg_sc_orthologs$organ)]<-"unbiased"
