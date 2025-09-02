@@ -205,6 +205,14 @@ deg_sc_orthologs<-unique(deg_sc_orthologs)
 deg_sc_orthologs$DEG_cat[is.na(deg_sc_orthologs$DEG_cat)]<-"unbiased"
 deg_sc_orthologs$sex[is.na(deg_sc_orthologs$sex)]<-"unbiased"
 deg_sc_orthologs$organ[is.na(deg_sc_orthologs$organ)]<-"unbiased"
+
+# save to file
+write.csv(deg_sc_orthologs,"single_copy_DEG.csv",quote=FALSE, row.names = FALSE)
+```
+
+
+```{r getDEGorthogroups}
+deg_sc_orthologs<-read.csv("single_copy_DEG.csv")
 # factorise for easier investigation
 deg_sc_orthologs$DEG_cat<-as.factor(deg_sc_orthologs$DEG_cat)
 deg_sc_orthologs$sex<-as.factor(deg_sc_orthologs$sex)
