@@ -215,12 +215,8 @@ summary(deg_sc_orthologs$DEG_cat)
 table(deg_sc_orthologs$DEG_cat, deg_sc_orthologs$sex)
 ```
 
-```{r}
 
-```
-
-
-One interesting development is that some of the trinity genes that seem to have the same name have different proteins in the single copy groups. For example:
+One interesting (?) development is that some of the trinity genes that seem to have the same name have different proteins in the single copy groups. For example:
 
 ```{r}
 deg_sc_orthologs[deg_sc_orthologs$S_fuscus_gene=="TRINITY_DN0_c2_g1",]
@@ -298,7 +294,8 @@ mv OG*fasta ../OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT/
 
 I installed prank v.250331 from source (from github) and copied the executable to /usr/bin on C001KR.
 
-Now I will try aligning the single copy orthologues using PRANK. I will use the codon-aware option, but I am letting it infer the tree itself (mainly because the species tree created by orthofinder and the fasta files have different names)
+Now I will try aligning the single copy orthologues using PRANK. I will use the codon-aware option, but I am letting it infer the tree itself (mainly because the species tree created by orthofinder and the fasta files have different names).
+I have to run this in a directory that does not have weird characters (so I'm running it in /mnt/BigData/genomes/orthofinder) and I need to use the -shortnames flag to avoid an allocation error. 
 
 ```{bash, eval=FALSE, file='../bash/prank.sh'}
 
