@@ -323,6 +323,16 @@ done
 
 And finally, we can run aBSREL to estimate selection -- need trees though. The tree needs to match the header, I think. What order are the headers in? In the OG.txt, they are H. comes -> H. zosterae -> S. acus -> S. scovelli -> S. typhle -> S. fuscus. But that does not seem to be their order in OG.fasta, which seems to be in alphabetical order? Maybe based on the all_fastas.txt order. 
 
+
+```{bash,eval=FALSE}
+# 1 = OG; 2 = H_comes; 3=H_zos; 4=S_acus; 5=S_scov; 6=S_typhle; 7=S_fus
+grep "OG0016975" single_copy_DEG.csv | perl -pe 's/^.*\,(OG\d+)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*),(.*)/\2/g'
+
+```
+
+
+I could loop through/grep the single_copy_DEG file to get the names of the genes
+
 I think the tree(s) will also need to be annotated with the FG branch associated with S. fuscus. 
 
 ```{bash, eval=FALSE}
