@@ -16,6 +16,6 @@ fi
 for fa in $FASTA_DIR/*fa
 do
 	ID=$(basename $fa .fa) # remove the extension
-	echo "prank -d=$fa -t=$SPP_TREE -o=$OUT_DIR/$ID"
+	prank -d=$fa -t=$SPP_TREE -o=$OUT_DIR/$ID -codon -shortnames
 done
 
