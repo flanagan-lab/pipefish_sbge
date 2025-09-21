@@ -54,6 +54,19 @@ I will translate the transcriptome to be able to use it in the orthofinder analy
 for fa in *fasta; do ../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t $fa -m 50 --complete_orfs_only; done
 ```
 
+```{bash, eval=FALSE}
+# to run on the RCH
+module load prefix/2025
+module load prefix/latest
+module load TransDecoder/5.7.1-GCC-12.3.0
+
+
+../TransDecoder-TransDecoder-v5.7.1/TransDecoder.LongOrfs -t /home/spf50/trinity_out_dir_fuscus_June2023.Trinity.fasta -m 50 --complete_orfs_only
+
+
+```
+
+
 Some of them have multiple sequences and they're all in sub-folders now, which is kind of annoying
 
 The manual says it works better on a whole transcriptome than on single genes, so I'll run it on the transcriptome file, I guess. 
