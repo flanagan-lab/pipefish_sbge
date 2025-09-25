@@ -15,8 +15,7 @@ fi
 
 for fa in $FASTA_DIR/*fasta
 do
-	ID=$(basename $fa .fa) # remove the extension
-	prank -d=$fa -t=$SPP_TREE -o=$OUT_DIR/$ID -codon -shortnames
 	ID=$(basename $fa .fasta) # remove the extension
+	prank -d=$fa -o=$OUT_DIR/$ID -translate -shortnames
 done
 
