@@ -352,7 +352,7 @@ ls *fasta > all_fastas.txt
 sed -i 's/\r//g' OG*.txt
 
 # now use grep plus cat plus sed to merge files into one
-for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | xargs cat | sed 's/>/\n>/g' > $og_id.fasta; done 
+for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | xargs cat | sed 's/\w>/\n>/g' > $og_id.fasta; done 
 ```
 
 I'm going to move these fasta files into a new folder for better file organisation
