@@ -30,6 +30,8 @@ knitr::opts_chunk(eval=FALSE)
 library(knitr)
 library(kableExtra)
 library(spfTools)
+library(vioplot)
+library(multcompView)
 ```
 ```{r}
 parse_gff<-function(filename){

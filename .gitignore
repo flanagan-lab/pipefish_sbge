@@ -64,4 +64,9 @@ stigmatopora/S_argus/docs/S_argus_Analysing_RNAseq_data.tex
 *.tiff
 *results/*
 syngnathus/syngnathus_fuscus/Results_Feb11/
-
+*matrix
+stigmatopora/results/*
+syngnathus/syngnathus_fuscus/OrthoFinder/*
+syngnathus/syngnathus_fuscus/generating_alignments/*
+syngnathus/syngnathus_fuscus/fix_names_tmp.sh
+*log
