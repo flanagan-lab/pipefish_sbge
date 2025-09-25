@@ -42,6 +42,10 @@ parse_gff<-function(filename){
   return(gff)
 }
 ```
+```{r}
+sex_bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
+```
+
 
 
 The goal is to better understand the sex specific genes -- what's the evolutionary rate? 
