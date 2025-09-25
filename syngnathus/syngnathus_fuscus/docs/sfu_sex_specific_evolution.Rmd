@@ -497,6 +497,63 @@ round(interactions,4)
 
 labs<-multcompLetters4(mod_aov,tuk)
 ```
+
+The key takeaways here are the genes with selection have higher omega values (unsurprisingly), but that of those that are under selection in S. fuscus, female-biased genes > unbiased and female-biased genes > male-biased genes (though unbiased==male-biased).
+
+```{r}
+par(mfrow=c(1,2), mar=c(4,3,4,1))
+vioplot(orthogroups_selection$omega[orthogroups_selection$selection==1] ~ orthogroups_selection$sex[orthogroups_selection$selection==1],
+        xlab="",
+         ylab="",
+        main="selection",
+        col=sex_bias_colors,
+        cex.axis=1,
+        names=c("FB","MB","UB"),
+        cex=1.5,
+        frame.plot=FALSE,
+        xaxt='n',
+        pchMed=21,
+        colMed2=sex_bias_colors,
+        colMed="black",
+        las=1)
+axis(1,pos=0,at=0:3,labels=c("",
+                             paste0("FB\nn=", ns[1,2]),
+                             paste0("MB\nn=", ns[2,2]),
+                             paste0("UB\nn=", ns[3,2])),tick=FALSE)
+# add letters
+text(x=1:3,y=rep(15,3),
+     c(labs[[3]]$Letters[["fem:1"]],
+       labs[[3]]$Letters[["mal:1"]],
+       labs[[3]]$Letters[["unbiased:1"]]), xpd=TRUE)
+
+vioplot(orthogroups_selection$omega[orthogroups_selection$selection==0] ~ orthogroups_selection$sex[orthogroups_selection$selection==0],
+        xlab="",
+        ylab="",
+        main="no selection", 
+        col=sex_bias_colors,
+        cex.axis=1,
+        names=c("FB","MB","UB"),
+        cex=1.5,
+        frame.plot=FALSE,
+        xaxt='n',
+        pchMed=21,
+        colMed2=sex_bias_colors,
+        colMed="black",
+        las=1
+)
+axis(1,pos=0,at=0:3,labels=c("",
+                             paste0("FB\nn=", ns[1,1]),
+                             paste0("MB\nn=", ns[2,1]),
+                             paste0("UB\nn=", ns[3,1])),tick=FALSE)
+# add letters
+text(x=1:3,y=rep(3.25,3),
+     c(labs[[3]]$Letters[["fem:0"]],
+       labs[[3]]$Letters[["mal:0"]],
+       labs[[3]]$Letters[["unbiased:0"]]), xpd=TRUE)
+
+
+mtext("direction of bias",1,outer=TRUE,line=-2)
+mtext(expression(italic("S. fuscus")~"branch"~italic("\u03C9")), 2, outer=TRUE, line=-1)
 ```
 
 ```{r}
