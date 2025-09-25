@@ -392,8 +392,18 @@ Before running the analysis program, I need to remove stop codons (using hyphy's
 ```
 
 
+I think the tree will also need to be annotated so that the S. fuscus branch has the the {FG} label.
 
 ```{bash, eval=FALSE}
+# move tree to syngnathus_fuscus/ on Dropbox
+cp /mnt/BigData/genomes/orthofinder/OrthoFinder/Results_Sep16/Species_Tree/SpeciesTree_rooted.txt ./
+# remove '.protein' after the downloaded species' info
+sed -ie 's/\.protein//g' SpeciesTree_rooted.txt
+# change and annotate the S_fuscus label
+sed -ie 's/trinity_supertran_fuscus.fasta.transdecoder/S_fuscus\{FG\}/g' SpeciesTree_rooted.txt 
+```
+
+
 
 for fa in OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT/OG*.fasta
 do
