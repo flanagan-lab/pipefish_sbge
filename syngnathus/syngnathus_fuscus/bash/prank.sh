@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # paths relative to location of script
-FASTA_DIR="/mnt/BigData/genomes/orthofinder/OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT"
-SPP_TREE="../OrthoFinder/Results_Aug15/Species_Tree/SpeciesTree_rooted.txt"
-OUT_DIR="/mnt/BigData/genomes/orthofinder/OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Alignments"
+FASTA_DIR="/mnt/BigData/genomes/orthofinder/OrthoFinder/Results_Sep16/Single_Copy_Orthologue_Seqs_NT"
+OUT_DIR="/mnt/BigData/genomes/orthofinder/OrthoFinder/Results_Sep16/Single_Copy_Orthologue_Alignments"
 
 # move to location of script
 cd "${0%/*}" 
