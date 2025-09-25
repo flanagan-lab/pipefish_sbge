@@ -434,7 +434,20 @@ rownames(test_results)<-absrel_files
 colnames(test_results)<-c("orthogroup","selection", "omega")
 ```
 
+I would like to know what type of expression these orthogroups had, so I will merge them ..
 
+```{r, eval=FALSE}
+orthogroups_selection<-merge(test_results, deg_sc_orthologs, by.x="orthogroup",by.y="Orthogroup")
+write.csv(orthogroups_selection,
+          "orthogroups_absrel_results.csv",
+          quote = FALSE,
+          row.names = FALSE)
+```
+
+```{r}
+orthogroups_selection<-read.csv("orthogroups_absrel_results.csv")
+
+```
 ```
 
 
