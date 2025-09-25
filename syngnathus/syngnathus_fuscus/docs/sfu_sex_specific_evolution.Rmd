@@ -318,8 +318,8 @@ for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | x
 I'm going to move these fasta files into a new folder for better file organisation
 
 ```{bash, eval=FALSE}
-mkdir ../OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT
-mv OG*fasta ../OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT/
+mkdir ../OrthoFinder/Results_Sep16/Single_Copy_Orthologue_Seqs_NT
+mv OG*fasta ../OrthoFinder/Results_Sep16/Single_Copy_Orthologue_Seqs_NT/
 ```
 
 
