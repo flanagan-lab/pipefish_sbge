@@ -462,8 +462,41 @@ ns<-table(orthogroups_selection$sex,
 kable(ns,"latex",col.names = c("no selection","selection"))
 ```
 
+We can use a proportion test to see if there is a higher proportion of female-biased genes than unbiased...or chi-squared test?
 
+```{r}
+(selchi<-chisq.test(ns, simulate.p.value = TRUE)) # use MC sims
+selchi$expected
 
+# to delete -- chisq is better
+prop.test(x=ns[1,2], # successes
+          n=sum(ns[1,]), # trials
+          p=ns[3,2]/(ns[3,1]+ns[3,2]) # probability
+)
+prop.test(x=ns[2,2], # successes
+          n=sum(ns[2,]), # trials
+          p=ns[3,2]/(ns[3,1]+ns[3,2]) # probability
+)
+```
+
+are the omega values different?
+
+The residuals look ok despite the skewed distributions so I'll just continue without transformation
+
+```{r, fig.show='hide'}
+mod<-lm(orthogroups_selection$omega~orthogroups_selection$sex*orthogroups_selection$selection)
+par(mfrow=c(2,2))
+plot(mod)
+
+anova(mod)
+
+mod_aov<-aov(orthogroups_selection$omega~as.factor(orthogroups_selection$sex)*as.factor(orthogroups_selection$selection))
+tuk<-TukeyHSD(mod_aov)
+interactions<-tuk[[3]]
+round(interactions,4)
+
+labs<-multcompLetters4(mod_aov,tuk)
+```
 ```
 
 ```{r}
