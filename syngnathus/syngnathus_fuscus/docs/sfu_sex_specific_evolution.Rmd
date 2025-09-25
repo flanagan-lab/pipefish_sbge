@@ -404,15 +404,10 @@ sed -ie 's/trinity_supertran_fuscus.fasta.transdecoder/S_fuscus\{FG\}/g' Species
 ```
 
 
+```{bash, file='../bash/absrel.sh', eval=FALSE}
 
-for fa in OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Seqs_NT/OG*.fasta
-do
-  og=$(basename $fa .fasta)
-  hyphy ~/Programs/hyphy-2.5.78/res/TemplateBatchFiles/CleanStopCodons.bf Universal $fa "Disallow stops" $og_clean.fa
-done
 ```
 
-And finally, we can run aBSREL to estimate selection -- need trees though. The tree needs to match the header, I think. What order are the headers in? In the OG.txt, they are H. comes -> H. zosterae -> S. acus -> S. scovelli -> S. typhle -> S. fuscus. But that does not seem to be their order in OG.fasta, which seems to be in alphabetical order? Maybe based on the all_fastas.txt order. 
 
 
 ```{bash,eval=FALSE}
