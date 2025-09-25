@@ -410,19 +410,12 @@ sed -ie 's/trinity_supertran_fuscus.fasta.transdecoder/S_fuscus\{FG\}/g' Species
 
 
 
-```{bash,eval=FALSE}
-# 1 = OG; 2 = H_comes; 3=H_zos; 4=S_acus; 5=S_scov; 6=S_typhle; 7=S_fus
-grep "OG0016975" single_copy_DEG.csv | perl -pe 's/^.*\,(OG\d+)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*)\,(.*),(.*)/\2/g'
 
 ```
 
 
-I could loop through/grep the single_copy_DEG file to get the names of the genes
 
-I think the tree(s) will also need to be annotated with the FG branch associated with S. fuscus. 
 
-```{bash, eval=FALSE}
-/path/to/hyphy/hyphy absrel --alignment <alignment_file> --tree <tree_file> --code <genetic_code> --branches FG --output <output_file>
 ```
 
 
