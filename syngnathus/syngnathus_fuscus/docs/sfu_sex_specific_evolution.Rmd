@@ -385,7 +385,13 @@ I will likely need to check some of these alignments.
 
 I am installing hyphy v 2.5.78 on C001KR from source. My goal is to run it on all the single copy orthologs and then we can compare estimates of selection on the genes in different categories.
 
-Before running the analysis program, I need to remove stop codons. hyphy has a tool I can use for that
+Before running the analysis program, I need to remove stop codons (using hyphy's tool) and change the names to match the species tree (using my own bash/regex). I will use the `single_copy_DEG.csv` file to get the names of the genes for each orthogroup.
+
+```{bash,eval=FALSE, file='../fix_names.sh'}
+
+```
+
+
 
 ```{bash, eval=FALSE}
 
