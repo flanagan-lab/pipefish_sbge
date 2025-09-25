@@ -132,21 +132,24 @@ for f in *faa ; do python ~/Programs/OrthoFinder/tools/primary_transcript.py $f 
 
 ```
 
-This resulted in a folder called primary_transcripts containing the protein fasta files from the genomes. Note that I have not yet included the S. fuscus transcriptome here. I then identified orthologs:
-
-```{bash, eval=FALSE}
-/home/sarah/Programs/OrthoFinder/orthofinder -f primary_transcripts/
-
-```
-
+This resulted in a folder called primary_transcripts containing the protein fasta files from the genomes. 
 I also need to put the outputs from transdecoder into the folder with these primary transcripts 
 
 Then, I need to run OrthoFinder:
 
+
 ```{bash, eval=FALSE}
 # on C001KR -- can't use dropbox because the "(" breaks things
- ./orthofinder -f /mnt/BigData/genomes/orthofinder/
+# without the transdecoder transcriptome
+/home/sarah/Programs/OrthoFinder/orthofinder -f primary_transcripts/ #Feb 11 option
+
+# copy all *protein.faa files into orthofinder/ along with longest_orfs.pep
+./orthofinder -f /mnt/BigData/genomes/orthofinder/ #Aug 15 option
+
+# with the non-supertranscriptome option, with trinity_out_dir_fuscus_June2023.Trinity.fasta.transdecoder.pep (removed other fas, faa, pep, fa, and fasta files from the dir)
+/home/sarah/Programs/OrthoFinder/orthofinder -f /mnt/BigData/genomes/orthofinder/ # Sep 12 and 16
 ```
+
 
 
 (genomes only) The overall statistics report that of 726348 genes, 319862 were placed in orthogroups (`r 319862/726348*100` %), which is fairly good considering the messiness of the transcriptome (there were ~112k genes without the transcriptome). The total number of single-copy orthogroups is 2278 (down from 10,504 without the transcriptome). 
