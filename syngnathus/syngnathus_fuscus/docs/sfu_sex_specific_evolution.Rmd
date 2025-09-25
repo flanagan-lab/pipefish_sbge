@@ -168,6 +168,11 @@ plot(ortho_tree)
 cd OrthoFinder/Results_Aug15/
 ls Single_Copy_Orthologue_Sequences/*fa > Single_Copy_Orthologue_Sequences.txt
 
+cd OrthoFinder/Results_Sep12/
+ls Single_Copy_Orthologue_Sequences/*fa > Single_Copy_Orthologue_Sequences.txt
+
+cd OrthoFinder/Results_Sep16/
+ls Single_Copy_Orthologue_Sequences/*fa > Single_Copy_Orthologue_Sequences.txt
 ```
 
 ```{r}
