@@ -69,4 +69,6 @@ stigmatopora/results/*
 syngnathus/syngnathus_fuscus/OrthoFinder/*
 syngnathus/syngnathus_fuscus/generating_alignments/*
 syngnathus/syngnathus_fuscus/fix_names_tmp.sh
+syngnathus/syngnathus_fuscus/trinity_out_dir_fuscus_June2023.Trinity.fasta.transdecoder*
+syngnathus/syngnathus_fuscus/trinity_supertran_fuscus.fasta.transdecoder*
 *log
