@@ -379,9 +379,6 @@ I have to run this in a directory that does not have weird characters (so I'm ru
 
 ```
 
-For some of the files it does not seem to work -- throws a std::bad_alloc() error. But I'm running it anyway just to see what's going on. It might be that the ones it breaks on are poor alignments and/or ones where the CDS of the trinity genes is very short (anecdotal -- based on first few orthogroups). Ok it seems that 3186 threw the error and only 684 ran successfully. But 2278 files were created. 
-
-
 I will likely need to check some of these alignments. 
 
 ## Selection analysis
