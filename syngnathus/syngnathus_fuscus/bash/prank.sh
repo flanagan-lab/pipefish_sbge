@@ -13,7 +13,7 @@ if [ ! -d "$OUT_DIR" ]; then
   mkdir $OUT_DIR # make the dir if it doesn't already exist
 fi
 
-for fa in $FASTA_DIR/*fa
+for fa in $FASTA_DIR/*fasta
 do
 	ID=$(basename $fa .fa) # remove the extension
 	prank -d=$fa -t=$SPP_TREE -o=$OUT_DIR/$ID -codon -shortnames
