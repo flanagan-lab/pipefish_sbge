@@ -355,6 +355,12 @@ sed -i 's/\r//g' OG*.txt
 for og in OG*.txt; do og_id=$(basename $og .txt); grep -f $og all_fastas.txt | xargs cat | sed 's/\w>/\n>/g' > $og_id.fasta; done 
 ```
 
+Do a quick check to make sure they all have six sequences as expected
+
+```{bash, eval=FALSE}
+for file in *fasta; do count=$(grep ">" $file | wc -l); if [ $count -gt '6' ]; then echo $file; fi; done
+```
+
 I'm going to move these fasta files into a new folder for better file organisation
 
 ```{bash, eval=FALSE}
