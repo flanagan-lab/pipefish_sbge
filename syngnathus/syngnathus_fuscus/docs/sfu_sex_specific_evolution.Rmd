@@ -227,8 +227,46 @@ deg_sc_orthologs$DEG_cat[is.na(deg_sc_orthologs$DEG_cat)]<-"unbiased"
 deg_sc_orthologs$sex[is.na(deg_sc_orthologs$sex)]<-"unbiased"
 deg_sc_orthologs$organ[is.na(deg_sc_orthologs$organ)]<-"unbiased"
 
+# remove and condense duplicates
+# Some orthogroups have multiple combinations of sex/organ/DEG categories. Most of these are the case of being labelled as both biased and specific in the same sex and organ, which would be better to be condensed into just 'specific'. 
+dup_ogs<-deg_sc_orthologs$Orthogroup[duplicated(deg_sc_orthologs$Orthogroup)]
+deduped<-do.call(rbind,lapply(unique(deg_sc_orthologs$Orthogroup), function(og){
+  this_og<-deg_sc_orthologs[deg_sc_orthologs$Orthogroup==og,]
+  # check if it's duplicated
+  if(nrow(this_og)>1){
+    # check that all other elements are duplicated
+    if(nrow(unique(this_og[,1:8]))==1){
+      # if it's the same organ and sex then we probably just need to convert to "biased"
+      if(length(unique(this_og$sex)) ==1 & length(unique(this_og$organ))==1){
+        # if it is the case of biased and specific being the only difference
+        if(sum(this_og$DEG_cat %in% c("biased","specific")) == nrow(this_og)){
+          this_og$DEG_cat[this_og$DEG_cat=="biased"]<-"specific"
+          if(nrow(unique(this_og))==1){ # sanity check that this fixed it
+            return(unique(this_og))
+          } else{
+            browser()
+          }
+        }
+      } else{
+        # we'll need to combine info somehow
+        this_og$sex<-paste0(this_og$sex, collapse=";")
+        this_og$organ<-paste0(this_og$organ, collapse=";")
+        if(nrow(unique(this_og))==1){ # sanity check that this fixed it
+            return(unique(this_og))
+          } else{
+            browser()
+          }
+      }
+    } else{
+      browser()
+    }
+  } else{
+    return(this_og) # just return it if it's not duplicated
+  }
+}))
+
 # save to file
-write.csv(deg_sc_orthologs,"single_copy_DEG.csv",quote=FALSE, row.names = FALSE)
+write.csv(deduped,"single_copy_DEG.csv",quote=FALSE, row.names = FALSE)
 ```
 
 
