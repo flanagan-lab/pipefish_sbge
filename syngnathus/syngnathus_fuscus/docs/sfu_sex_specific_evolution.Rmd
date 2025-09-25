@@ -176,13 +176,14 @@ ls Single_Copy_Orthologue_Sequences/*fa > Single_Copy_Orthologue_Sequences.txt
 ```
 
 ```{r}
-# these should be intermediate_data/ but are also on Dropbox
+# these should be intermediate_data/ but are also on Dropbox (not in 08_)
 
-single_copy_groups <- read.table("OrthoFinder/Results_Aug15/Orthogroups/Orthogroups.tsv", sep='\t', header=TRUE)
+single_copy_groups <- read.table("08_sex_specific_evolution/OrthoFinder/Results_Sep16/Orthogroups/Orthogroups.tsv", sep='\t', header=TRUE)
 
-single_copy_list <- read.table("OrthoFinder/Results_Aug15/Single_Copy_Orthologue_Sequences.txt")
+single_copy_list <- read.table("08_sex_specific_evolution/OrthoFinder/Results_Sep16/Single_Copy_Orthologue_Sequences.txt")
 single_copy_list <- gsub("Single_Copy_Orthologue_Sequences\\/(.*)\\.fa","\\1",single_copy_list$V1)
 single_copy_groups <- single_copy_groups[single_copy_groups$Orthogroup %in% single_copy_list,]
+
 ```
 
 Are any of the single copy orthologs the sex-biased or sex-specific genes?
@@ -208,14 +209,18 @@ degs<-do.call(rbind,lapply(files,function(file){
 }))
 
 # prep the single copy groups for merging
-single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$longest_orfs)
+#single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$longest_orfs) for Aug one
+# single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$trinity_out_dir_fuscus_June2023.Trinity.fasta.transdecoder) # for Sep 12 one - saved in single_copy_DEG_notsuper.csv
+single_copy_groups$S_fuscus_gene<-gsub("(g\\d+)\\.p\\d+","\\1",single_copy_groups$trinity_supertran_fuscus.fasta.transdecoder) # for Sep 16 one
+
+
 
 deg_sc_orthologs<-merge(single_copy_groups,
                         degs,
                                  by.x="S_fuscus_gene",
                                  by.y = "Trinity_gene",
                         all.x=TRUE) # keep all single copy orthogroups but not all DEGs
-deg_sc_orthologs<-unique(deg_sc_orthologs)
+
 
 # fill in gaps to avoid NAs
 deg_sc_orthologs$DEG_cat[is.na(deg_sc_orthologs$DEG_cat)]<-"unbiased"
@@ -261,7 +266,7 @@ write.table(single_copy_groups$H_comes.protein, "generating_alignments/H_comes_p
 write.table(single_copy_groups$H_zosterae.protein, "generating_alignments/H_zosterae_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
 write.table(single_copy_groups$S_acus.protein, "generating_alignments/S_acus_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
 write.table(single_copy_groups$S_typhle.protein, "generating_alignments/S_typhle_protein_names.txt",quote=FALSE,row.names = FALSE, col.names = FALSE, eol='\n')
-write.table(single_copy_groups$longest_orfs,
+write.table(single_copy_groups$trinity_supertran_fuscus.fasta.transdecoder,
             "generating_alignments/S_fuscus_protein_names.txt", quote=FALSE, row.names = FALSE, col.names = FALSE, eol='\n')
 ```
 
@@ -279,7 +284,7 @@ Now I can extract them using my custom extract_genes_fasta program. For it to wo
 for fa in *genomic.fna; do spp=$(echo $fa | perl -pe 's/([A-Z]\_[a-z]+)\_cds_from_genomic.fna/\1/g'); ../extract_genes_fasta -f $fa -l ${spp}_fna_headers.txt -o ${spp}_ -s; done
 ```
 
-I will also need to do this with the S. fuscus longest ORFs
+I will also need to do this with the $S. fuscus$ TransDecoder output
 
 ```{bash,eval=FALSE}
 # extract the header info
