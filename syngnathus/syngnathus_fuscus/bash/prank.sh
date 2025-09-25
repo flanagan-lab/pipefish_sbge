@@ -16,5 +16,6 @@ for fa in $FASTA_DIR/*fasta
 do
 	ID=$(basename $fa .fasta) # remove the extension
 	prank -d=$fa -o=$OUT_DIR/$ID -translate -shortnames
+	rm -r tmpdirprank* #remove the temporary directory that's created
 done
 
