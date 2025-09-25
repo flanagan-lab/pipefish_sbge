@@ -328,7 +328,7 @@ I will also need to do this with the $S. fuscus$ TransDecoder output
 
 ```{bash,eval=FALSE}
 # extract the header info
-grep -f S_fuscus_protein_names.txt ../trinity_supertran_fuscus.fasta.transdecoder_dir/longest_orfs.cds | perl -pe 's/>//g' > S_fuscus_headers.txt
+grep -f S_fuscus_protein_names.txt ../trinity_supertran_fuscus.fasta.transdecoder_dir/longest_orfs.cds | perl -pe 's/^>//g' > S_fuscus_headers.txt
 # extract the CDS files from the fuscus transcriptome
 ../extract_genes_fasta -f ../trinity_supertran_fuscus.fasta.transdecoder_dir/longest_orfs.cds -l S_fuscus_headers.txt -o S_fuscus_ -s
 ```
