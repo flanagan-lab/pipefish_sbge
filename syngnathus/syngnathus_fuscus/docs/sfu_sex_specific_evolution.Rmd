@@ -286,6 +286,8 @@ table(deg_sc_orthologs$DEG_cat, deg_sc_orthologs$sex)
 ```
 
 
+
+
 One interesting (?) development is that some of the trinity genes that seem to have the same name have different proteins in the single copy groups. For example:
 
 ```{r}
@@ -315,7 +317,7 @@ Then I use this script to extract the headers and remove the ">" symbol at the s
 ```
 
 
-Now I can extract them using my custom extract_genes_fasta program. For it to work, I had to edit the program to allow the names to be simplified (remove anything after the first space in the header). *Note*: this will not find matches if the ">" is in the list of headers
+Now I can extract the genes from each genome cds using my custom `extract_genes_fasta` program. For it to work, I had to edit the program to allow the names to be simplified (remove anything after the first space in the header). *Note*: this will not find matches if the ">" is in the list of headers
 
 ```{bash, eval=FALSE}
 # in generating_alignments
