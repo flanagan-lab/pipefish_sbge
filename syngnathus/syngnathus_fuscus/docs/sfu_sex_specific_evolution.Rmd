@@ -454,6 +454,51 @@ orthogroups_selection_all<-read.csv("orthogroups_absrel_results.csv")
 table(orthogroups_selection_all$sex,
       orthogroups_selection_all$selection)
 ```
+
+```{r}
+table(paste0(orthogroups_selection_all$sex,"_" ,orthogroups_selection_all$organ),
+      orthogroups_selection_all$selection, orthogroups_selection_all$DEG_cat)
+```
+
+
+
+I would like to also match this up with the expression data for these genes.
+
+
+```{r}
+logFC_tau<-read.csv("../logFC_long_taubias_SS.csv")
+
+orthogroups_selection_all<-do.call(rbind,apply(orthogroups_selection_all,
+                            1,
+                            function(gene, expr_info){
+                            
+                             this_gene<-data.frame(rbind(gene))
+                             #print(gene["S_fuscus_gene"])
+                             this_info<-expr_info[expr_info$geneID==gene["S_fuscus_gene"],]
+                              
+                              this_info<-this_info[!is.na(this_info$logFC),]
+                             if(nrow(this_info)>3){
+                               browser()
+                               
+                             } else if(nrow(this_info) <3){
+                               this_gene$tau <- NA
+                               this_gene$Gill_logFC<-NA
+                               this_gene$Gonad_logFC<-NA
+                               this_gene$Liver_logFC<-NA
+                             } else{
+                               this_gene$tau<-mean(this_info$tau)
+                              
+                              this_gene$Gill_logFC<-this_info$logFC[this_info$tissue=="Gill"]
+                               this_gene$Gonad_logFC<-this_info$logFC[this_info$tissue=="Gonad"]
+                               this_gene$Liver_logFC<-this_info$logFC[this_info$tissue=="Liver"]
+                              
+                             }
+                             return(this_gene)
+                            }, expr_info=logFC_tau))
+
+# convert the categories if they were
+orthogroups_selection_all$DEG_cat[is.na(orthogroups_selection_all$tau)]<-NA
+
 ```
 
 ```{r}
