@@ -486,13 +486,17 @@ are the omega values different?
 The residuals look ok despite the skewed distributions so I'll just continue without transformation
 
 ```{r, fig.show='hide'}
-mod<-lm(orthogroups_selection$omega~orthogroups_selection$sex*orthogroups_selection$selection)
+# remove the 3 observations that are a switch
+orthogroups_selection$sex[orthogroups_selection$sex=="mal;mal"]<-"mal"
+orthogroups_selection<-orthogroups_selection[orthogroups_selection$sex %in% c("fem","mal","unbiased"),]
+
+mod<-lm(rank(orthogroups_selection$omega)~orthogroups_selection$sex*orthogroups_selection$selection)
 par(mfrow=c(2,2))
 plot(mod)
 
 anova(mod)
 
-mod_aov<-aov(orthogroups_selection$omega~as.factor(orthogroups_selection$sex)*as.factor(orthogroups_selection$selection))
+mod_aov<-aov(rank(orthogroups_selection$omega)~as.factor(orthogroups_selection$sex)*as.factor(orthogroups_selection$selection))
 tuk<-TukeyHSD(mod_aov)
 interactions<-tuk[[3]]
 round(interactions,4)
