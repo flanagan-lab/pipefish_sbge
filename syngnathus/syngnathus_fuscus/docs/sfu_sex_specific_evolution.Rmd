@@ -710,39 +710,117 @@ grep ">" S_scovelli.protein.faa | sed -e 's/>//g' | sed -e 's/ .*$//g' | uniq - 
 
 orthogroups enrichment job ID: 9b85eddb-eb3c-46a5-a2b3-038305675933
 
+Let's look up the sex-specific genes under selection
 
 ```{r}
+fem_specific_sel<-orthogroups_selection[orthogroups_selection$selection==1 & orthogroups_selection$sex=="fem" & orthogroups_selection$DEG_cat=="specific",]
 
+mal_specific_sel<-orthogroups_selection[orthogroups_selection$selection==1 & orthogroups_selection$sex=="mal" & orthogroups_selection$DEG_cat=="specific",]
 
+keggs[keggs$V1%in% mal_specific_sel$S_scovelli.protein,]
 ```
 
+```{r, eval=FALSE}
+ssc_gff<-parse_gff("genomic.gff")
 
+scov_annotations<-do.call(rbind,lapply(orthogroups_selection_all$S_scovelli.protein, function(prot, gff){
   
+  IDs<-grep(prot, gff$description, value=TRUE)
+  IDs<-gsub("^.*product=(.*);protein_id.*$","\\1",IDs)
+  IDs <- unique(IDs)
+  if(length(IDs)==1){
+    return(cbind(prot, IDs))
+  } else{
+    browser()
+  }
+}, gff=ssc_gff))
+write.csv(scov_annotations, "scovelli_ortholog_annotations.csv", quote=FALSE, row.names = FALSE)
 ```
 
 
 ```{r}
+scov_annotations<- read.csv("scovelli_ortholog_annotations.csv")
+orthogroups_selection_all<-merge(orthogroups_selection_all,
+                                 scov_annotations,
+                                 by.x="S_scovelli.protein",
+                                 by.y="prot")
 ```
+
+Let's take a look at those that were sex-specific and under selection -- I can report these in the text. 
+
+```{r}
+orthogroups_selection_all[orthogroups_selection_all$selection==1 & 
+                            orthogroups_selection_all$DEG_cat=="specific" &
+                            orthogroups_selection_all$sex=="fem",]
+```
+```{r}
+orthogroups_selection_all[orthogroups_selection_all$selection==1 & 
+                            orthogroups_selection_all$DEG_cat=="specific" &
+                            orthogroups_selection_all$sex=="mal",]
+```
+
 
 
 ```{r}
-```
+# reorder the columns
+orthogroups_selection_all<-orthogroups_selection_all[,c(
+  "trinity_supertran_fuscus.fasta.transdecoder",
+  "tau","Gill_logFC", "Gonad_logFC", "Liver_logFC",
+  "DEG_cat", "sex",    "organ",
+  "orthogroup",
+  "H_comes.protein", "H_zosterae.protein",
+   "S_acus.protein", "S_typhle.protein",
+  "S_scovelli.protein", 
+  "IDs",
+  "selection", "omega"
+)]
+write.csv(orthogroups_selection_all, 
+          "orthogroups_selection_annotations.csv",
+          quote=FALSE,
+          row.names=FALSE)
 ```
 
-
+It might also be interesting to have a table of the genes that have omega > 1 (and are under selection). Let's look at that.
 
 ```{r}
-```
+orthogroups_selection_all$omega<-as.numeric(orthogroups_selection_all$omega)
+orthogroups_selection_all$selection<-as.numeric(orthogroups_selection_all$selection)
 
+top_omega<-orthogroups_selection_all[orthogroups_selection_all$selection==1 & 
+                                       orthogroups_selection_all$omega > 1 &
+                                       orthogroups_selection_all$omega <100,]
+
+# sort by omega value
+top_omega<- top_omega[order(top_omega$omega, decreasing = TRUE),]
+
+# rename categories
+top_omega$DEG_cat <- paste0(top_omega$sex, "-", top_omega$DEG_cat, "_", top_omega$organ)
+top_omega$DEG_cat[top_omega$DEG_cat=="unbiased-unbiased_unbiased"]<-"unbiased"
+
+# reorder the columns and remove unnecessary ones
+top_omega<-top_omega[,c("trinity_supertran_fuscus.fasta.transdecoder",
+                        "DEG_cat",
+                        "tau",
+                        "Gonad_logFC",
+                        "omega",
+                        "orthogroup",
+                        "IDs"
+                        )]
+
+# rename the columns
+colnames(top_omega)<-c("S. fuscus Trinity protein ID",
+                        "Differential expression category",
+                       "tau",
+                       "log Fold Change in gonad",
+                        "S. fuscus branch omega",
+                        "orthogroup ID",
+                        "Product name from S. scovelli genome"
+                        )
+write.csv(top_omega, "genes_with_omega_above_1.csv", row.names=FALSE, quote=FALSE)
+```
 
 ```{r}
-
-
-
-
-
+kable(top_omega, "latex")
 ```
 
-```{r}
-```
 
