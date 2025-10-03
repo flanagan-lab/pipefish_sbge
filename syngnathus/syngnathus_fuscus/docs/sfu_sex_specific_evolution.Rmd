@@ -654,25 +654,61 @@ hist(orthogroups_selection$omega[orthogroups_selection$sex=="fem" & orthogroups_
 
 ### what are the selected loci?
 
+I used the web-hosted version of eggNOG to predict KEGG annotations from the S. scovelli genome. This can then be fed into the getEnrich program (I'm using the online interface). For this to work I also need a list of background files and a list of enrichment testing files. I will do this with the single copy orthogroups as the background and then separately for female-biased, male-biased, and unbiased genes.
 
 ```{r}
+write.table(orthogroups_selection_all$S_scovelli.protein,
+            "background_genes_scovelli.txt",
+            sep='\t',quote = FALSE,row.names = FALSE,col.names="gene")
+write.table(orthogroups_selection$S_scovelli.protein[orthogroups_selection$selection==1 & orthogroups_selection$sex=="unbiased"],
+            "unbiased_selection_genes_scovelli.txt",
+            sep='\t',quote = FALSE,row.names = FALSE,col.names="gene")
+write.table(orthogroups_selection$S_scovelli.protein[orthogroups_selection$selection==1 & orthogroups_selection$sex=="mal"],
+            "malebiased_selection_genes_scovelli.txt",
+            sep='\t',quote = FALSE,row.names = FALSE,col.names="gene")
+write.table(orthogroups_selection$S_scovelli.protein[orthogroups_selection$selection==1 & orthogroups_selection$sex=="fem"],
+            "fembiased_selection_genes_scovelli.txt",
+            sep='\t',quote = FALSE,row.names = FALSE,col.names="gene")
+```
+
+I need to reformat the KEGG IDs too
+
+```{r}
+keggs<-read.table("08_sex_specific_selection/MM_at20c6re.emapper.annotations.tsv",
+                  sep='\t',
+                  comment.char="#")
+keggs_for_enrich<-keggs[,c(1,12)]
+colnames(keggs_for_enrich)<-c("gene","term")
+keggs_for_enrich$term<-gsub("ko:","",keggs_for_enrich$term)
+write.table(keggs_for_enrich,
+            "S_scovelli_keggs.tsv",
+            quote=FALSE,
+            row.names = FALSE,
+            col.names = TRUE,
+            sep='\t')
+```
+
+How many of the single copy orthogroups were IDed in the KEGG analysis?
+
+```{r}
+keggs_to_orthogroups<-merge(keggs, orthogroups_selection_all, by.x="V1",by.y="S_scovelli.protein") #1373
 ```
 
 
-```{r}
-```
+Female-biased enrichment job ID: 82da111a-3324-42ba-86cb-0b1223d31caa
+Male-biased enrichment job ID: 5e0c540d-1b47-4cdf-805a-78f9ecc02292
+Unbiased enrichment job ID:2b7a5b6a-4bc6-4c26-8741-809f32661785
 
-
-```{r}
-```
-
-
-
+I would also like to know if the single copy orthologs are enriched for different categories, so I will need to output the list of all S. scovelli genes.
 
 ```{bash, eval=FALSE}
+# in /mnt/BigData/genomes/orthofinder
+echo "gene" > all_scovelli_prot_names.txt
+grep ">" S_scovelli.protein.faa | sed -e 's/>//g' | sed -e 's/ .*$//g' | uniq - >> all_scovelli_prot_names.txt
 
 ```
 
+orthogroups enrichment job ID: 9b85eddb-eb3c-46a5-a2b3-038305675933
 
 
 ```{r}
