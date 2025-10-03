@@ -412,7 +412,7 @@ sed -ie 's/trinity_supertran_fuscus.fasta.transdecoder/S_fuscus\{FG\}/g' Species
 # in \\file\Research\FlanaganLab\intermediate_data\SFU_DE_pipeline_analysis_2023\08_sex_specific_evolution\OrthoFinder\Results_Sep16
 library(jsonlite)
 absrel_files<-list.files(pattern="absrel",
-                         path = "Single_Copy_Orthologue_absrel",
+                         path = "Single_Copy_Orthologue_absrel2",
                          full.names = TRUE) 
 # remove empty files (investigate why they're empty)
 empty <- absrel_files[file.size(absrel_files) == 0L]
@@ -426,7 +426,7 @@ test_results<-do.call(rbind,lapply(absrel_files, function(file){
   
   fuscus<-attributes[grep("fuscus", names(attributes))]
   fuscus_omega <- fuscus[[1]]$`Baseline MG94xREV omega ratio`
-  og<-gsub("Single_Copy_Orthologue_absrel/(OG\\d+)\\.absrel","\\1",file)
+  og<-gsub("Single_Copy_Orthologue_absrel2/(OG\\d+)\\.absrel","\\1",file)
   return(c(og,test_result, fuscus_omega))
 
 }))
