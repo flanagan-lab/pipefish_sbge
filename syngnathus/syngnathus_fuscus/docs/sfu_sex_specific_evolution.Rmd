@@ -602,6 +602,7 @@ hist(orthogroups_selection$omega[orthogroups_selection$sex=="fem" & orthogroups_
      breaks=seq(0,20,0.5))
 ```
 
+### what are the selected loci?
 
 
 ## archive
