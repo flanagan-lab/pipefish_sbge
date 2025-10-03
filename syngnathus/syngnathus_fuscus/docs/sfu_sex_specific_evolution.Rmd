@@ -506,33 +506,51 @@ labs<-multcompLetters4(mod_aov,tuk)
 
 The key takeaways here are the genes with selection have higher omega values (unsurprisingly), but that of those that are under selection in S. fuscus, female-biased genes > unbiased and female-biased genes > male-biased genes (though unbiased==male-biased).
 
-```{r}
-par(mfrow=c(1,2), mar=c(4,3,4,1))
-vioplot(orthogroups_selection$omega[orthogroups_selection$selection==1] ~ orthogroups_selection$sex[orthogroups_selection$selection==1],
+```{r fig5, fig.height=3,fig.width=6,dpi=300,fig.format='pdf'}
+orthogroups_selection$plot_group<-paste0(orthogroups_selection$selection, "_", orthogroups_selection$sex)
+par(mfrow=c(1,1), mar=c(4,3,2,1))
+vioplot(orthogroups_selection$omega ~ orthogroups_selection$plot_group,
         xlab="",
-         ylab="",
-        main="selection",
-        col=sex_bias_colors,
+        ylab="",
+        main="",
+        ylim=c(0,10),
+        col=rep(sex_bias_colors, 2),
         cex.axis=1,
-        names=c("FB","MB","UB"),
         cex=1.5,
         frame.plot=FALSE,
         xaxt='n',
         pchMed=21,
-        colMed2=sex_bias_colors,
+        colMed2=rep(sex_bias_colors,2),
         colMed="black",
         las=1)
-axis(1,pos=0,at=0:3,labels=c("",
-                             paste0("FB\nn=", ns[1,2]),
-                             paste0("MB\nn=", ns[2,2]),
-                             paste0("UB\nn=", ns[3,2])),tick=FALSE)
+axis(1,pos=0,at=0:6,labels=c("",
+                             paste0("FB\nn=", ns["fem",1]),
+                             paste0("MB\nn=", ns["mal",1]),
+                             paste0("UB\nn=", ns["unbiased",1]),
+                             paste0("FB\nn=", ns["fem",2]),
+                             paste0("MB\nn=", ns["mal",2]),
+                             paste0("UB\nn=", ns["unbiased",2])),
+     tick=FALSE)
 # add letters
-text(x=1:3,y=rep(15,3),
-     c(labs[[3]]$Letters[["fem:1"]],
+text(x=1:6,y=rep(9.25,3),
+     c(labs[[3]]$Letters[["fem:0"]],
+       labs[[3]]$Letters[["mal:0"]],
+       labs[[3]]$Letters[["unbiased:0"]],
+       labs[[3]]$Letters[["fem:1"]],
        labs[[3]]$Letters[["mal:1"]],
        labs[[3]]$Letters[["unbiased:1"]]), xpd=TRUE)
 
-vioplot(orthogroups_selection$omega[orthogroups_selection$selection==0] ~ orthogroups_selection$sex[orthogroups_selection$selection==0],
+# add group labels
+lines(x=c(1,3),y=c(10,10))
+text(x=2,y=10.5,"no selection", xpd=TRUE)
+lines(x=c(4,6),y=c(10,10))
+text(x=5,y=10.5,"selection", xpd=TRUE)
+
+# add axis labels
+mtext("direction of bias",1,outer=TRUE,line=-2)
+mtext(expression(italic("S. fuscus")~"branch"~italic("\u03C9")), 2, outer=TRUE, line=-1)
+```
+
         xlab="",
         ylab="",
         main="no selection", 
