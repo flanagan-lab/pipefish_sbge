@@ -458,7 +458,7 @@ table(orthogroups_selection_all$sex,
 
 ```{r}
 # for now, remove those with nonsensical omegas (inspect/revisit later?)
-orthogroups_selection<-orthogroups_selection[which(orthogroups_selection$omega<100),]
+orthogroups_selection<-orthogroups_selection_all[which(orthogroups_selection_all$omega<100),]
 ns<-table(orthogroups_selection$sex,
       orthogroups_selection$selection)
 kable(ns,"latex",col.names = c("no selection","selection"))
