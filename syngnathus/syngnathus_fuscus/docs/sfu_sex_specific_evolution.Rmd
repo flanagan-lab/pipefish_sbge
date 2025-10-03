@@ -664,56 +664,6 @@ hist(orthogroups_selection$omega[orthogroups_selection$sex=="fem" & orthogroups_
 
 
 ```{r}
-single_copy_gff<-merge(single_copy_groups, 
-                       gff_coding,
-                       by.x="S_scovelli.protein",
-                       by.y="Name",
-                       all.x=TRUE) # this has multiple rows per gene
-
-single_copy_aligned <- merge(single_copy_gff, 
-                             aligned_coding,
-                             by="gene", all.y=TRUE)
-# add alignment key
-single_copy_aligned <- merge(single_copy_aligned, alignments[,1:2],
-           by.x = "Trinity_gene", by.y="fuscus_trinity_gene")
-# remove ones that didn't match
-aligned_not_single <-single_copy_aligned[is.na(single_copy_aligned$Orthogroup),]
-single_copy_aligned <- single_copy_aligned[!is.na(single_copy_aligned$Orthogroup),]
-
-# remove extra columns related to the protein matching
-extras<-c("chromosome.x", "method.x", "type.x", "start.x","stop.x", "x.x", "strand.x", "y.x","description.x")
-single_copy_aligned <- single_copy_aligned[,!colnames(single_copy_aligned) %in% extras]
-
-
-# remove extra rows containing multiple cds per protein
-single_copy_aligned <- single_copy_aligned[!duplicated(paste0(single_copy_aligned$Trinity_gene, single_copy_aligned$S_scovelli.protein, single_copy_aligned$sex,single_copy_aligned$organ)),]
-
-
-
-write.csv(single_copy_aligned,"single_copy_aligned_all_info.csv",row.names = FALSE)
-
-```
-```{r}
-# in intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution
-single_copy_aligned<-read.csv("single_copy_aligned_all_info.csv")
-```
-
-
-This results in 49 sex-biased genes (47 unique trinity genes).
-
-```{r}
-aligned_sc_simple <- single_copy_aligned[,c("Trinity_gene",
-                                            "sex",
-                                            "organ",
-                                            "gene",
-                                            "S_scovelli.protein",
-                                            "Orthogroup")]
-write.csv(aligned_sc_simple,
-          "fuscus_to_scovelli_single_copy_genes.csv",
-          row.names = FALSE)
-```
-```{r, eval=TRUE}
-aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
 ```
 
 
