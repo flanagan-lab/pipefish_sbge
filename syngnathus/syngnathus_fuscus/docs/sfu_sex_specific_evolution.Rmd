@@ -596,60 +596,12 @@ mtext("direction of bias",1,outer=TRUE,line=-2)
 mtext(expression(italic("S. fuscus")~"branch"~italic("\u03C9")), 2, outer=TRUE, line=-1)
 ```
 
-```{r}
-orthogroups_selection$plotting_cat<-paste0(orthogroups_selection$sex, "_",orthogroups_selection$DEG_cat)
-orthogroups_selection$plotting_cat[orthogroups_selection$plotting_cat=="unbiased_unbiased"]<-"unbiased"
-orthogroups_selection$plotting_cat<-paste0(orthogroups_selection$selection,"_",orthogroups_selection$plotting_cat)
-counts<-table(orthogroups_selection$plotting_cat)
 
-par(mfrow=c(1,1), mar=c(4,3,2,1))
-vioplot(orthogroups_selection$omega ~ orthogroups_selection$plotting_cat,
-        xlab="",
-         ylab="",
-        main="",
-        col=rep(c(sex_bias_colors[1],sex_bias_colors[1],sex_bias_colors[2],sex_bias_colors[2],sex_bias_colors[3]),2),
-        cex.axis=1,
-        cex=1.5,
-        frame.plot=FALSE,
-        xaxt='n',
-        pchMed=21,
-        colMed2=rep(c(sex_bias_colors[1],sex_bias_colors[1],sex_bias_colors[2],sex_bias_colors[2],sex_bias_colors[3]),2),
-        colMed="black",
-        las=1)
 
-plot_labs<-paste0(rep(c("FB","FS","MB","MS","UB"),2),"\nn=",counts)
-axis(1,pos=0,at=0:10,labels=c("",
-                             plot_labs),tick=FALSE)
-lines(x=c(1,5),y=c(8,8))
-text(x=3,y=8.5,"no selection")
-lines(x=c(6,10),y=c(8,8))
-text(x=8,y=8.5,"selection")
 
-mtext("direction of bias",1,outer=TRUE,line=-2)
-mtext(expression(italic("S. fuscus")~"branch"~italic("\u03C9")), 2, outer=TRUE, line=-1)
 ```
 
-
 ```{r}
-par(mfrow=c(1,3))
-hist(orthogroups_selection$omega[orthogroups_selection$sex=="mal" & orthogroups_selection$selection==1],
-     xlim=c(0,15),
-     main="",
-     xlab="",
-     ylab="", 
-     breaks=seq(0,20,0.5))
-hist(orthogroups_selection$omega[orthogroups_selection$sex=="unbiased" & orthogroups_selection$selection==1],
-     xlim=c(0,15),
-     main="",
-     xlab="",
-     ylab="", 
-     breaks=seq(0,20,0.5))
-hist(orthogroups_selection$omega[orthogroups_selection$sex=="fem" & orthogroups_selection$selection==1],
-     xlim=c(0,15),
-     main="",
-     xlab="",
-     ylab="",
-     breaks=seq(0,20,0.5))
 ```
 
 ### what are the selected loci?
