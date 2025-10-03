@@ -655,185 +655,11 @@ hist(orthogroups_selection$omega[orthogroups_selection$sex=="fem" & orthogroups_
 ### what are the selected loci?
 
 
-## archive
-
-## Align S. fuscus transcriptome to S. scovelli genome
-
-The question is what type of transcripts to use, and how to use them. The easiest/current form is SuperTranscripts, which I don't think will work particularly well for this type of analysis. For sure I want to focus on sex-specific genes only. The question is, what *form* of the genes? Here are my ideas so far:
-
-- align supertranscripts to S. scovelli and try to sort out 'correct' orientation of isoforms (eek this will be hard)
-- use the longest isoform for this analysis and just use those directly in orthofinder
-- put all isoforms into orthofinder, but this will probably result in 0 single copy ones so that's not ideal
-- something else?? 
-
-I think I will try (1) and see what the alignments look like. I'll use STAR to align to the S. scovelli genome (according to Stiller et al. 2022, they are most closely related of the available Syngnathus genomes). 
-
-So first, I need to create a genome. I downloaded the data from NCBI using
-
-```{bash, eval=FALSE}
-# trinity-em, shared/coley_files/
-# get the tools
-curl -o datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/datasets'
-curl -o dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/dataformat'
-chmod +x datasets dataformat
-# get the data
-./datasets download genome accession GCF_024217435.2 --include gff3,rna,cds,protein,genome,seq-report
-unzip ncbi_download.zip
-mv ncbi_dataset/data/GCF_024217435.2/ ./
-mkdir scovelli_genome
+```{r}
 ```
 
-and install STAR:
-```{bash, eval=FALSE}
-wget https://github.com/alexdobin/STAR/archive/2.7.11b.tar.gz
-tar -xzf 2.7.11b.tar.gz
-cd STAR-2.7.11b
-cd source
-make
-cp STAR /usr/local/bin
-cp ../bin/STARlong /usr/local/bin
-```
-
-Finally, need to retrieve the sex-specific transcript sequences, which are on the FlanaganLab server.
-
-```{bash, eval=FALSE}
-"smb://file/Research/FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/06_diff_expr_analysis/02_high_exp_trinity_gene_seqs"
-```
-
-
-
-```{bash, eval=FALSE}
-# on trinity-em, in shared/coley_files/
-# generate genome reference
-STAR --runThreadN 6 \
-     --runMode genomeGenerate \
-     --genomeDir scovelli_genome \
-     --genomeFastaFiles GCF_024217435.2/GCF_024217435.2_RoL_Ssco_1.2_genomic.fna \
-     --sjdbGTFfile GCF_024217435.2/genomic.gff \
-     --genomeSAindexNbases 13
-```
-
-Because I'm mapping assembled transcripts to a genome, I need to use the 'long reads' version of STAR (otherwise it does not work properly).
-
-```{bash, eval=FALSE}
-
-for faa in $(ls sex_specific_transcripts/*fasta); do
-  name=$(basename $faa .fasta)
-  STARlong --genomeDir scovelli_genome/ \
-       --runThreadN 6 \
-       --readFilesIn $faa \
-       --outFileNamePrefix star_fuscus_to_scovelli/${name}_ \
-       --outSAMtype BAM SortedByCoordinate \
-       --outSAMunmapped Within \
-       --outSAMattributes Standard \
-       --outFilterMismatchNoverLmax 0.04 \
-       --outReadsUnmapped Fastx
-done &
-```
-
-From these, what I want to know are how the alignments map to the scovelli genome (which genes). So I want to then extract just the matches and locations of the matches:
-
-```{bash, eval=FALSE}
-for bam in $(ls *bam); do
-  echo $bam
-  samtools view -F 4 $bam | sed -E 's/^(\w+\t\w+\t\w+\.?\w+?\t\w+\t\w+).*$/\1/g' >> alignments.txt # use -F 4 to remove unmatched reads
-done
-```
-
-## Identifying orthologs in aligned transcriptome
-
-Now I can try to figure out orthologs of these sex-specific genes... but first I need to find the gene names in the scovelli genome.
 
 ```{r}
-# using files in the FlanaganLab server 
-# setwd to FlanaganLab/intermediate_data/SFU_DE_pipeline_analysis_2023/08_sex_specific_evolution
-gff <- parse_gff("genomic.gff")
-```
-
-
-```{r, eval=TRUE}
-# these are 142 transcripts that aligned to the S. scovelli genome
-alignments <- read.delim("alignments.txt", header = FALSE)
-colnames(alignments) <- c("fuscus_trinity_gene","alginment_key","chromosome","start","quality")
-
-```
-
-```{r}
-alignment_gff <- do.call(rbind,apply(alignments, 1, function(this_alignment){
-  this_chr <- this_alignment["chromosome"]
-  this_pos <- as.numeric(this_alignment["start"])
-  pot_gff <- gff[which(gff$chromosome == this_chr & gff$start <= this_pos & gff$stop > this_pos),]
-  if(nrow(pot_gff)>1){
-    pot_gff <- pot_gff[which.min(abs(pot_gff$start - this_pos)),]
-  
-  }
-  pot_gff$fuscus_match <- this_alignment["fuscus_trinity_gene"]
-  pot_gff$fuscus_start <- this_pos
-  return(pot_gff)
-}))
-
-alignment_gff$ID <- gsub(";Parent.*$","",
-                         gsub("\\w+\\-(\\w+.*)","\\1",
-  gsub("ID=(\\w+.*);D.*$","\\1",alignment_gff$description)
-))
-```
-
-```{r}
-# get the info about which genes were sex specific in which tissues
-# now includes ones that did not align
-files<-list.files(path="../06_diff_expr_analysis/01_high_exp_trinity_gene_names",
-           pattern="specific",full.names = TRUE)
-specific_genes<-do.call(rbind,lapply(files,function(file){
-  dat<-read.delim(file, header=FALSE)
-  colnames(dat)<-"Trinity_gene"
-  dat$sex <- gsub("\\.\\.\\/.*FU_(\\w{3})(\\wo?).*$","\\1",file)
-  dat$organ <- gsub("\\.\\.\\/.*FU_(\\w{3})(\\wo?).*$","\\2",file)
-  return(dat)
-}))
-
-
-alignment_info <- unique(merge(specific_genes, alignment_gff, by.x="Trinity_gene",by.y="fuscus_match",all=TRUE))
-```
-
-
-Most of the 1114 Trinity genes do not seem to have aligned successfully to the S. scovelli genome, but I will move forward with those that have (142 trinity genes)
-
-```{r}
-aligned<- alignment_info[!is.na(alignment_info$chromosome),]
-
-# remove any that are not in any type of coding region
-aligned_coding <- aligned[!aligned$type %in% c("region","lnc_RNA"),]
-aligned_coding$gene <- gsub("^.*gene=(\\w+.*);.*$",
-                 "\\1",
-                 aligned_coding$description)
-aligned_coding$gene <- gsub(";.*$","",aligned_coding$gene)
-```
-
-Ok and also narrowing down the overall gff file to only include relevant things
-
-```{r}
-gff$gene <- gsub("^.*gene=(\\w+.*);.*$",
-                 "\\1",
-                 gff$description)
-gff$gene <- gsub(";.*$", "",gff$gene)
-gff_coding <- gff[gff$type %in% aligned_coding$type,]
-gff_coding$Name <- gsub("^.*Name=(\\w+.*);.*$",
-                 "\\1",
-                 gff_coding$description)
-gff_coding$Name <- gsub(";.*$","",gff_coding$Name)
-```
-
-
-Ok so the trick now is that the aligned data have IDs associated with genes, not with proteins. So I need to take all the scovelli orthologs and find the matching gene info (chromosome, location, name, etc). I will focus on single copy groups for simplicity.
-
-```{r}
-# these should be intermediate_data/ but are also on Dropbox
-
-single_copy_groups <- read.table("Results_Feb11/Orthogroups/Orthogroups.tsv", sep='\t', header=TRUE)
-
-single_copy_list <- read.table("Results_Feb11/single_copy_seq.txt")
-single_copy_list <- gsub("Single_Copy_Orthologue_Sequences\\/(.*)\\.fa","\\1",single_copy_list$V1)
-single_copy_groups <- single_copy_groups[single_copy_groups$Orthogroup %in% single_copy_list,]
 ```
 
 
@@ -890,316 +716,47 @@ write.csv(aligned_sc_simple,
 aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
 ```
 
-### Extracting each transcript to its own file
 
-Ok, so the next step is to get these trinity genes so I can append them to the orthogroup sequences. I will use my extract_genes_fasta code to do this, so I first need a list of the transcripts to extract. 
 
-```{r}
-write.table(unique(aligned_sc_simple$Trinity_gene),
-           "fuscus_transcripts_to_extract.txt",
-           row.names=FALSE,
-           col.names=FALSE,
-           quote=FALSE)
-```
 
 ```{bash, eval=FALSE}
-# put all gonad/sex-specific fastas into one
-cat sex_specific_transcripts/*fasta > all_sex_specific_genes.fa
-
-# make a new directory for these gene sequences
-mkdir all_sex_specific_genes/
-cd all_specific_genes/
-
-# extract the genes so we have one file per transcript
- ./extract_genes_fasta -f ../all_sex_specific_genes.fa -l fuscus_transcripts_to_extract.txt
 
 ```
 
 
-### Reversing the alignments that were reverse complements
-
-Many of the alignments to the S. scovelli genome were reverse complements (containing the flag 16). So I want to reverse complement those ones and then use the reverse complements for the rest of the analysis. The flags are in the alignments file/object.
-
-I will therefore write a script using those files that will then run seqtk on the relevant files.
 
 ```{r}
-# create header and file
-write("#!/bin/bash","generating_alignments/reverse_complement.sh")
-command_string<-"seqtk seq -r "
-tmp<-apply(alignments[alignments$alginment_key==16 & alignments$fuscus_trinity_gene %in% aligned_sc_simple$Trinity_gene,],1,function(x){
-  write(paste0(command_string,
-               x["fuscus_trinity_gene"],".fasta",
-               " > ", x["fuscus_trinity_gene"],"_reverse.fasta"),
-        "generating_alignments/reverse_complement.sh",
-        append = TRUE)
-})
-```
 
-I also will change the contents of the file with the matching gene info
-```{r}
-aligned_sc_simple$Trinity_gene[aligned_sc_simple$Trinity_gene %in% alignments$fuscus_trinity_gene[alignments$alginment_key==16]]<-paste0(aligned_sc_simple$Trinity_gene[aligned_sc_simple$Trinity_gene %in% alignments$fuscus_trinity_gene[alignments$alginment_key==16]],"_reverse")
-write.csv(aligned_sc_simple,
-          "fuscus_to_scovelli_single_copy_genes.csv",
-          row.names = FALSE)
-```
-```{r, eval=TRUE}
-aligned_sc_simple<-read.csv("fuscus_to_scovelli_single_copy_genes.csv")
+
 ```
 
 
-
-
-## Preparing sex-biased orthogroups for selection analysis
-
-
-so now I just need to match them to the ortholog info. To run Hyphy, I will need the nucleotide alignments. The orthogroups are amino acids, so I need to get the original sequences from the files available from NCBI.
-
-```{r}
-all_gene_names<-merge(aligned_sc_simple, single_copy_groups, by="Orthogroup")
-write.csv(all_gene_names, "Results_Feb11/sc_orthogroups_plus_trinity.csv",row.names = FALSE)
-```
-
-```{r, eval=TRUE}
-all_gene_names<-read.csv("Results_Feb11/sc_orthogroups_plus_trinity.csv")
-```
-
-
-
-
-### identifying transcripts from gffs
-
-Some of the genes have aligned to scovelli mRNA rather than CDS, so I'll extract transcriptome information. However, I might also need to check if it is reversed.. 
-```{r}
-# includes S. scovelli
-species<-list.files(pattern="_genomic.gff")
-all_gene_names <- all_gene_names[,-6] # remove duplicate S. scov
-
-transcripts<-lapply(gsub("_genomic.gff","",species), function(this_spp){
-  gff<-parse_gff(paste0(this_spp,"_genomic.gff"))
-  proteins<-all_gene_names[,grep(this_spp, colnames(all_gene_names))]
-  txpts<-do.call(rbind,lapply(proteins, function(prot, gff){
-    prot_gff<-gff[grep(prot,gff$description),]
-    rnas<-unique(gsub("^.*Parent=rna-(XM_\\d+\\.\\d+);.*$",
-                      "\\1",
-                      prot_gff$description))
-    
-    if(length(rnas)>1){
-      rna_gff<-gff[grep(rnas,gff$description),]
-      rna_gff<-rna_gff[rna_gff$type %in% c("mRNA","exon"),]
-      browser()  
-    } else{
-      strand<-unique(gff$strand[grep(rnas, gff$description)])
-      if(strand == "-"){
-        return(data.frame(transcript = rnas, reverse=TRUE))
-      }else{
-        return(data.frame(transcript = rnas, reverse=FALSE))
-      }
-    }
-  }, gff=gff))
   
-  write.table(unique(txpts$transcript),
-              paste0("transcripts/",this_spp,"_transcript_names.txt"),
-              quote=FALSE,
-              row.names = FALSE, 
-              col.names = FALSE, 
-              eol='\n')
-  txpts$species <- this_spp
-  txpts$Orthogroup <- all_gene_names$Orthogroup
-  return(txpts)
-})
-
 ```
 
-```{bash, file='generating_alignments/get_transcript_fastas.sh'}
-
-```
-
-I also believe that I want to reverse any alignments that were on the - strand, so I'll write a script to do that.
 
 ```{r}
-# create header and file
-write("#!/bin/bash","transcripts/reverse_complement_transcripts.sh")
-command_string<-"seqtk seq -r "
-tmp<-lapply(transcripts,function(x){
-  y<-x$transcript[x$reverse==TRUE]
-  write(paste0(command_string,
-               unique(x$species),"_",
-               y,".fasta",
-               " > ", unique(x$species),"_",y,"_reverse.fasta"),
-        "transcripts/reverse_complement_transcripts.sh",
-        append = TRUE)
-})
 ```
 
-
-And now let's combine them
-
-Now, I need a set of files with all the fasta names per orthogroup, so that I can then use those to grep across all samples.
 
 ```{r}
-# from the transcripts object, get all the combined info 
-orthogroup_transcripts <- merge(all_gene_names, transcripts[[1]], by="Orthogroup")
-
-
-orthogroup_transcripts <- orthogroup_transcripts[,c("Orthogroup","Trinity_gene","transcript","reverse","species")]
-colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
-orthogroup_transcripts$H_comes_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$H_comes_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
-orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript")]
-
-orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[2]],by="Orthogroup")
-colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
-orthogroup_transcripts$H_zosterae_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$H_zosterae[orthogroup_transcripts$reverse==TRUE], "_reverse")
-orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript")]
-
-orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[3]],
-                                by="Orthogroup")
-colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
-orthogroup_transcripts$S_acus_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_acus_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
-orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript")]
-
-orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[4]],
-                                by="Orthogroup")
-colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
-orthogroup_transcripts$S_scovelli_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_scovelli_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
-orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript","S_scovelli_transcript")]
-
-
-orthogroup_transcripts <- merge(orthogroup_transcripts, transcripts[[5]],
-                                by="Orthogroup")
-colnames(orthogroup_transcripts)[colnames(orthogroup_transcripts)=="transcript"]<-paste0(unique(orthogroup_transcripts$species),"_transcript")
-orthogroup_transcripts$S_typhle_transcript[orthogroup_transcripts$reverse==TRUE]<-paste0(orthogroup_transcripts$S_typhle_transcript[orthogroup_transcripts$reverse==TRUE], "_reverse")
-orthogroup_transcripts<-orthogroup_transcripts[,c("Orthogroup","Trinity_gene","H_comes_transcript", "H_zosterae_transcript","S_acus_transcript","S_scovelli_transcript","S_typhle_transcript")]
-
-# specify the reversed fuscus ones if relevant
-
-
-# then write to file
-apply(orthogroup_transcripts, 1, function(this_row){
-  write(this_row[-1],
-        file=paste0("transcripts/",this_row["Orthogroup"],"_transcripts.txt"))
-})
 ```
-
-I'll move the trinity gene seqs into this folder and then use a cheeky grep + cat + sed to combine all six fasta nucleotide sequences per orthogroup.
-
-```{bash, eval=FALSE}
-cd transcripts/
-ls *fasta > all_fastas.txt #need to also add TRINITY genes....
-# remove windows endlines from the og lists
-sed -i 's/\r//g' OG*_transcripts.txt
-
-# now use grep plus cat plus sed to merge files into one
-for og in OG*_transcripts.txt; do og_id=$(basename $og _transcripts.txt); grep -f $og all_fastas.txt | xargs cat | sed 's/>/\n>/g' > ${og_id}_transcript.fasta; done 
 ```
 
 
-
-Once clustalw is installed, it's very easy to run this on every orthogroup's fasta.
-
-```{bash, eval=FALSE}
-for fa in OG*_transcript.fasta; do clustalw $fa; done
-```
-
-The final step is trimming the alignments. I did this manually in geneious and MEGA, which also allowed me to visually inspect the alignments. Most did not look like proper multiple sequence alignments. 
-
-## Estimating selection with hyphy
-
-So far I've used the online interface of HyPhy rather than using the command line -- with only a few good alignments, it was easier that way. 
 
 ```{r}
-library(jsonlite)
-absrel_files<-list.files(pattern="absrel") # in Dropbox generating_alignments
-
-test_results<-do.call(rbind,lapply(absrel_files, function(file){
-  absrel_output<-read_json(file)
-
-  test_result <- absrel_output$`test results`$`positive test results`
-  attributes<-absrel_output$`branch attributes`$`0`
-  fuscus<-attributes[grep("TRINITY", names(attributes))]
-  fuscus_omega <- fuscus[[1]]$`Baseline MG94xREV omega ratio`
-  return(c(test_result, fuscus_omega))
-
-}))
-rownames(test_results)<-absrel_files
-colnames(test_results)<-c("selection", "omega")
-kable(test_results,"latex",booktabs=TRUE)
 ```
 
-Let's try to plot the one sequence that I've got that looks nice and is under selection (OG0016693)
-
-```{r, include=FALSE, echo=FALSE, eval=FALSE}
-devtools::install_github("vragh/seqvisr", build_manual = TRUE, build_vignettes = TRUE)
-library(seqvisr)
-msavisr(mymsa="OG0016693_modified.aln",myref="lcl|NC_090856.1_cds_XP_0495882")
-```
-
-
-```{r, include=FALSE, echo=FALSE, eval=FALSE}
-library(ggmsa) # try this for a visualisation tool?
-nt_sequences <- readDNAStringSet("OG0016693_modified.aln") # from Biostrings
-ggmsa(nt_sequences, 
-      start = 271, 
-      end = 500, 
-      char_width = 0.5, 
-      seq_name = T) + geom_seqlogo()# + geom_msaBar()
-```
 
 ```{r}
-library(ggtree)
 
 
-og<-all_gene_names[all_gene_names$Orthogroup=="OG0016693",]
-og<-og[,-6]
 
-absrel_output<-read_json("OG0016693_absrel.json")
-omegas<-as.data.frame(do.call(rbind,lapply(absrel_output$`branch attributes`$`0`, function(x){
-  return(round(x$`Baseline MG94xREV omega ratio`,3))
-} )))
-omegas$species<-lapply(rownames(omegas), function(x, og){
-  ptn<-gsub("^.*(X\\w_\\d+)$","\\1",x)
-  match<-grep(ptn,og[1,],value=T)
-  return(gsub("\\..*$","",names(match)))
-},og=og)
-omegas$species[grep("TRINITY",rownames(omegas))]<-"S_fuscus"
-colnames(omegas)[1]<-"omega"
-
-
-tree<-read.tree("OG0016693.dnd")
-tree$tip.label<-substr(tree$tip.label,1,30)
-
-new_labels<-lapply(tree$tip.label,function(x, og){
-  ptn<-gsub("^.*(X\\w_\\d+)$","\\1",x)
-  match<-grep(ptn,og[1,],value=T)
-  return(gsub("\\..*$","",names(match)))
-},og=og)
-new_labels<-unlist(new_labels)
-new_labels[new_labels=="Trinity_gene"]<-"S_fuscus"
-
-d <- data.frame(label = tree$tip.label, 
-                label2 = new_labels)
-d<- merge(d,omegas,by.x="label2",by.y="species")
-d<-d[,c("label","label2","omega")]
-```
-
-
-```{r sequenceTree, fig.width=1522, fig.height=350}
-p<-ggtree(tree)
-p<-p %<+% d + geom_tiplab(aes(label=label2)) 
-p<- p %>% rotate(8) # move seahorses together
-
-p<- p+ geom_text(aes(x=branch, label=omega), 
-            vjust=-.5, size=3) 
-msaplot(p=p,
-        offset=0.05,
-        width=3.5,
-        height=0.95,
-        fasta="OG0016693_modified.aln", window=c(271,500))
 
 
 ```
 
 ```{r}
-cols<-c("#B5D6F5FF", "#681A15FF", "#043CB2FF","#DC5750FF", "white")
-
 ```
 
