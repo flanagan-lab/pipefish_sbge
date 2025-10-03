@@ -598,11 +598,18 @@ mtext(expression(italic("S. fuscus")~"branch"~italic("\u03C9")), 2, outer=TRUE, 
 
 
 
+### Are selected loci pleiotropically constrained?
 
+```{r}
+vioplot(orthogroups_selection$tau~orthogroups_selection$selection)
+wilcox.test(orthogroups_selection$tau~orthogroups_selection$selection)
 ```
 
 ```{r}
+vioplot(orthogroups_selection$tau[orthogroups_selection$selection==1]~orthogroups_selection$plot_group[orthogroups_selection$selection==1])
 ```
+
+
 
 ### what are the selected loci?
 
