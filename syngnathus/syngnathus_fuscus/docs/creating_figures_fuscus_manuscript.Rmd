@@ -1,5 +1,6 @@
 ---
 title: '_Syngnathus fuscus_: Manuscript Figures'
+author: "Coley Tosto and Sarah Flanagan"
 output: 
   github_document:
     toc: true
@@ -33,14 +34,17 @@ library(patchwork)
 
 library(cowplot)
 library(UpSetR)
+library(emmeans)
 library(knitr)
 library(stringr)
 library(tidyverse)
 library(EnvStats)
+library(multcompView)
+library(dplyr)
 ```
 
 ```{r setParams, eval=TRUE}
-sex_bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
+sex_bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A9")
 
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex.specific")
 labs <- c("Low", "Med", "High", "Extreme", "Specific")
@@ -100,19 +104,21 @@ write.csv(vsd_assay,"plot_data/vsd_assay.csv", row.names=TRUE)
 
 #Get normalised counts and save
 norm_counts <- counts(dds_FU_exp, normalized = TRUE)
-write.csv(norm_counts, "plot_data/normalized_counts.csv",row.names = TRUE)
+write.csv(norm_counts, "plot_data/normalized_counts.csv", row.names = TRUE)
 ```
 
 ```{r readCountData}
-norm_counts <- read.csv("../figs/plot_data/normalized_counts.csv",row.names = 1)
-vsd_assay <- read.csv("../figs/plot_data/vsd_assay.csv",row.names = 1)
+##Read in previously generated and saved data
+norm_counts <- read.csv("../figs/plot_data/normalized_counts.csv", row.names = 1)
+vsd_assay <- read.csv("../figs/plot_data/vsd_assay.csv", row.names = 1)
 
 ```
 
 ```{r runPCA, eval=FALSE}
+##Run PCA on transformed data
 pca <- prcomp(t(vsd_assay))
 
-pca_plotting_data<-as.data.frame(pca$x)
+pca_plotting_data <- as.data.frame(pca$x)
 
 #Add the metadata to the PCA dataset
 pca_plotting_data$Organ <- FU_samples$Organ
@@ -125,9 +131,9 @@ p <- pca(vsd_assay,
 percentVar <- round(p$variance, digits = 2)
 ```
 
-
 ```{r savePCA, eval=FALSE}
-write.csv(pca$rotation[,1:3],
+##Save data related to the PCAs
+write.csv(pca$rotation[,1:4],
           "../figs/plot_data/pca_rotation.csv", row.names=TRUE)
 write.csv(pca_plotting_data,
           "../figs/plot_data/pca_plotting_data.csv", row.names = TRUE)
@@ -137,11 +143,12 @@ write.table(percentVar,
 ```
 
 ```{r getPCAdata}
+##Read in previously generated and saved data
 pca_plotting_data <- read.csv("../figs/plot_data/pca_plotting_data.csv",row.names = 1)
 percentVar <- unlist(read.delim("../figs/plot_data/PCA_percents.txt"))
 pca_rotation <- read.csv("../figs/plot_data/pca_rotation.csv",row.names = 1)
-```
 
+```
 
 ### Fig. 1 Panels A and B - PCA
 
@@ -216,9 +223,10 @@ outer_legend("top",
 dev.off()
 ```
 
-### Fig. 2 Panels C, D, and E - heatmaps
+### Fig. 1 Panels C, D, and E - heatmaps
 
 ```{r heatmapData}
+##Prepare metadata for heatmaps
 df <- as.data.frame(FU_samples[,c("Sex", "Organ")])
 rownames(df) <- FU_samples$ID
 df$Organ <- as.character(df$Organ)
@@ -227,37 +235,37 @@ df$Organ <- as.character(df$Organ)
 
 
 ```{r heatmapSetup}
-ann_colors = list(
-  Sex=sex_cols,
-  Organ=organ_cols
-)
+##Set desired colors for heatmap
+ann_colors = list(Sex=sex_cols,
+                  Organ=organ_cols)
 
-col_order<-c(
-  rownames(df[df$Sex=="F"&df$Organ=="Gill",]),
-  rownames(df[df$Sex=="M"&df$Organ=="Gill",]),
-  rownames(df[df$Sex=="F"&df$Organ=="Gonad",]),
-  rownames(df[df$Sex=="M"&df$Organ=="Gonad",]),
-  rownames(df[df$Sex=="F"&df$Organ=="Liver",]),
-  rownames(df[df$Sex=="M"&df$Organ=="Liver",])
-)
+#Specify the order you want samples to show up in
+col_order <- c(rownames(df[df$Sex=="F"&df$Organ=="Gill",]),
+               rownames(df[df$Sex=="M"&df$Organ=="Gill",]),
+               rownames(df[df$Sex=="F"&df$Organ=="Gonad",]),
+               rownames(df[df$Sex=="M"&df$Organ=="Gonad",]),
+               rownames(df[df$Sex=="F"&df$Organ=="Liver",]),
+               rownames(df[df$Sex=="M"&df$Organ=="Liver",]))
   
 ```
 
 ```{r savePheatmapFxn}
 # from https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file
 save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+ 
   stopifnot(!missing(x))
   stopifnot(!missing(filename))
   pdf(filename, width=width, height=height)
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
-}
+
+  }
 
 ```
 
 ```{r fig1c}
-
+#Construct and save heatmap for genes explaining variation on PC1
 pc1 <- pheatmap(vsd_assay[which(abs(pca_rotation[,1]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -276,8 +284,8 @@ save_pheatmap_pdf(pc1, "../figs/figure_1/Fig_pc1_heatmap.pdf",
 
 ```
 
-
 ```{r fig1d}
+#Construct and save heatmap for genes explaining variation on PC2
 pc2 <- pheatmap(vsd_assay[which(abs(pca_rotation[,2]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -297,6 +305,7 @@ save_pheatmap_pdf(pc2, "../figs/figure_1/Fig_pc2_heatmap.pdf",
 ```
 
 ```{r fig1e}
+#Construct and save heatmap for genes explaining variation on PC3
 pc3 <- pheatmap(vsd_assay[which(abs(pca_rotation[,3]) >= 0.02), col_order], 
                 cluster_rows = FALSE, 
                 show_rownames = FALSE, 
@@ -319,19 +328,21 @@ save_pheatmap_pdf(pc3, "../figs/figure_1/Fig_pc3_heatmap.pdf",
 ### Fig. 1 Assembly
 
 ```{r assembleFig1}
+##Read in previously generated and saved .pdf files to construc figure
 fig1a <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_PCA1v2.pdf'),interpolate = TRUE)
 fig1b <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_PCA1v3.pdf'),interpolate = TRUE)
 fig1c <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc1_heatmap.pdf'),interpolate = TRUE)
 fig1d <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc2_heatmap.pdf'),interpolate = TRUE)
 fig1e <- image_ggplot(image_read_pdf('../figs/figure_1/Fig_pc3_heatmap.pdf'),interpolate = TRUE)
 
-# make two patchworks
+#Make two patchworks for top and bottom row
 pcas <- fig1a + fig1b
 hms <- fig1c + fig1d + fig1e
 
-# put the patchworks together
+#Put the patchworks together
 fig1 <- wrap_plots(pcas,hms,ncol=1)  + plot_annotation(tag_levels = 'A') 
 
+#Save final figure as .pdf and .png
 ggsave("../figs/figure_1/Fig1.pdf",fig1, height=4, width=5)
 ggsave("../figs/figure_1/Fig1.png",fig1, height=4, width=5) # also save as a png
 ```
@@ -340,216 +351,349 @@ ggsave("../figs/figure_1/Fig1.png",fig1, height=4, width=5) # also save as a png
 knitr::include_graphics("../figs/figure_1/Fig1.png")
 ```
 
+
+
 ## Figure 2
+### Data prep
 
 ```{r fig2Data}
+##Read in appropriate files (generated in the fuscus_diff_expr_analysis.Rmd
+##document)
+#Fig 2a - boxplots logFC
 logFC_long <- read.csv("../figs/plot_data/logFC_long_sexbias.csv")
-logFC_long$bias[logFC_long$bias=="NB"]<-"UB" #change for consistent labels
+logFC_long$bias[logFC_long$bias=="NB"] <- "UB" #change for consistent labels
 
+#Fig 2b - barplot bias categories
 bias_cat_gill <- as.matrix(read.table("../figs/plot_data/bias_cat_gills.txt", 
                             header = TRUE, row.names = 1))
 bias_cat_gonad <- as.matrix(read.table("../figs/plot_data/bias_cat_gonad.txt", 
                             header = TRUE, row.names = 1))
 bias_cat_liver <- as.matrix(read.table("../figs/plot_data/bias_cat_liver.txt", 
                             header = TRUE, row.names = 1))
-
-gonad_mal_biased <- read.table("../figs/plot_data/gonad_mal_biased.txt", row.names = 1)
-gonad_fem_biased <- read.table("../figs/plot_data/gonad_fem_biased.txt", row.names = 1)
-gill_mal_biased <- read.table("../figs/plot_data/gill_mal_biased.txt", row.names = 1)
-gill_fem_biased <- read.table("../figs/plot_data/gill_fem_biased.txt", row.names = 1)
-liver_mal_biased <- read.table("../figs/plot_data/liver_mal_biased.txt", row.names = 1)
-liver_fem_biased <- read.table("../figs/plot_data/liver_fem_biased.txt", row.names = 1)
-
-listInputall <- list("MB Gonad" = rownames(gonad_mal_biased),
-                     "MB Gill"=rownames(gill_mal_biased), 
-                     "MB Liver"=rownames(liver_mal_biased),
-                     "FB Gonad" = rownames(gonad_fem_biased),
-                     "FB Gill"=rownames(gill_fem_biased), 
-                     "FB Liver"=rownames(liver_fem_biased))
+#Fig 2c - barplot GO analysis
+all_go_sums <- read.csv("../figs/plot_data/GO_freq_SBG.csv")
 
 ```
 
-### Fig. 2A
+
+### Fig. 2A - logFC boxplots
 
 ```{r fig2a}
+#Create the blank pdf to store the plot in
 pdf("../figs/figure_2/FigSF_logFC_boxplots.pdf", width = 10, height=4)
 
+##Set graphing parameters for consistent scale 
 ymax <- max(abs(logFC_long$logFC),
             na.rm = TRUE) + 5
+
+#Create vector of organ types
 organs <- levels(as.factor(logFC_long$tissue))
 
+#Set the plotting parameters
 par(mfrow=c(1,3), 
     oma=c(4,5,2,8), 
     mar=c(1,1,1,0))
 
+##Loop through each organ and generate a plot
 for(organ in organs){
    
-   # add jittered points
+   #Add jittered points of raw data
    plot(abs(logFC_long$logFC[logFC_long$tissue==organ]) ~ 
             jitter(as.numeric(as.factor(logFC_long$bias[logFC_long$tissue==organ]))),
-        col=sex_bias_colors[logFC_long$bias[logFC_long$tissue==organ]], 
-        axes=FALSE,
-        cex.main=2,
-        xlim=c(0,4),
-        ylim=c(0,ymax)
-        )
+        col = sex_bias_colors[logFC_long$bias[logFC_long$tissue==organ]], 
+        axes = FALSE, #Do not include axis, added on later
+        cex.main = 2,
+        xlim = c(0, 4),
+        ylim = c(0, ymax))
    
-   # make the boxplot
+   #Make the boxplot to go on top of jittered points
    boxplot(abs(logFC_long$logFC[logFC_long$tissue==organ]) ~  
              logFC_long$bias[logFC_long$tissue==organ],
-           col=scales::alpha(sex_bias_colors,0.75),
+           col = scales::alpha(sex_bias_colors,0.75), #Make boxplot transparent
            add = TRUE,
-           yaxt='n',
-           las=1,
-           cex.axis=1.75,
-           frame=FALSE,
-           lwd=1.5,
-           outline=FALSE# do not plot outliers
+           yaxt = 'n',
+           las = 1,
+           cex.axis = 1.75,
+           frame = FALSE,
+           lwd = 1.5,
+           outline = FALSE #do not plot outliers as we have jitters
            )
    
-   # make the axis lines longer and thicker
-   axis(1, labels=NA,
-        at=-1:4,
-        lwd=2, 
-        lwd.ticks=0, 
+   #Make the axis lines longer and thicker
+   axis(1, labels = NA,
+        at = -1:4,
+        lwd = 2, 
+        lwd.ticks = 0, 
         las = 3, 
         cex.axis = 1.5)
-   axis(2, labels=seq(-5,ymax,10),
-        line=NA, 
-        at=seq(-5,ymax,10), 
-        lwd=2,
-        ylim=c(0,ymax),
-        cex.axis=2,
-        las=2)
+   axis(2, labels = seq(-5, ymax, 10),
+        line = NA, 
+        at = seq(-5,ymax,10), 
+        lwd = 2,
+        ylim = c(0,ymax),
+        cex.axis = 2,
+        las = 2)
    
    mtext(organ, cex=1.5,outer=FALSE, line=-1)
    
 }
 
-# add x axis label
-mtext("Bias level",side = 1,cex=1.5, outer=TRUE, line=2)
+#Add x axis label
+mtext("Bias level",
+      side = 1,
+      cex = 1.5,
+      outer=TRUE,
+      line=2)
 
-# add y axis label
-mtext(expression("|log"[2]*"FC|"),side = 2,cex=1.5, outer=TRUE, line=2.25)
+#Add y axis label
+mtext(expression("|log"[2]*"FC|"),
+      side = 2,
+      cex = 1.5,
+      outer = TRUE,
+      line = 2.25)
 
-# add legend
+#Add legend
 spfTools::outer_legend("right",
-                       legend=c("Female\nbiased",
-                                "Male\nbiased",
-                                "Unbiased"),
-                       pt.bg=sex_bias_colors,
-                       pch=22,
-                       bty='n',
-                       ncol=1,
-                       cex=2,
+                       legend = c("Female\nbiased",
+                                  "Male\nbiased",
+                                  "Unbiased"),
+                       pt.bg = sex_bias_colors,
+                       pch = 22,
+                       bty = 'n',
+                       ncol = 1,
+                       cex = 2,
                        y.intersp = 1.5,
-                       pt.cex=2)
+                       pt.cex = 2)
 
 dev.off()
 
 ```
 
-### Fig. 2B
+```{r fig2a}
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_2/FigSF_logFC_boxplots_SBonly.pdf", width = 10, height = 6)
+
+##Set graphing parameters for consistent scale 
+ymax <- max(abs(logFC_long$logFC), na.rm = TRUE) + 5
+
+##Pull out the various bias levels and tissues
+biases <- levels(as.factor(logFC_long$bias[logFC_long$bias != "UB"]))
+tissues <- levels(as.factor(logFC_long$tissue))
+
+#Set the plotting parameters
+par(mfrow=c(1,1), 
+    oma=c(4,4,0,6),
+    mar=c(1,1,0,0))
+
+#Set up empty plot
+plot(NA, xlim = c(0.5, length(tissues) + 0.5),
+     ylim = c(0, ymax),
+     axes = FALSE,
+     xaxt = "n", yaxt = "n", xlab = "", ylab = "")
+
+#Axis setup
+axis(1, at = -1:5, labels = c("","",tissues, "", ""), cex.axis = 1.5,
+     lwd = 2)
+axis(2, at = seq(-5, 30, 10), labels = seq(-5, 30, 10),
+     cex.axis = 1.5, las = 2, lwd = 2)
+
+#Offset for side-by-side of the bias levels
+offsets <- c(-0.25, 0.25)  #shift left for first bias, right for second bias
+
+#Loop through the bias groups
+for(i in seq_along(biases)){
+  
+  #Pull out bias group
+  bias <- biases[i]
+  
+  #Loop through the different tissue types for that bias
+  for(t in seq_along(tissues)){
+    
+    #Pull out tissue
+    tissue <- tissues[t]
+        
+    #Subset the data
+    vals <- abs(logFC_long$logFC[logFC_long$bias == bias &
+                                   logFC_long$tissue == tissue])
+        
+    #Add jittered points
+    points(jitter(rep(t + offsets[i], length(vals)), amount = 0.05),
+           vals, col = "#00000075")
+        
+    #Add boxplot at shifted position
+    boxplot(vals, at = t + offsets[i], 
+            col = paste0(sex_bias_colors[bias], "85"),
+            add = TRUE, outline = FALSE, axes = FALSE, lwd = 1.5)
+    }
+}
+
+#Add axis labels
+mtext("Organ", side=1, cex=1.5, outer=TRUE, line=1.7)
+mtext(expression("|log"[2]*"FC|"), side=2, cex=1.5, outer=TRUE, line=2.25)
+
+#Add legend
+spfTools::outer_legend("right",
+                       legend = c("Female\nbiased",
+                                  "Male\nbiased"),
+                       pt.bg = sex_bias_colors,
+                       pch = 22,
+                       bty = 'n',
+                       ncol = 1,
+                       cex = 1.5,
+                       y.intersp = 1.5,
+                       pt.cex = 1.5)
+
+dev.off()
+
+```
+
+```{r fig2a-get-significance}
+#Set-up model
+model <- lm(abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
+summary(model)
+
+#Get estimated means and conduct all of the pairwise interaction tests
+emm <- emmeans(model, ~ tissue * bias)
+pairs(emm, adjust = "tukey")
+
+```
+
+
+### Fig. 2B - bar plot
 
 ```{r fig2b}
-pdf("../figs/figure_2/FigSB_biasCat_counts.pdf",width = 10, height=4)
+##Convert counts into proportions
+gill_prop <- prop.table(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], margin = 1)
+liver_prop <- prop.table(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], margin = 1)
+gonad_prop <- prop.table(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], margin = 1)
 
-par(mfrow=c(1, 3), oma=c(6,4,2,8), mar=c(1,2.5,1,0), 
-    cex.main=2,
-    cex.axis=2)
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_2/FigSB_biasCat_prop.pdf", width = 10, height = 4)
 
-bp <- barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], 
-        beside = TRUE,
-        xaxt='n',
-        ylim = c(0, max(bias_cat_gill)+5), 
-        col = sex_cols,
-        main = "")
-mtext("Gill",3,outer = FALSE,cex=1.5,line=-1)
-axis(2,lwd=2)
-text(cex=2, x=colMeans(bp), y=-0.5, labs, xpd=NA, srt=35, adj = 1)
+#Set the plotting parameters
+par(mfrow = c(1, 3), 
+    oma = c(6,4,2,8), mar = c(1,2.5,1,0), 
+    cex.main = 2,
+    cex.axis = 2)
 
-barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], 
+#Create barplot for the gills
+bp <- barplot(gill_prop, 
+              beside = TRUE,
+              xaxt = 'n',
+              ylim = c(0, 0.5), 
+              col = sex_cols,
+              main = "")
+mtext("Gill",3,outer = FALSE, cex = 1.5, line = -1)
+axis(2, lwd = 2)
+text(cex = 2, x = colMeans(bp), y = -0.01, labs, xpd = NA, srt = 35, adj = 1)
+
+#Create barplot for the gonads
+barplot(gonad_prop, 
         beside = TRUE, 
-        ylim = c(0, max(bias_cat_gonad)+1000), 
-        xaxt='n',
+        ylim = c(0, 0.5), 
+        xaxt = 'n',
         col = sex_cols,
         main = "",
-        cex.main=2,
-        cex.axis=2)
-mtext("Gonad",3,outer = FALSE,cex=1.5,line=-1)
-axis(2,lwd=2,labels = NA)
-text(cex=2, x=colMeans(bp), y=-100, labs, xpd=NA, srt=35, adj=1)
+        cex.main = 2,
+        cex.axis = 2)
+mtext("Gonad", 3, outer = FALSE, cex = 1.5, line = -1)
+axis(2, lwd = 2,labels = NA)
+text(cex = 2, x = colMeans(bp), y = -0.01, labs, xpd = NA, srt = 35, adj = 1)
 
-barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], 
+#Create barplot for the liver
+barplot(liver_prop, 
         beside = TRUE, 
-        ylim = c(0, max(bias_cat_liver)+20), 
-        xaxt='n',
+        ylim = c(0, 0.5), 
+        xaxt = 'n',
         col = sex_cols,
         main = "",
-        cex.main=2,
-        cex.axis=2)
-axis(2,lwd=2, labels = NA)
-text(cex=2, x=colMeans(bp), y=-2, labs, xpd=NA, srt=35,adj=1)
-mtext("Liver",3,outer = FALSE,cex=1.5,line=-1)
+        cex.main = 2,
+        cex.axis = 2)
+axis(2, lwd = 2, labels = NA)
+text(cex = 2, x = colMeans(bp), y = -0.01, labs, xpd = NA, srt = 35, adj = 1)
+mtext("Liver", 3, outer = FALSE, cex = 1.5, line = -1)
 
-mtext("Number of Genes",2,outer=TRUE, cex=1.5, line=2.25)
-mtext("Bias category",1, outer=TRUE, cex=1.5, line=4)
+#Add axis labels
+mtext("Number of Genes", 2, outer = TRUE, cex = 1.5, line = 2.25)
+mtext("Bias category",1, outer=TRUE, cex = 1.5, line = 4)
 
+#Add legend
 outer_legend("right", 
-       legend = c("Female\nbiased", "Male\nbiased"), 
-       pt.bg = sex_cols,
-       pch=22,
-       bty='n',
-       ncol=1,
-       cex=2,
-       y.intersp = 1.5,
-       pt.cex=2)
+             legend = c("Female\nbiased", "Male\nbiased"), 
+             pt.bg = sex_cols,
+             pch = 22,
+             bty = 'n',
+             ncol = 1,
+             cex = 2,
+             y.intersp = 1.5,
+             pt.cex = 2)
 
 dev.off()
 
 ```
 
-### Fig. 2C
 
-```{r fig2c, eval=FALSE}
-# color added via illustrator
-pdf("../figs/figure_2/FigSB_sexbias_upset_nocolor.pdf",width = 10, height=7)
+### Fig. 2C - GO across organs
 
-upset(fromList(listInputall),
-      mainbar.y.label = "# Shared Sex-Biased Genes",
-      sets.x.label = "# Sex-Biased Genes",
-      point.size = 3,
-      nsets = 6,
-      nintersects = NA,
-      text.scale = c(2, 2, 2, 1.5, 2, 1.5)
-)
+```{r fig2c}
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_2/FigGO_SBGbarplot.pdf", height = 10, width = 14)
+
+##Structure classes for labeling
+all_go_sums$prot_class <- str_wrap(all_go_sums$prot_class, 
+                                       width = 60)
+
+##Plot frequencies of protein classes
+ggplot(all_go_sums[!(all_go_sums$prot_class %in% c("other", "Unclassified")),], 
+       aes(fct_rev(prot_class), prop, fill = tissue)) +   
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = organ_cols) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,size=20),
+        axis.text.y = element_text(size=15, 
+                                   margin = margin(b = 20),
+                                   vjust = 0.5),
+        text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.ticks.length.y = unit(.25, "cm")) +
+  coord_flip() + 
+  labs(y = "Proportion of sex-biased genes", x="")
 
 dev.off()
 
 ```
+
 
 ### Fig. 2 Assembly
 
 ```{r fig2, message=FALSE}
+##Read in the previously generated and saved .pdf files
+figSBa <- image_ggplot(image_read_pdf('../figs/figure_2/FigSF_logFC_boxplots_SBonly.pdf'),
+                       interpolate = TRUE)
+figSBb <- image_ggplot(image_read_pdf('../figs/figure_2/FigSB_biasCat_prop.pdf'),
+                       interpolate = TRUE)
+figSBc <- image_ggplot(image_read_pdf('../figs/figure_2/FigGO_SBGbarplot.pdf'),
+                       interpolate = TRUE)
 
-figSBa <- image_ggplot(image_read_pdf('../figs/figure_2/FigSF_logFC_boxplots.pdf'),interpolate = TRUE)
-figSBb <- image_ggplot(image_read_pdf('../figs/figure_2/FigSB_biasCat_counts.pdf'),interpolate = TRUE)
-figSBc <- image_ggplot(image_read_pdf('../figs/figure_2/FigSB_sexbias_upset.pdf'),interpolate = TRUE)
-
-
+#Combine 2a and 2b in one column
 figSB <- wrap_plots(figSBa,
                     figSBb,
                     nrow = 2)
 figSB <- figSB + plot_annotation(tag_levels = 'A')
 
+#Add 2c as a second column in the figure
 figSB_all <- wrap_plots(figSB,
                         figSBc,
                         ncol = 2)
 figSB_all <- figSB_all + plot_annotation(tag_levels = 'A')
 figSB_all
 
-ggsave("../figs/figure_2/Fig2.pdf", figSB_all, height=8, width=10)
-ggsave("../figs/figure_2/Fig2.png", figSB_all, height=8, width=10)
+##Save final figure as a .pdf and .png
+ggsave("../figs/figure_2/Fig2.pdf", figSB_all, height=4, width=10)
+ggsave("../figs/figure_2/Fig2.png", figSB_all, height=4, width=10)
 
 ```
 
@@ -557,153 +701,33 @@ ggsave("../figs/figure_2/Fig2.png", figSB_all, height=8, width=10)
 knitr::include_graphics("../figs/figure_2/Fig2.png")
 ```
 
+
 ## Figure 3
+##Data Prep
 
 ```{r fig3Data}
-all_go_sums <- read.csv("../figs/plot_data/GO_freq_SBG.csv")
+##Read in the necessary datasets - generated in the fuscus_diff_expr_analysis.Rmd
+##document
 all_go_sums_gonad <- read.csv("../figs/plot_data/GO_freq_SBG_gonad.csv")
 all_go_sums_liver <- read.csv("../figs/plot_data/GO_freq_SBG_liver.csv")
+
 ```
 
 
-
-```{r fig3DataReformatting}
-# adjust gonads
-all_go_sums_gonad$bias_cat[all_go_sums_gonad$bias_cat=="FU_malGon_biased_TRgenes_reiro_blast"] <- "MB"
-all_go_sums_gonad$bias_cat[all_go_sums_gonad$bias_cat=="FU_femGon_biased_TRgenes_reiro_blast"] <- "FB"
-colnames(all_go_sums_gonad)<-c("prot_class","gonad_number","bias_cat","tissue","gonad_prop")
-
-# adjust liver
-all_go_sums_liver$bias_cat[all_go_sums_liver$bias_cat=="FU_malL_biased_TRgenes_reiro_blast"]<-"MB"
-all_go_sums_liver$bias_cat[all_go_sums_liver$bias_cat=="FU_femL_biased_TRgenes_reiro_blast"]<-"FB"
-colnames(all_go_sums_liver)<-c("prot_class","liver_number","bias_cat","tissue","liver_prop")
-
-# adjust gills
-all_go_sums_gill <- all_go_sums[all_go_sums$tissue=="Gill",]
-all_go_sums_gill$bias_cat <- "UB"
-colnames(all_go_sums_gill)<- c("gill_number","prot_class","tissue","gill_prop","bias_cat")
-all_go_sums_gill<-all_go_sums_gill[,c("prot_class","gill_number","bias_cat","tissue","gill_prop")]
-
-
-# combine info with rbind
-all_go_sums_plot <- rbind(all_go_sums_gonad,all_go_sums_liver)
-
-all_go_sums_plot <- rbind(all_go_sums_plot,all_go_sums[all_go_sums$tissue=="Gill",])
-
-all_go_sums_plot <- all_go_sums_plot[!(all_go_sums_plot$prot_class %in% c("other","Unclassified")),]
-all_go_sums_plot$prot_class[all_go_sums_plot$prot_class=="chromatin/chromatin-binding, or -regulatory protein(PC00077)"] <- "chromatin protein(PC00077)"
-
-# make factors
-all_go_sums_plot$prot_class<-as.factor(all_go_sums_plot$prot_class)
-all_go_sums_plot$tissue <- as.factor(all_go_sums_plot$tissue)
-all_go_sums_plot$bias_cat <- as.factor(all_go_sums_plot$bias_cat,
-                                       levels=c("FB","UB","MB"))
-
-all_go_sums_wide <- pivot_wider(all_go_sums_plot[,colnames(all_go_sums_plot)!="number"], 
-            names_from = c(tissue, bias_cat),
-            values_from = prop)
-all_go_sums_wide[is.na(all_go_sums_wide)]<-0
-```
-
-These aren't yet in the correct order
-
-```{r}
-offsets<-c(-0.1,0,0.1)
-prot_classes<-levels(as.factor(all_go_sums_wide$prot_class))
-tissues <- c("Gill","Gonad","Liver")
-bias<-c("FB","UB","MB")
-
-pdf("../figs/figure_3/FigGO_dots.pdf",height=12, width=7)
-par(mar=c(2,18,1,1))
-plot(
-  x=seq(0.75,3.25,length.out=length(prot_classes)),
-  y=1:length(prot_classes),
-  type='n',
-  bty="l",
-  axes=FALSE,
-  xlab="",
-  ylab=""
-)
-abline(h=1:length(prot_classes),col="lightgrey")
-axis(1,labels=c("","Gills","Gonads","Liver",""),at=0:4,pos=0,lwd.ticks = 0)
-axis(2,
-       labels=c("",rev(prot_classes)), 
-       at = 0:length(prot_classes),
-       las=1,
-       pos=0.75,
-     #lwd.ticks = 0,
-     cex.axis=0.65)
-
-
-for(i in 1:length(tissues)){
-  
-  tissue_dat <- all_go_sums_wide[,c("prot_class",grep(tissues[i],colnames(all_go_sums_wide), value=TRUE))]
-  
-  for(j in 1:length(bias)){
-    
-    plot_dat<-tissue_dat[order(match(tissue_dat$prot_class,prot_classes)),
-                         grep(bias[j],colnames(tissue_dat),value=TRUE)]
-    #browser()
-    if(ncol(plot_dat)>0){
-      points(
-        x=rep(i+offsets[j],
-              length(prot_classes)),
-        y=rev(1:length(prot_classes)),
-        cex=abs(log(unlist(plot_dat[,1])))/3,
-        col=sex_bias_colors[bias[j]],
-        pch=19
-    )
-    }
-    
-  }
-}
-
-dev.off()
-```
-
-
-### Fig. 3A
+### Fig. 3A - Liver MvF GO
 
 ```{r fig3a}
-pdf("../figs/figure_3/FigGO_SBGbarplot.pdf",height=12, width=14)
-
-all_go_sums$prot_class <- str_wrap(all_go_sums$prot_class, 
-                                       width = 60)
-
-ggplot(all_go_sums[!(all_go_sums$prot_class %in% c("other", "Unclassified")),], 
-       aes(fct_rev(prot_class), prop, fill = tissue)) +   
-  geom_bar(position = "dodge", stat="identity") +
-  scale_fill_manual(values = organ_cols) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,size=20),
-        axis.text.y = element_text(size=15, #hjust = 0.5, 
-                                   margin = margin(b = 20),
-                                   vjust = 0.5),
-        text=element_text(size=20),
-        legend.position = "bottom",
-        axis.ticks.length.y = unit(.25, "cm")) +
-  coord_flip() + 
-  labs(y="Proportion of sex-biased genes", x="")
-
-dev.off()
-
-```
-
-### Fig. 3B
-
-```{r fig3b}
+##Set colors
 bias_col2 <- c("FU_femL_biased_TRgenes_reiro_blast" = "#7fc97f", 
                "FU_malL_biased_TRgenes_reiro_blast" = "#beaed4")
 
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_3/FigGO_SBGliver.pdf", height = 10, width = 12)
 
-pdf("../figs/figure_3/FigGO_SBGliver.pdf",height=10, width=12)
-
+##Create barplot of frequencies for the protein classes
 ggplot(all_go_sums_liver[!(all_go_sums_liver$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
-  geom_bar(position = "dodge", stat="identity") +
+  geom_bar(position = "dodge", stat = "identity") +
   scale_fill_manual(values = bias_col2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
@@ -711,31 +735,34 @@ ggplot(all_go_sums_liver[!(all_go_sums_liver$Var1 %in% c("other", "Unclassified"
         axis.line = element_line(colour = "black"),
         axis.text.x = element_text(angle = 90, 
                                    vjust = 0.5, 
-                                   hjust=1,size=20),
-        axis.text.y = element_text(size=15, hjust = 1,
+                                   hjust = 1, size = 20),
+        axis.text.y = element_text(size = 15, hjust = 1,
                                    vjust = 0.3),
-        text=element_text(size=20),
+        text = element_text(size = 20),
         legend.position = "bottom",
         axis.ticks.length.y = unit(.25, "cm")) +
   coord_flip() + 
-  labs(y="Proportion of sex-biased genes", x="")
+  labs(y = "Proportion of sex-biased genes", x = "")
 
 dev.off()
 
 ```
 
-### Fig. 3c
 
-```{r fig3c}
+### Fig. 3b - Gonad MvF GO
+
+```{r fig3b}
+##Set colors
 bias_col3 <- c("FU_femGon_biased_TRgenes_reiro_blast" = "#7fc97f", 
                "FU_malGon_biased_TRgenes_reiro_blast" = "#beaed4")
 
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_3/FigGO_SBGgonad.pdf", height = 10, width = 12)
 
-pdf("../figs/figure_3/FigGO_SBGgonad.pdf",height=10, width=12)
-
+##Create barplot of frequencies for the protein classes
 ggplot(all_go_sums_gonad[!(all_go_sums_gonad$Var1 %in% c("other", "Unclassified")),], 
        aes(fct_rev(Var1), prop, fill = bias_cat)) +   
-  geom_bar(position = "dodge", stat="identity") +
+  geom_bar(position = "dodge", stat = "identity") +
   scale_fill_manual(values = bias_col3) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
@@ -743,41 +770,38 @@ ggplot(all_go_sums_gonad[!(all_go_sums_gonad$Var1 %in% c("other", "Unclassified"
         axis.line = element_line(colour = "black"),
         axis.text.x = element_text(angle = 90, 
                                    vjust = 0.5, 
-                                   hjust=1,size=20),
-        axis.text.y = element_text(size=15, hjust = 1,
+                                   hjust = 1, size = 20),
+        axis.text.y = element_text(size = 15, hjust = 1,
                                    vjust = 0.3),
-        text=element_text(size=20),
+        text = element_text(size = 20),
         legend.position = "bottom",
         axis.ticks.length.y = unit(.25, "cm")) +
   coord_flip() + 
-  labs(y="Proportion of sex-biased genes", x="")
+  labs(y = "Proportion of sex-biased genes", x = "")
 
 dev.off()
 
 ```
 
+
 ### Fig. 3 Assembly
 
 ```{r fig3, message=FALSE}
-
-#Combine the GO figures
-figGOa <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGbarplot.pdf'),
+#Read in previously generated and saved .pdfs
+figGOa <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGliver.pdf'),
                         interpolate = TRUE)
-figGOb <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGliver.pdf'),
-                        interpolate = TRUE)
-figGOc <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGgonad.pdf'),
-                           interpolate = TRUE)
+figGOb <- image_ggplot(image_read_pdf('../figs/figure_3/FigGO_SBGgonad.pdf'),
+                       interpolate = TRUE)
 
-figGO <- figGOb + figGOc
+#Combine the two GO plots
+figGO <- figGOa + figGOb
 
-figGO <- wrap_plots(figGOa,
-                    figGO,
-                    nrow = 2)
-
+#Add labels to the figure
 fig3 <- figGO + plot_annotation(tag_levels = 'A')
 
-ggsave("../figs/figureE_3/Fig3.pdf", fig3, height=10, width=8)
-ggsave("../figs/figure_3/Fig3.png", fig3, height=5, width=12)
+#Save completed figure as .pdf and .png file
+ggsave("../figs/figure_3/Fig3.pdf", fig3, height = 6, width = 12)
+ggsave("../figs/figure_3/Fig3.png", fig3, height = 5, width = 12)
 
 ```
 
@@ -786,32 +810,452 @@ knitr::include_graphics("../figs/figure_3/Fig3.png")
 ```
 
 ## Figure 4
+### Data prep
 
 ```{r fig4Data}
-bias_labs <- c("U","L", "M", "H", "E", "S")
+##Set all necessary labels
+bias_labs <- c("L", "M", "H", "E", "S")
 biased_bins <- c("Low", "Med", "High", "Extreme", "Sex-specific")
 bias_bins <- c("Unbiased",biased_bins)
 
+##Read in required datasets - generated in the fuscus_tissue_specificity.Rmd
+##document
 logFC_long_all <- read.csv("../figs/plot_data/logFC_long_taubias_SS.csv")
 
-logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
-                                  levels = bias_bins, ordered = TRUE)
+logFC_long_all$tissue <- as.factor(logFC_long_all$tissue)
+logFC_long_all$bias_cat <- as.factor(logFC_long_all$bias_cat)
 
 ```
+
+```{r fig4-FBSignificance}
+###Run glm on FB genes to obtain letters indicating significance
+glm_model_FB <- glm(tau ~ bias_cat*tissue, 
+                    data = logFC_long_all[logFC_long_all$bias == "FB",],
+                    family=quasibinomial(link="logit"))
+summary(glm_model_FB)
+
+#Get estimated means and conduct all of the pairwise interaction tests
+emm <- emmeans(glm_model_FB, ~ bias_cat * tissue)
+pairwise <- as.data.frame(pairs(emm, adjust = "tukey"))
+
+#Split the contrast column into two separate group columns
+pairwise <- pairwise %>%
+  separate(contrast, into = c("group1","group2"), sep = " - ", extra = "merge") %>%
+  mutate(p.value = as.numeric(p.value))  #ensure p.value is numeric
+
+#Get all unique groups
+groups <- unique(c(pairwise$group1, pairwise$group2))
+
+#Create an empty matrix with FALSE (significant) by default
+sig_matrix <- matrix(FALSE, nrow = length(groups), ncol = length(groups),
+                     dimnames = list(groups, groups))
+
+#Fill matrix: TRUE if p<0.05 (significant), FALSE if p>0.05 (non-significant)
+for(i in 1:nrow(pairwise)){
+  
+  g1 <- pairwise$group1[i]
+  g2 <- pairwise$group2[i]
+  sig_matrix[g1, g2] <- pairwise$p.value[i] < 0.05
+  sig_matrix[g2, g1] <- pairwise$p.value[i] < 0.05
+
+  }
+
+#Generate Tukey letters from matrix
+tukey_letters <- multcompLetters(sig_matrix, 
+                                 compare = function(x, y) x == TRUE)
+print(tukey_letters$Letters)
+
+```
+
+```{r fig4-MBSignificance}
+###Run glm on MB genes to obtain letters indicating significance
+glm_model_MB <- glm(tau ~ bias_cat*tissue, 
+                    data = logFC_long_all[logFC_long_all$bias == "MB",],
+                    family=quasibinomial(link="logit"))
+summary(glm_model_MB)
+
+#Get estimated means and conduct all of the pairwise interaction tests
+emm <- emmeans(glm_model_MB, ~ bias_cat * tissue)
+pairwise <- as.data.frame(pairs(emm, adjust = "tukey"))
+
+#Split the contrast column into two separate group columns
+pairwise <- pairwise %>%
+  separate(contrast, into = c("group1","group2"), sep = " - ", extra = "merge") %>%
+  mutate(p.value = as.numeric(p.value))  #ensure p.value is numeric
+
+#Get all unique groups
+groups <- unique(c(pairwise$group1, pairwise$group2))
+
+#Create an empty matrix with FALSE (significant) by default
+sig_matrix <- matrix(FALSE, nrow = length(groups), ncol = length(groups),
+                     dimnames = list(groups, groups))
+
+#Fill matrix: TRUE if p<0.05 (significant), FALSE if p>0.05 (non-significant)
+for(i in 1:nrow(pairwise)){
+  
+  g1 <- pairwise$group1[i]
+  g2 <- pairwise$group2[i]
+  sig_matrix[g1, g2] <- pairwise$p.value[i] < 0.05
+  sig_matrix[g2, g1] <- pairwise$p.value[i] < 0.05
+
+  }
+
+#Generate Tukey letters from matrix
+tukey_letters <- multcompLetters(sig_matrix, 
+                                 compare = function(x, y) x == TRUE)
+print(tukey_letters$Letters)
+
+```
+
+```{r}
+glm_model_gonad <- glm(tau ~ bias_cat*bias, 
+                       data = logFC_long_all[logFC_long_all$tissue == "Gonad" 
+                                             & logFC_long_all$bias != "UB",],
+                       family=quasibinomial(link="logit"))
+summary(glm_model_gonad)
+
+emm <- emmeans(glm_model_gonad, ~ bias_cat * bias)
+pairs(emm, adjust = "tukey")
+
+pairwise <- as.data.frame(pairs(emm, adjust = "tukey"))
+
+# Split the contrast column into two separate group columns
+pairwise <- pairwise %>%
+  separate(contrast, into = c("group1","group2"), sep = " - ", extra = "merge") %>%
+  mutate(p.value = as.numeric(p.value))  # ensure p.value is numeric
+
+# Get all unique groups
+groups <- unique(c(pairwise$group1, pairwise$group2))
+
+# Initialize a matrix with TRUE (non-significant) by default
+sig_matrix <- matrix(FALSE, nrow = length(groups), ncol = length(groups),
+                     dimnames = list(groups, groups))
+
+# Fill matrix: TRUE if p>0.05 (not significant), FALSE if p<=0.05 (significant)
+for(i in 1:nrow(pairwise)){
+  
+  g1 <- pairwise$group1[i]
+  g2 <- pairwise$group2[i]
+  sig_matrix[g1, g2] <- pairwise$p.value[i] < 0.05
+  sig_matrix[g2, g1] <- pairwise$p.value[i] < 0.05
+}
+
+# Generate Tukey letters
+tukey_letters <- multcompLetters(sig_matrix, 
+                                 compare = function(x, y) x == TRUE)
+print(tukey_letters$Letters)
+
+
+
+glm_model_liver <- glm(tau ~ bias_cat*bias, 
+                       data = logFC_long_all[logFC_long_all$tissue == "Liver" 
+                                             & logFC_long_all$bias != "UB",],
+                       family=quasibinomial(link="logit"))
+summary(glm_model_liver)
+
+emm <- emmeans(glm_model_liver, ~ bias_cat * bias)
+pairs(emm, adjust = "tukey")
+
+pairwise <- as.data.frame(pairs(emm, adjust = "tukey"))
+
+# Split the contrast column into two separate group columns
+pairwise <- pairwise %>%
+  separate(contrast, into = c("group1","group2"), sep = " - ", extra = "merge") %>%
+  mutate(p.value = as.numeric(p.value))  # ensure p.value is numeric
+
+# Get all unique groups
+groups <- unique(c(pairwise$group1, pairwise$group2))
+
+# Initialize a matrix with TRUE (non-significant) by default
+sig_matrix <- matrix(FALSE, nrow = length(groups), ncol = length(groups),
+                     dimnames = list(groups, groups))
+
+# Fill matrix: TRUE if p>0.05 (not significant), FALSE if p<=0.05 (significant)
+for(i in 1:nrow(pairwise)){
+  
+  g1 <- pairwise$group1[i]
+  g2 <- pairwise$group2[i]
+  sig_matrix[g1, g2] <- pairwise$p.value[i] < 0.05
+  sig_matrix[g2, g1] <- pairwise$p.value[i] < 0.05
+}
+
+# Generate Tukey letters
+tukey_letters <- multcompLetters(sig_matrix, 
+                                 compare = function(x, y) x == TRUE)
+print(tukey_letters$Letters)
+
+```
+
 
 ### Fig. 4A
 
 ```{r fig4a}
+##Setting the variables
 logFC_long_all$tissue <- factor(logFC_long_all$tissue, 
                                 levels = c("Gill","Gonad", "Liver"), 
                                 ordered = TRUE)
 organs <- levels(logFC_long_all$tissue)
 
-pdf("../figs/figure_4/Fig_tau_sexbias.pdf", width = 8, height=5)
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
+                                  levels = bias_bins, ordered = TRUE)
+
+#Preprocessing to create a new variable indicating sample size greater than 10
+logFC_long_all <- logFC_long_all %>%
+  group_by(bias_cat, tissue, bias) %>%
+  mutate(sample_size = n()) %>%
+  ungroup() %>%
+  mutate(plot_type = ifelse(sample_size > 10, "box_violin", "jitter"))
+
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_4/Fig4A_tau_biascat_violin_jitter_FB.pdf",width = 9, height=3.75)
+
+#Subset to only include female-biased genes
+logFC_long_all_FB <- logFC_long_all[logFC_long_all$bias == "FB",]
+
+#Plot tau across categories and organs
+ggplot(logFC_long_all_FB, aes(x = bias_cat, y = tau, fill = bias, color = bias)) +
+  geom_violin(data = filter(logFC_long_all_FB, plot_type == "box_violin"), 
+              position = position_dodge(), draw_quantiles = c(0.5),
+              color = "black") +
+  geom_boxplot(data = filter(logFC_long_all_FB, plot_type == "box_violin"), 
+               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  geom_point(data = filter(logFC_long_all_FB,
+                           plot_type == "jitter"), 
+             aes(x = bias_cat, y = tau),
+             size = 1.5, 
+             position = position_jitter(width = 0.10),
+             bg = paste0(sex_bias_colors["FB"], "75"),
+             col = sex_bias_colors["FB"],
+             pch = 21) +
+  scale_x_discrete(labels = bias_labs) + 
+  scale_fill_manual(values = alpha(sex_bias_colors, 0.65)) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text = element_text(size = 16),
+        legend.position = "none") +
+  labs(x = "Bias Category", y = expression(tau["TPM"]))  +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "FB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = sex_bias_colors["FB"],
+              size = 3) +
+  scale_color_manual(values = sex_bias_colors)
+
+dev.off()
+```
+
+
+## Fig. 4B
+
+```{r fig4b}
+#Create the blank pdf to store the plot in
+pdf("../figs/figure_4/Fig4B_tau_biascat_violin_jitter_MB.pdf",width = 9, height=3.75)
+
+#Subset to only include male-biased genes
+logFC_long_all_MB <- logFC_long_all[logFC_long_all$bias == "MB",]
+
+#Plot tau across categories and organs
+ggplot(logFC_long_all_MB, aes(x = bias_cat, y = tau, fill = bias, color = bias)) +
+  geom_violin(data = filter(logFC_long_all_MB, plot_type == "box_violin"), 
+              position = position_dodge(), draw_quantiles = c(0.5),
+              color = "black") +
+  geom_boxplot(data = filter(logFC_long_all_MB, plot_type == "box_violin"), 
+               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
+  geom_point(data = filter(logFC_long_all_MB,
+                           plot_type == "jitter"), 
+             aes(x = bias_cat, y = tau),
+             size = 1.5, 
+             position = position_jitter(width = 0.10),
+             bg = paste0(sex_bias_colors["MB"], "75"),
+             col = sex_bias_colors["MB"], pch=21) +
+  scale_x_discrete(labels = bias_labs[bias_labs != "U"]) +
+  scale_fill_manual(values = alpha(sex_bias_colors, 0.65)) +
+  facet_grid(. ~ tissue) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text = element_text(size = 16),
+        legend.position = "none") +
+  labs(x = "Bias Category", y = expression(tau["TPM"]))  +
+  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "MB",], 
+              aes(x = bias_cat, y = tau),
+              y.pos = -0.05,
+              color = sex_bias_colors["MB"],
+              size = 3) +
+  scale_color_manual(values = sex_bias_colors)
+
+dev.off()
+
+```
+
+
+### Fig. 4 Assembly
+
+```{r fig4, message=FALSE}
+##Read in previously saved and generated .pdfs
+figtaub <- image_ggplot(image_read_pdf('../figs/figure_4/Fig4B_tau_biascat_violin_jitter_MB.pdf'),
+                        interpolate = TRUE)
+figtaua <- image_ggplot(image_read_pdf('../figs/figure_4/Fig4B_tau_biascat_violin_jitter_FB.pdf'),
+                        interpolate = TRUE)
+
+#Combine two figures
+figtau <- wrap_plots(figtaua,
+                     figtaub,
+                     nrow=2)
+
+#Add labels to figures
+figtau <- figtau + plot_annotation(tag_levels = 'A')
+figtau
+
+#Export final figure as a .pdf and .png
+ggsave("../figs/figure_4/Fig4.pdf", figtau, height = 4, width = 5)
+ggsave("../figs/figure_4/Fig4.png", figtau, height = 4, width = 5)
+
+```
+
+```{r showAssembledFig4, eval=TRUE}
+knitr::include_graphics("../figs/figure_4/Fig4.png")
+```
+
+
+## Supplemental Figures
+### Fig. S2
+#### Fig S2a
+
+```{r FigS2a}
+#Create the blank pdf to store the plot in
+pdf("../figs/supplemental/Fig_PCA1v4.pdf",height = 6,width=8)
+
+#Set the plotting parameters
+par(mar=c(4,5,1,5),oma=c(2,2,2,2))
+
+#Create the plot for PC1 v PC4
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC4,
+     col = paste0(sex_cols[pca_plotting_data$Sex],"75"),
+     pch = organ_shapes[pca_plotting_data$Organ],
+     cex = 2,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC4: ",percentVar[4], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+
+text(pca_plotting_data$PC1[pca_plotting_data$ID == "FUG11M4"] + 50,
+     pca_plotting_data$PC4[pca_plotting_data$ID == "FUG11M4"] - 25,
+     labels = pca_plotting_data$ID[pca_plotting_data$ID == "FUG11M4"])
+
+#Add  legend describing the organs and sex
+outer_legend("right",
+             c("Gill","Gonad","Liver"),
+             pch = c(16,15,17),
+             bty = 'n',
+             col = 'darkgrey',
+             cex = 1.5,
+             ncol = 1,
+             pt.cex = 2.25)
+
+outer_legend("topright",
+             c("Female","Male"),
+             pch = 18,
+             bty = 'n',
+             col=paste0(sex_cols,"75"),
+             cex = 1.5,
+             ncol = 1,
+             pt.cex = 2.25)
+dev.off()
+```
+
+
+#### Fig S2b
+
+```{r figS2b}
+
+pc4 <- pheatmap(vsd_assay[which(abs(pca_rotation[,4]) >= 0.02), col_order], 
+                cluster_rows = FALSE, 
+                show_rownames = FALSE, 
+                cluster_cols = FALSE, 
+                show_colnames = FALSE,
+                annotation_col = df,
+                annotation_colors=ann_colors,
+                cellwidth = 9,
+                fontsize = 16,
+                border_color = NA,
+                main = "Top loading genes on PC4")
+
+save_pheatmap_pdf(pc4, "../figs/supplemental/Fig_pc4_heatmap.pdf",
+                  width=6,
+                  height=6)
+
+```
+
+
+#### Fig S2c
+
+```{r figS2c}
+#Create the blank pdf to store the plot in
+pdf("../figs/supplemental/Fig_SampleDist.pdf",height = 6,width=8)
+
+#Calculate the sample-to-sample distances from the transformed count matrix
+sampleDists <- dist(t(vsd_assay))
+
+#Transform into a matrix
+sampleDistsMatrix <- as.matrix(sampleDists)
+rownames(sampleDistsMatrix) <- paste(FU_samples$Sex, FU_samples$Organ, sep = "-")
+colnames(sampleDistsMatrix) <- paste(FU_samples$ID)
+
+#Run the heatmap
+colors <- colorRampPalette(rev(brewer.pal(9, 'Blues')))(255)
+pheatmap(sampleDistsMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists, 
+         col = colors)
+
+dev.off()
+
+```
+
+
+#### Fig. S2 assembly
+
+```{r assembleFigS2, message=FALSE}
+figS2a <- image_ggplot(image_read_pdf('../figs/supplemental/Fig_PCA1v4.pdf'),
+                       interpolate = TRUE)
+figS2b <- image_ggplot(image_read_pdf('../figs/supplemental/Fig_pc4_heatmap.pdf'),
+                       interpolate = TRUE)
+figS2c <- image_ggplot(image_read_pdf('../figs/supplemental/Fig_SampleDist.pdf'),
+                       interpolate = TRUE)
+
+# put the patchworks together
+figS2_top <- figS2a + figS2b
+
+#Put the patchworks together
+figS2 <- wrap_plots(figS2_top, figS2c, ncol=1)  + plot_annotation(tag_levels = 'A') 
+
+ggsave("../figs/supplemental/FigS2.pdf", figS2, height=8, width=4)
+
+```
+
+
+### Fig. S5
+
+```{r figS5}
+#Create the blank pdf to store the plot in
+pdf("../figs/supplemental/Fig_tau_sexbias.pdf", width = 8, height=5)
+
+#Set the plotting parameters
 par(oma = c(2,2,1,2),
     mar = c(2,2,1,2),
     xpd = FALSE)
 
+#Create an empty plot
 plot(logFC_long_all$tau[logFC_long_all$tissue=="Gonad"]~
        sqrt(abs(logFC_long_all$logFC[logFC_long_all$tissue=="Gonad"])),
      xlim = c(0, 6),
@@ -822,11 +1266,14 @@ plot(logFC_long_all$tau[logFC_long_all$tissue=="Gonad"]~
      type = 'n',
      axes = FALSE)
 
+#Set the axis
 axis(1, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las=1)
 axis(2, pos = 0, lwd = 2, cex = 2, cex.axis = 1.5, las = 1)
 
+#Ensure that points do not go outside of plot area
 clip(0, 6, 0, 1)
 
+#Loop through the different organs and add points
 for(organ in organs){
   
   points(logFC_long_all$tau[logFC_long_all$tissue==organ]~
@@ -836,6 +1283,7 @@ for(organ in organs){
 
 }
 
+#Loop through the different organs and add lines
 for(organ in organs){
   
   abline(lm(logFC_long_all$tau[logFC_long_all$tissue==organ]~
@@ -847,6 +1295,7 @@ for(organ in organs){
   
 }
 
+##Add a legend
 outer_legend("top",
              levels(logFC_long_all$tissue),
              col = organ_cols[levels(logFC_long_all$tissue)],
@@ -865,96 +1314,16 @@ outer_legend("top",
              cex = 1.5,
              ncol = 3)
 
+#Label the x- and y-axis
 mtext("|log fold change|",1,cex=2, line=2)
 mtext(expression(tau["TPM"]),2,cex=2, line=2.5)
-dev.off()
-```
-
-### Fig. 4B
-
-
-```{r fig4b, eval = FALSE}
-
-pdf("../figs/figure_4/Fig4B_tau_biascat_violin_jitter2.pdf",width = 12, height=3.75)
-# Preprocessing to create a new variable indicating sample size greater than 10
-logFC_long_all <- logFC_long_all %>%
-  group_by(bias_cat, tissue, bias) %>%
-  mutate(sample_size = n()) %>%
-  ungroup() %>%
-  mutate(plot_type = ifelse(sample_size > 10, "box_violin", "jitter"))
-
-# Plotting
-ggplot(logFC_long_all, aes(x = bias_cat, y = tau, fill = bias, color=bias)) +
-  geom_violin(data = filter(logFC_long_all, plot_type == "box_violin"), 
-              position = position_dodge(), draw_quantiles = c(0.5)) +
- # geom_boxplot(data = filter(logFC_long_all, plot_type == "box_violin"), 
-#               width = 0.1, color = "black", position = position_dodge(width = 0.9)) +
-  geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "MB",],
-                           plot_type == "jitter"),
-             aes(x = as.numeric(bias_cat) + 0.185, y = tau),
-             size=1.5, 
-             position = position_jitter(width = 0.05),
-             bg=paste0(sex_bias_colors["MB"],"75"),
-             col=sex_bias_colors["MB"], pch = 25) +
-  geom_point(data = filter(logFC_long_all[logFC_long_all$bias == "FB",],
-                           plot_type == "jitter"), 
-             aes(x=as.numeric(bias_cat)-0.185, y=tau),
-             size=1.5, 
-             position = position_jitter(width = 0.10),
-             bg=paste0(sex_bias_colors["FB"], "75"),
-             col=sex_bias_colors["FB"],pch=21) +
-  scale_x_discrete(labels= bias_labs) +
-  scale_fill_manual(values = alpha(sex_bias_colors,0.65)) +
-  facet_grid(. ~ tissue) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        strip.background = element_blank(),
-        axis.line = element_line(colour = "black"),
-        text=element_text(size=16)) +
-  labs(x = "Bias Category", y = expression(tau["TPM"]))  +
-  guides(fill = guide_legend(title = "Bias", order = 3)) +
-  guides(color = guide_legend(title = "Bias", order = 3)) +
-  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "FB",], 
-              aes(x = bias_cat, y = tau),
-              y.pos = -0.05,
-              color = sex_bias_colors["FB"]
-  ) +
-  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "MB",], 
-              aes(x = bias_cat, y = tau),
-              y.pos = 0.95,
-              color = sex_bias_colors["MB"]
-  ) +
-  stat_n_text(data = logFC_long_all[logFC_long_all$bias == "UB",], 
-              aes(x = bias_cat, y = tau),
-              y.pos = -0.05,
-              color = sex_bias_colors["UB"]
-  ) +
-  scale_color_manual(values=sex_bias_colors)
 
 dev.off()
 
-```
-
-### Fig. 4 Assembly
-
-```{r fig4, message=FALSE}
-figtaua <- image_ggplot(image_read_pdf('../figs/figure_4/Fig4B_tau_biascat_violin_jitter2.pdf'),interpolate = TRUE)
-figtaub <- image_ggplot(image_read_pdf('../figs/figure_4/Fig_tau_sexbias.pdf'),interpolate = TRUE)
-
-
-figtau<-wrap_plots(figtaub,
-                   figtaua,
-                   ncol=2)
-
-figtau <- figtau + plot_annotation(tag_levels = 'A')
-figtau
-
-ggsave("../figs/figure_4/Fig4.pdf",figtau,height = 4, width=16)
-ggsave("../figs/figure_4/Fig4.png",figtau,height = 4, width=16)
+#Import pdf and export as a .png
+figS5 <- image_ggplot(image_read_pdf('../figs/supplemental/Fig_tau_sexbias.pdf'),
+                       interpolate = TRUE)
+ggsave("../figs/supplemental/FigS5.png", figS5, height=8, width=5)
 
 ```
 
-```{r showAssembledFig4, eval=TRUE}
-knitr::include_graphics("../figs/figure_4/Fig4.png")
-```
