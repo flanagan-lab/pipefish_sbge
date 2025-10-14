@@ -23,7 +23,7 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',
                      fig_path="../imgs/")
-knitr::opts_chunk(eval=FALSE)
+knitr::opts_chunk$set(eval=FALSE)
 ```
 
 ```{r loadlibs, include=FALSE}
