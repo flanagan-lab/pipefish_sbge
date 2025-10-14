@@ -26,14 +26,14 @@ knitr::opts_knit$set(root.dir='../',
 knitr::opts_chunk$set(eval=FALSE)
 ```
 
-```{r loadlibs, include=FALSE}
+```{r loadlibs, include=FALSE, eval=TRUE}
 library(knitr)
 library(kableExtra)
 library(spfTools)
 library(vioplot)
 library(multcompView)
 ```
-```{r}
+```{r, eval=TRUE}
 parse_gff<-function(filename){
   gff <- read.delim(filename,
                   comment.char = "#", 
@@ -42,7 +42,7 @@ parse_gff<-function(filename){
   return(gff)
 }
 ```
-```{r}
+```{r, eval=TRUE}
 sex_bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
 ```
 
@@ -270,7 +270,7 @@ write.csv(deduped,"single_copy_DEG.csv",quote=FALSE, row.names = FALSE)
 ```
 
 
-```{r getDEGorthogroups}
+```{r getDEGorthogroups, eval=TRUE}
 deg_sc_orthologs<-read.csv("single_copy_DEG.csv")
 # factorise for easier investigation
 deg_sc_orthologs$DEG_cat<-as.factor(deg_sc_orthologs$DEG_cat)
@@ -444,13 +444,9 @@ write.csv(orthogroups_selection_all,
           row.names = FALSE)
 ```
 
-```{r}
+```{r, eval=TRUE}
 orthogroups_selection_all<-read.csv("orthogroups_absrel_results.csv")
 
-```
-
-
-```{r}
 table(orthogroups_selection_all$sex,
       orthogroups_selection_all$selection)
 ```
@@ -465,8 +461,8 @@ table(paste0(orthogroups_selection_all$sex,"_" ,orthogroups_selection_all$organ)
 I would like to also match this up with the expression data for these genes.
 
 
-```{r}
-logFC_tau<-read.csv("../logFC_long_taubias_SS.csv")
+```{r, eval=TRUE}
+logFC_tau<-read.csv("../logFC_long_taubias_SS.csv") 
 
 orthogroups_selection_all<-do.call(rbind,apply(orthogroups_selection_all,
                             1,
@@ -501,7 +497,8 @@ orthogroups_selection_all$DEG_cat[is.na(orthogroups_selection_all$tau)]<-NA
 
 ```
 
-```{r}
+```{r, eval=TRUE}
+
 # for now, remove those with nonsensical omegas (inspect/revisit later?)
 orthogroups_selection<-orthogroups_selection_all[which(orthogroups_selection_all$omega<100),]
 # remove the 3 observations that are a switch
@@ -511,32 +508,28 @@ orthogroups_selection<-orthogroups_selection[orthogroups_selection$sex %in% c("f
 # calculate ns
 ns<-table(orthogroups_selection$sex,
       orthogroups_selection$selection)
+```
+
+We removed a total of `r nrow(orthogroups_selection_all[which(orthogroups_selection_all$omega>=100),])` that had non-sensical omega estimates.
+
+```{r, eval=TRUE}
 kable(ns,"latex",col.names = c("no selection","selection"))
 ```
 
-We can use a proportion test to see if there is a higher proportion of female-biased genes than unbiased...or chi-squared test?
+We can use a chi-squared test to see if there is a higher proportion of female-biased genes than unbiased?
 
-```{r}
+```{r, eval=TRUE}
 
-(selchi<-chisq.test(ns, simulate.p.value = TRUE)) # use MC sims
-selchi$expected
+(selchi<-chisq.test(ns))
+#selchi$expected
 
-# to delete -- chisq is better
-prop.test(x=ns[1,2], # successes
-          n=sum(ns[1,]), # trials
-          p=ns[3,2]/(ns[3,1]+ns[3,2]) # probability
-)
-prop.test(x=ns[2,2], # successes
-          n=sum(ns[2,]), # trials
-          p=ns[3,2]/(ns[3,1]+ns[3,2]) # probability
-)
 ```
 
 are the omega values different?
 
 The residuals look ok despite the skewed distributions so I'll just continue without transformation
 
-```{r, fig.show='hide'}
+```{r, fig.show='hide', eval=TRUE}
 
 
 mod<-lm(rank(orthogroups_selection$omega)~orthogroups_selection$sex*orthogroups_selection$selection)
@@ -728,8 +721,8 @@ write.table(orthogroups_selection$S_scovelli.protein[orthogroups_selection$selec
 
 I need to reformat the KEGG IDs too
 
-```{r}
-keggs<-read.table("08_sex_specific_selection/MM_at20c6re.emapper.annotations.tsv",
+```{r KEGGformat, eval=FALSE}
+keggs<-read.table("MM_at20c6re.emapper.annotations.tsv",
                   sep='\t',
                   comment.char="#")
 keggs_for_enrich<-keggs[,c(1,12)]
@@ -743,11 +736,13 @@ write.table(keggs_for_enrich,
             sep='\t')
 ```
 
-How many of the single copy orthogroups were IDed in the KEGG analysis?
 
-```{r}
+
+```{r, eval=FALSE}
 keggs_to_orthogroups<-merge(keggs, orthogroups_selection_all, by.x="V1",by.y="S_scovelli.protein") #1373
 ```
+
+A total of 1373 orthogroups were annotated for KEGG pathways.
 
 
 Female-biased enrichment job ID: 82da111a-3324-42ba-86cb-0b1223d31caa
@@ -765,9 +760,10 @@ grep ">" S_scovelli.protein.faa | sed -e 's/>//g' | sed -e 's/ .*$//g' | uniq - 
 
 orthogroups enrichment job ID: 9b85eddb-eb3c-46a5-a2b3-038305675933
 
-Let's look up the sex-specific genes under selection
 
-```{r}
+
+```{r, eval=FALSE}
+# Let's look up the sex-specific genes under selection
 fem_specific_sel<-orthogroups_selection[orthogroups_selection$selection==1 & orthogroups_selection$sex=="fem" & orthogroups_selection$DEG_cat=="specific",]
 
 mal_specific_sel<-orthogroups_selection[orthogroups_selection$selection==1 & orthogroups_selection$sex=="mal" & orthogroups_selection$DEG_cat=="specific",]
@@ -793,7 +789,7 @@ write.csv(scov_annotations, "scovelli_ortholog_annotations.csv", quote=FALSE, ro
 ```
 
 
-```{r}
+```{r, eval=TRUE}
 scov_annotations<- read.csv("scovelli_ortholog_annotations.csv")
 orthogroups_selection_all<-merge(orthogroups_selection_all,
                                  scov_annotations,
@@ -837,7 +833,7 @@ write.csv(orthogroups_selection_all,
 
 It might also be interesting to have a table of the genes that have omega > 1 (and are under selection). Let's look at that.
 
-```{r}
+```{r, eval=TRUE}
 orthogroups_selection_all$omega<-as.numeric(orthogroups_selection_all$omega)
 orthogroups_selection_all$selection<-as.numeric(orthogroups_selection_all$selection)
 
