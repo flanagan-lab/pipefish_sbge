@@ -375,7 +375,7 @@ I installed prank v.250331 from source (from github) and copied the executable t
 Now I will try aligning the single copy orthologues using PRANK. I will use the codon-aware option, but I am letting it infer the tree itself (mainly because the species tree created by orthofinder and the fasta files have different names).
 I have to run this in a directory that does not have weird characters (so I'm running it in /mnt/BigData/genomes/orthofinder) and I need to use the -shortnames flag to avoid an allocation error (`std::bad_alloc()`). 
 
-```{bash, eval=FALSE, file='../bash/prank.sh'}
+```{bash, eval=FALSE, file='./bash/prank.sh'}
 
 ```
 
@@ -387,7 +387,7 @@ I am installing hyphy v 2.5.78 on C001KR from source. My goal is to run it on al
 
 Before running the analysis program, I need to remove stop codons (using hyphy's tool) and change the names to match the species tree (using my own bash/regex). I will use the `single_copy_DEG.csv` file to get the names of the genes for each orthogroup.
 
-```{bash,eval=FALSE, file='../fix_names.sh'}
+```{bash,eval=FALSE, file='./bash/fix_names.sh'}
 
 ```
 
@@ -404,7 +404,7 @@ sed -ie 's/trinity_supertran_fuscus.fasta.transdecoder/S_fuscus\{FG\}/g' Species
 ```
 
 
-```{bash, file='../bash/absrel.sh', eval=FALSE}
+```{bash, file='./bash/absrel.sh', eval=FALSE}
 
 ```
 
@@ -462,7 +462,7 @@ I would like to also match this up with the expression data for these genes.
 
 
 ```{r, eval=TRUE}
-logFC_tau<-read.csv("../logFC_long_taubias_SS.csv") 
+logFC_tau<-read.csv("./logFC_long_taubias_SS.csv") 
 
 orthogroups_selection_all<-do.call(rbind,apply(orthogroups_selection_all,
                             1,
