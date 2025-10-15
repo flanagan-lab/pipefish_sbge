@@ -554,12 +554,14 @@ tuk<-TukeyHSD(mod_aov)
 interactions<-tuk[[3]]
 round(interactions,4)
 
+anova(mod)
+
 labs<-multcompLetters4(mod_aov,tuk)
 ```
 
 The key takeaways here are the genes with selection have higher omega values (unsurprisingly), but that of those that are under selection in S. fuscus, female-biased genes > unbiased and female-biased genes > male-biased genes (though unbiased==male-biased).
 
-```{r fig5A, fig.height=3,fig.width=6,dpi=300,fig.format='pdf'}
+```{r fig5A, fig.height=3,fig.width=6,dpi=300,fig.format='pdf', eval=TRUE}
 orthogroups_selection$plot_group<-paste0(orthogroups_selection$selection, "_", orthogroups_selection$sex)
 par(mfrow=c(1,1), mar=c(4,3,2,1))
 vioplot(orthogroups_selection$omega ~ orthogroups_selection$plot_group,
