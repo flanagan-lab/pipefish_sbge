@@ -159,30 +159,37 @@ pdf("../figs/figure_1/Fig_PCA1v2.pdf",height = 6,width=6)
 #Set the plotting parameters
 par(mar=c(4,5,4,1), oma=c(2,2,2,2))
 
+#Set PCA organ shapes
+pca_organ_shapes <- c(Gonad = 21, Gill = 22, Liver = 24)
+
 #Create the plot for PC1 v PC2
 plot(pca_plotting_data$PC1,
      pca_plotting_data$PC2,
-     col = paste0(sex_cols[pca_plotting_data$Sex],"75"),
-     pch = organ_shapes[pca_plotting_data$Organ],
+     bg = paste0(sex_cols[pca_plotting_data$Sex], "75"),   
+     col = sex_cols[pca_plotting_data$Sex],                
+     pch = pca_organ_shapes[pca_plotting_data$Organ],
      cex = 2,
+     lwd = 2,  
      cex.lab = 2,
      cex.axis = 1.75,
-     xlab = paste0("PC1: ",percentVar[1], "% variance"),
-     ylab = paste0("PC2: ",percentVar[2], "% variance"),
+     xlab = paste0("PC1: ", percentVar[1], "% variance"),
+     ylab = paste0("PC2: ", percentVar[2], "% variance"),
      bty = 'l',
-     xaxt='n',
-     yaxt='n',
+     xaxt = 'n',
+     yaxt = 'n',
      xpd = TRUE)
 
 #Add a legend describing the sex
 outer_legend("top",
-             c("Female","Male"),
-             pch = 18,
-             bty = 'n',
-             col=paste0(sex_cols,"75"),
+             legend = c("Female", "Male"),
+             pch = 23,  # filled symbol
+             pt.bg = paste0(sex_cols, "75"),
+             col = sex_cols,                   
+             pt.lwd = 2,
+             pt.cex = 3,
              cex = 1.75,
-             ncol = 2,
-             pt.cex = 3)
+             bty = 'n',
+             ncol = 2)
 
 dev.off()
 
@@ -198,9 +205,11 @@ par(mar=c(4,5,4,1), oma=c(2,2,2,2))
 #Create the plot for PC1 v PC3
 plot(pca_plotting_data$PC1,
      pca_plotting_data$PC3,
-     col = paste0(sex_cols[pca_plotting_data$Sex],"75"),
-     pch = organ_shapes[pca_plotting_data$Organ],
+     bg = paste0(sex_cols[pca_plotting_data$Sex], "75"),   
+     col = sex_cols[pca_plotting_data$Sex],                
+     pch = pca_organ_shapes[pca_plotting_data$Organ],
      cex = 2,
+     lwd = 2,
      cex.lab = 2,
      cex.axis = 1.75,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
@@ -213,7 +222,7 @@ plot(pca_plotting_data$PC1,
 #Add  legend describing the organs
 outer_legend("top",
              c("Gill","Gonad","Liver"),
-             pch = c(16,15,17),
+             pch = c(15,16,17),
              bty = 'n',
              col = 'darkgrey',
              cex = 1.75,
@@ -222,6 +231,7 @@ outer_legend("top",
 
 dev.off()
 ```
+
 
 ### Fig. 1 Panels C, D, and E - heatmaps
 
