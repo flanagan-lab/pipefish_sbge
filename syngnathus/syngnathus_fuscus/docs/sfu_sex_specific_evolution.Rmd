@@ -1,5 +1,5 @@
 ---
-title: "fuscus_orthologs"
+title: "Investigating selection on genes expressed in S. fuscus"
 author: "Sarah P. Flanagan"
 date: "`r Sys.Date()`"
 output:
