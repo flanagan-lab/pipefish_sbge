@@ -1,0 +1,422 @@
+---
+title: "WGCNA and cluster evolution in _S. macropterygia_"
+author: Sarah P. Flanagan
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+```{r setdir}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="../figs/")
+```
+
+
+``` {r library, include = TRUE, message = FALSE, warning = FALSE}
+#This is a comprehensive list of all the libraries used in this document
+library(knitr)
+library(kableExtra)
+library(spfTools)
+library(WGCNA)
+library(vioplot)
+library(RColorBrewer)
+sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
+```
+
+``` {r traitData, eval=FALSE}
+#The samples file generated for tximport
+samples <- read.table("data/SM_samples.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
+trait_data<-data.frame(
+  female=ifelse(samples$sex=="F",1,0),
+  gill=ifelse(samples$organ=="Gill",1,0),
+  gonad=ifelse(samples$organ=="Gonad",1,0),
+  liver=ifelse(samples$organ=="Liver",1,0)
+)
+rownames(trait_data)<-samples$ID
+write.csv(trait_data,"data/trait_data_for_WGCNA.csv",row.names = TRUE)
+```
+```{r readData}
+trait_data<-read.csv("data/trait_data_for_WGCNA.csv",
+                     row.names = 1)
+expression_data<-read.csv("data/expression_data_for_WGCNA.csv", row.names = 1)
+logFC_long <- read.csv("data/logFC_long_sexbias.csv")
+```
+
+
+## WGCNA
+
+I'm going to subset the dataset to only include the genes that showed some form of bias -- otherwise we have >90,000 genes and that's difficult to work with.
+
+```{r}
+expression_data_subset<-expression_data[,logFC_long$geneID[logFC_long$bias!="UB"]]
+# make sure we have trait data only for the individuals in the analysis
+trait_data<-trait_data[rownames(trait_data) %in% rownames(expression_data),]
+```
+
+
+The first step is to check that the dataset does not contain any outliers or problematic samples (it shouldn't, since we've already cleaned it up for differential expression analysis). Note that WGCNA needs each column to be the genes -- so it's the transposed version of the DESeq dataset.
+
+```{r}
+# following the approaches from:
+## https://bioinformaticsworkbook.org/tutorials/wgcna.html#gsc.tab=0
+## https://cloud.wikis.utexas.edu/wiki/spaces/bioiteam/pages/47714689/Clustering+using+WGCNA
+gsg <-goodSamplesGenes(expression_data_subset)
+summary(gsg)
+gsg$allOK
+```
+
+Since everything is ok, we can move on to picking a threshold. 
+
+
+```{r}
+spt <- pickSoftThreshold(expression_data_subset)
+```
+
+With this threshold, we want to maximize the $R^2$ value and minimizing mean connectivity.
+
+```{r}
+par(mar=c(4,4.5,1,1))
+plot(spt$fitIndices[,1],spt$fitIndices[,2],
+xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+main = paste("Scale independence"))
+text(spt$fitIndices[,1],spt$fitIndices[,2],col="red")
+abline(h=0.80,col="red")
+```
+
+
+```{r}
+par(mar=c(4,4.5,1,1))
+plot(spt$fitIndices[,1], spt$fitIndices[,5],
+xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+main = paste("Mean connectivity"))
+text(spt$fitIndices[,1], spt$fitIndices[,5], labels= spt$fitIndices[,1],col="red")
+```
+
+I think we want to go with 6. 
+
+```{r}
+soft_power<-6
+# this creates a big matrix
+adjacency <- adjacency(expression_data_subset, power = soft_power)
+# get the similarity
+TOM <- TOMsimilarity(adjacency)
+# turn it into dissimilarity
+TOM.dissimilarity <- 1-TOM
+
+
+#creating the dendrogram 
+geneTree <- hclust(as.dist(TOM.dissimilarity), 
+                   method = "average") 
+
+# identify modules
+Modules <- cutreeDynamic(dendro = geneTree, 
+                         distM = TOM.dissimilarity, 
+                         deepSplit = 2,
+                         pamRespectsDendro = FALSE, 
+                         minClusterSize = 30)
+# assign each module number a color
+ModuleColors <- labels2colors(Modules) 
+table(ModuleColors)
+```
+
+
+```{r}
+# plotting the dendrogram
+sizeGrWindow(12,9)
+
+plotDendroAndColors(geneTree, 
+                    ModuleColors,"Module",
+                    dendroLabels = FALSE, 
+                    hang = 0.03,
+                    addGuide = TRUE, 
+                    guideHang = 0.05,
+                    main = "Gene dendrogram and module colors")
+```
+
+Now we need to correlate expression modules with traits. 
+
+
+```{r}
+MElist <- moduleEigengenes(expression_data_subset,
+                           colors = ModuleColors) 
+MEs0 <- MElist$eigengenes 
+
+MEs <- orderMEs(MEs0)
+moduleTraitCor <- WGCNA::cor(MEs, trait_data, use= "p")
+moduleTraitPvalue <- corPvalueStudent(moduleTraitCor,
+                                      nrow(trait_data))
+```
+
+```{r}
+#Print correlation heatmap between modules and traits
+textMatrix<- paste(signif(moduleTraitCor, 2), "\n(", 
+						signif(moduleTraitPvalue, 1), ")", sep= "")
+dim(textMatrix)<- dim(moduleTraitCor)
+
+```
+
+
+```{r}
+par(mar= c(6, 8.5, 3, 3))
+#display the correlation values with a heatmap plot
+
+labeledHeatmap(Matrix= moduleTraitCor, 
+			xLabels= names(trait_data), 
+			yLabels= names(MEs), 
+			ySymbols= rep("",nrow(moduleTraitCor)), 
+			colorLabels= TRUE, 
+			colors= colorRampPalette(c("#af8dc3","#f7f7f7","#7fbf7b"))(50), 
+			textMatrix= textMatrix, 
+			setStdMargins= FALSE, 
+			cex.text= 0.75, 
+			zlim= c(-1,1), 
+			main="")
+
+```
+
+```{r moduleSexHeatmap, fig.width=350, fig.height=550}
+pdf("figs/moduleSexHeatmap.pdf",height = 5.5, width=3.5)
+par(mar= c(3, 1, 1, 5))
+#display the correlation values with a heatmap plot
+
+labeledHeatmap(Matrix= as.matrix(moduleTraitCor[,1]), 
+			xLabels= "", 
+			yLabels= names(MEs), 
+			ySymbols= rep("",nrow(moduleTraitCor)), 
+			colorLabels= TRUE, 
+			colors= colorRampPalette(c("#af8dc3","#f7f7f7","#7fbf7b"))(50), 
+			textMatrix= textMatrix[,1], 
+			setStdMargins= FALSE, 
+			cex.text= 0.75, 
+			zlim= c(-1,1),
+			main="")
+text(x=c(1.4,1.4),
+     y=c(0.965, 0.05),
+     labels = c("female","male"),
+     xpd=TRUE)
+dev.off()
+```
+
+```{r moduleOrganHeatmap, fig.width=500, fig.height=550}
+pdf("figs/moduleOrganHeatmap.pdf", height=5.5, width=5.5)
+par(mar= c(4, 5, 3, 3))
+#display the correlation values with a heatmap plot
+
+labeledHeatmap(Matrix= moduleTraitCor[,-1], 
+			xLabels= names(trait_data[,-1]), 
+			yLabels= names(MEs), 
+			ySymbols= rep("",nrow(moduleTraitCor)), 
+			colorLabels= TRUE, 
+			colors= colorRampPalette(c("#edf8b1","#7fcdbb","#2c7fb8"))(50), 
+			textMatrix= textMatrix[,-1], 
+			setStdMargins= FALSE, 
+			cex.text= 0.75, 
+			zlim= c(-1,1), 
+			main="")
+dev.off()
+```
+
+
+
+```{r}
+logFC_long$module<-NA
+
+
+for(col in unique(ModuleColors)){
+  genes<-colnames(expression_data_subset)[ModuleColors==col]
+
+  logFC_long$module[logFC_long$geneID%in%genes]<-col
+  
+}
+
+logFC_long$module<-as.factor(logFC_long$module)
+```
+
+
+```{r, fig.width=10, fig.height=4.5}
+plot_cols<-unlist(lapply(levels(as.factor(ModuleColors)),rep,times=3))
+
+par(mar=c(4,4,1,1))
+plot(x=0:34,
+     y=seq(-40,50,length.out=35),
+      xaxt='n',
+        xlab="",
+        ylab="logFC",
+     type='n',
+     las=1)
+abline(h=0,lty=2,lwd=2)
+vioplot(logFC_long$logFC~logFC_long$tissue + logFC_long$module,
+        col=plot_cols,
+        add=TRUE)
+
+axis(1,at=1:33,labels=rep(c("G","Go","L"),11))
+axis(2,
+     at=c(-30,30),
+     c("female-biased","male-biased"),
+     tick = 0,pos = -2.75)  
+     
+    
+
+# get the correlation coefficients
+cor_vals<-signif(moduleTraitCor, 2)[,1]
+names(cor_vals)<-gsub("ME","",names(cor_vals))
+cor_vals<-cor_vals[levels(logFC_long$module)]
+
+text(x=seq(2,32,length.out=11),
+     y=rep(-35,11),
+     paste0("r=",cor_vals))
+```
+
+
+### Compare to tau
+
+
+```{r read-logFC-long}
+logFC_tau_all<-read.csv("data/logFC_tau_all.csv")
+logFC_tau_all$tissue<-factor(logFC_tau_all$tissue, levels=c("Gill","Liver","Gonad"))
+logFC_tau_all$module<-NA
+
+
+for(col in unique(ModuleColors)){
+  genes<-colnames(expression_data_subset)[ModuleColors==col]
+
+  logFC_tau_all$module[logFC_tau_all$geneID%in%genes]<-col
+  
+}
+
+logFC_tau_all$module<-as.factor(logFC_tau_all$module)
+
+logFC_tau_all$grp<-paste0(logFC_tau_all$module,"_",logFC_tau_all$tissue)
+logFC_tau_all$grp<-as.factor(logFC_tau_all$grp)
+```
+
+
+```{r}
+plot_cols<-unlist(lapply(levels(as.factor(ModuleColors)),rep,times=3))
+
+par(mar=c(4,4,1,1))
+plot(x=0:34,
+     y=seq(0,1,length.out=35),
+      xaxt='n',
+        xlab="",
+        ylab=expression(tau),
+     type='n',
+     las=1)
+
+vioplot(logFC_tau_all$tau~logFC_tau_all$tissue+logFC_tau_all$module,
+        col=plot_cols,
+        add=TRUE)
+
+axis(1,at=1:33,labels=rep(c("G","Go","L"),11))
+
+     
+    
+
+# get the correlation coefficients
+cor_vals<-signif(moduleTraitCor, 2)[,1]
+names(cor_vals)<-gsub("ME","",names(cor_vals))
+cor_vals<-cor_vals[levels(logFC_long$module)]
+
+text(x=seq(2,32,length.out=11),
+     y=rep(1,11),
+     paste0("r=",cor_vals))
+
+# add the tissue specific correlation coefficients?
+moduleTraitCorPlots<-signif(moduleTraitCor, 2)
+moduleTraitCorPlots<-moduleTraitCorPlots[,-1]
+dimnames(moduleTraitCorPlots)[[1]]<-gsub("ME","",dimnames(moduleTraitCorPlots)[[1]])
+moduleTraitCorPlots<-moduleTraitCorPlots[levels(logFC_long$module),]
+moduleTraitCorPlots<-t(moduleTraitCorPlots)
+cor_vec<-unlist(as.list(moduleTraitCorPlots))
+
+text(x=1:35,
+     y=rep(-0.1,34),
+     cor_vec, 
+     xpd=TRUE,
+     cex=0.5)
+
+```
+
+
+### alternative methods
+
+........check out https://github.com/tpq/propr
+
+https://github.com/jolespin/ensemble_networkx?tab=readme-ov-file#bidirectional-clustered-networks-using-leiden-or-louvain-community-detection
+
+
+Or CoDiNA:
+
+```{r}
+library(wTO)
+library(CoDiNA)
+
+expression_matrix<-as.data.frame(assay(vsd))
+
+wto_sma<-CorrelationOverlap(Data = expression_matrix,
+                               Overlap = rownames(expression_matrix), 
+                               method = 's') %>% 
+  wTO(., sign = 'abs')
+
+wto_complete<- wTO.Complete(k = 2, 
+                            n = 100,
+                            Data = expression_matrix, 
+                            Overlap = rownames(expression_matrix), 
+                            method = 's', 
+                            method_resampling = 'Bootstrap',
+                            pvalmethod = 'BH', 
+                            savecor = TRUE, 
+                            expected.diff = 0.2, 
+                            plot = TRUE)
+```
+
+## Evolutionary analysis
+
+First, I ran transdecoder on the supertranscriptome.
+
+Then I ran orthofinder using the following files:
+
+corythoichthys_intestinalis/data/GCF_030265065.1/protein.faa -> orthofinder/corythoichthys_intestinalis.protein.faa
+stigmatopora_argus/data/GCF_051989625.1/protein.faa -> orthofinder/stigmatopora_argus.protein.faa
+stigmatopora_nigra/data/GCF_051989575.1/protein.faa -> orthofinder/stigmatopora_nigra.protein.faa
+SMA_supertranscriptome.fasta.transdecoder.pep
+
+(C. haematopterus has a published genome sequence but no protein fasta, so I will discard it fo rnow)
+```{bash, eval=FALSE}
+# on the RCH
+#!/bin/bash -l
+#
+#SBATCH --job-name=orthofinder
+#
+#SBATCH --ntasks=1
+#SBATCH --time=5:00:00
+#SBATCH --mem-per-cpu=3GB
+#SBATCH --cpus-per-task=8
+#SBATCH --error=job_%x_%j.err
+#SBATCH --output=job_%x_%j.out
+
+module load prefix/latest
+module load OrthoFinder/2.5.5-foss-2023a
+cd /home/spf50/S_macropterygia/
+orthofinder -t 8 -f orthofinder/
+```
+
+
