@@ -1,0 +1,222 @@
+---
+title: "Figure creation for paper describing sex-biased gene expression in _Stigmatopora macropterygia_"
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+header-includes: >
+  \usepackage{lipsum}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+editor_options:
+  chunk_output_type: console
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+```{r setdir}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="../figs/")
+```
+```{r}
+library(magick)
+```
+
+
+```{r loadData}
+vsd<-readRDS("data/vsd.RDS")
+```
+```{r setParams}
+#Setting the shapes I want to show up for the different organs
+organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15)
+
+#Setting the colors I want for each sex
+sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
+
+bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
+```
+
+## Figure 1: General patterns
+
+
+#### Making the combined figure
+
+```{r assembleFigPCA, message=FALSE}
+figPCAa <- image_ggplot(image_read_pdf('figs/Fig_PCA1v2.pdf'),
+                        interpolate = TRUE)
+figPCAb <- image_ggplot(image_read_pdf('figs/Fig_PCA1v3.pdf'),
+                        interpolate = TRUE)
+figPCAc <- image_ggplot(image_read_pdf('figs/Fig_pc1_heatmap.pdf'),
+                        interpolate = TRUE)
+figPCAd <- image_ggplot(image_read_pdf('figs/Fig_pc2_heatmap.pdf'),
+                        interpolate = TRUE)
+figPCAe <- image_ggplot(image_read_pdf('figs/Fig_pc3_heatmap.pdf'),
+                        interpolate = TRUE)
+
+# make two patchworks
+pcas <- figPCAa + figPCAb
+hms <- figPCAc + figPCAd + figPCAe
+
+# put the patchworks together
+figPCA <-  wrap_plots(pcas,
+                      hms,
+                      ncol=1) + 
+  plot_annotation(tag_levels = 'A') 
+
+ggsave("figs/FigPCA.pdf", figPCA, height=4, width=5)
+ggsave("figs/FigPCA.png", figPCA, height=4, width=5) # also save as a png
+```
+
+```{r assembleFigPCA-supp, message=FALSE}
+figPCA4 <- image_ggplot(image_read_pdf('figs/Fig_PCA1v4.pdf'),
+                        interpolate = TRUE)
+figPCA4_hm <- image_ggplot(image_read_pdf('figs/Fig_pc4_heatmap.pdf'),
+                           interpolate = TRUE)
+
+# put the patchworks together
+figPCA_supp <-  wrap_plots(figPCA4, figPCA4_hm, ncol=2) + 
+  plot_annotation(tag_levels = 'A') 
+
+ggsave("figs/FigPCA_supp.pdf", figPCA_supp, height=4, width=8)
+ggsave("figs/FigPCA_supp.png", figPCA_supp, height=4, width=8) # also save as a png
+```
+
+```{r showAssembledFigPCA, eval=TRUE}
+figPCA
+```
+
+
+
+## Figure 2: Sex differences in overall expression
+
+Show: 
+
+- violin plots of expression
+- counts within quantiles
+- upset plot
+
+### !!Pirate plot!!
+
+```{r}
+ptprs<-data.frame(
+  col=my_colors[logFC_long$bias],
+  pch=organ_shapes[logFC_long$tissue]
+ 
+)
+pp<-pirateplot(abs(logFC)~bias+tissue,
+           data=logFC_long,
+           xlab="",
+           ylab="|logFC|",
+           theme=0,
+           pointpars = ptprs,
+           point.cex=0.5,
+           point.o=0.3,
+           bean.f.o=0.5,
+           bean.b.o = 1,
+           inf.f.o = 0.7,
+           inf.b.o=0.8,
+           avg.line.o=1,
+           bean.f.col=rep(my_colors,3),
+           bean.b.col=rep(my_colors,3),
+           inf.f.col=rep(my_colors,3),
+           inf.b.col=rep(my_colors,3),
+           avg.line.col="black",
+          inf.disp="bean",
+          avg.line.lwd=2
+            )
+```
+
+
+or a seastack/raincloud plot?
+
+```{r}
+library(raincloudplots) #remotes::install_github('jorvlan/raincloudplots')
+
+```
+
+Or my own? what I really want is the violin plot AND the barplot put together
+
+```{r}
+library(vioplot)
+vioplot(abs(logFC)~bias+tissue,
+        data=logFC_long,
+        plotCentre = "line", side = "left",
+        col=rep(my_colors,3),
+        axes=FALSE,
+        xaxt='n',
+        xlab="",
+        ylab="|logFC|",
+        las=1,
+        ylim=c(0,50))
+axis(1, pos=0, at=c(2,5,8),
+     labels=c("Gill","Gonad","Liver"),tick = FALSE)
+count<-1
+for(s in c("FB","MB")){
+  props<-bias_cat_gill[s,]/sum(bias_cat_gill[s,])
+  ybs<-c(0,2,3,5,10)
+  yts<-c(1,3,4,6,11)
+  for(i in 1:length(biased_bins[-1])){
+    rect(
+    xleft=count,
+    ybottom=ybs[i],
+    xright=count+props[biased_bins[-1]][i],
+    ytop = yts[i],
+    col=bias_colors[s]
+  )
+    
+  }
+  count<-count+1
+}
+count<-count+1
+for(s in c("FB","MB")){
+  props<-bias_cat_gonad[s,]/sum(bias_cat_gonad[s,])
+  ybs<-c(0,2,3,5,10)
+  yts<-c(1,3,4,6,11)
+  for(i in 1:length(biased_bins[-1])){
+    rect(
+    xleft=count,
+    ybottom=ybs[i],
+    xright=count+props[biased_bins[-1]][i],
+    ytop = yts[i],
+    col=bias_colors[s]
+  )
+    
+  }
+  count<-count+1
+}
+
+count<-count+1
+for(s in c("FB","MB")){
+  props<-bias_cat_liver[s,]/sum(bias_cat_liver[s,])
+  ybs<-c(0,2,3,5,10)
+  yts<-c(1,3,4,6,11)
+  for(i in 1:length(biased_bins[-1])){
+    rect(
+    xleft=count,
+    ybottom=ybs[i],
+    xright=count+props[biased_bins[-1]][i],
+    ytop = yts[i],
+    col=bias_colors[s]
+  )
+    
+  }
+  count<-count+1
+}
+
+legend("top",
+       legend = c("Female-biased", "Male-biased","Unbiased"), 
+       fill = my_colors,
+       bty='n',
+       ncol = 3)
+
+```
+
+## Figure 3: Pleiotropy as measured by tissue specificity
+
+
+
