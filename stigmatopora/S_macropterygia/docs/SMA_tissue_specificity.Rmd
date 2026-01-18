@@ -1,6 +1,6 @@
 ---
 title: "Tissue Specificity in _Stigmatopora macropterygia_"
-author: "Emily Beasley"
+author: "This code was adapted from Coley Tosto's code by Emily Beasley and Sarah Flanagan."
 date: "`r Sys.Date()`"
 output:
   bookdown::pdf_document2:
