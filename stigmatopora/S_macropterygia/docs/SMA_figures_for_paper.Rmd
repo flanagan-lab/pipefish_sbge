@@ -125,52 +125,20 @@ ggsave("figs/FigPCA_supp.png", figPCA_supp, height=4, width=8) # also save as a 
 Show: 
 
 - violin plots of expression
-- counts within quantiles
 - upset plot
 
-### !!Pirate plot!!
 
 ```{r}
-ptprs<-data.frame(
-  col=my_colors[logFC_long$bias],
-  pch=organ_shapes[logFC_long$tissue]
- 
-)
-pp<-pirateplot(abs(logFC)~bias+tissue,
-           data=logFC_long,
-           xlab="",
-           ylab="|logFC|",
-           theme=0,
-           pointpars = ptprs,
-           point.cex=0.5,
-           point.o=0.3,
-           bean.f.o=0.5,
-           bean.b.o = 1,
-           inf.f.o = 0.7,
-           inf.b.o=0.8,
-           avg.line.o=1,
-           bean.f.col=rep(my_colors,3),
-           bean.b.col=rep(my_colors,3),
-           inf.f.col=rep(my_colors,3),
-           inf.b.col=rep(my_colors,3),
-           avg.line.col="black",
-          inf.disp="bean",
-          avg.line.lwd=2
-            )
-```
-
-
-or a seastack/raincloud plot?
-
-```{r}
-library(raincloudplots) #remotes::install_github('jorvlan/raincloudplots')
-
-```
-
-Or my own? what I really want is the violin plot AND the barplot put together
-
-```{r}
-library(vioplot)
+pdf("figs/logFC_violin.pdf",width = 10, height=4)
+par(mar=c(3,4,1,1))
+plot(0:9,
+     seq(0,50,length.out=10),
+     type='n',
+     axes=FALSE,
+     xlab="",
+     ylab="|logFC|"
+      )
+abline(h=2,lwd=2,lty=2)
 vioplot(abs(logFC)~bias+tissue,
         data=logFC_long,
         plotCentre = "line", side = "left",
