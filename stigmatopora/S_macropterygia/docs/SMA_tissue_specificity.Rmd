@@ -377,17 +377,49 @@ Only looking at the logFC for the sex-biased genes may be affecting the relation
 
 I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
 
-```{r tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed in the gonads, liver, and gills."}
+```{r tau-v-FC, echo=FALSE, eval=FALSE}
 #Merge the datasets that include all of the sex-biased and non-sex-biased genes with the tau datasets
 liver_bias_tau_all <- merge(as.data.frame(liver_res), as.data.frame(tau), by = "row.names")
-#write.csv(liver_bias_tau_all, "data/liver_bias_tau.csv", row.names = FALSE)
-
 gonad_bias_tau_all <- merge(as.data.frame(gonad_res), as.data.frame(tau), by = "row.names")
-#write.csv(gonad_bias_tau_all, "gonad_bias_tau.csv", row.names = FALSE)
-
 gill_bias_tau_all <- merge(as.data.frame(gill_res), as.data.frame(tau), by = "row.names")
-#write.csv(gill_bias_tau_all, "data/gill_bias_tau.csv", row.names = FALSE)
 
+```
+```{r save-tau-v-FC, eval=FALSE}
+write.csv(liver_bias_tau_all, "data/liver_bias_tau.csv", row.names = FALSE)
+write.csv(gill_bias_tau_all, "data/gill_bias_tau.csv", row.names = FALSE)
+write.csv(gonad_bias_tau_all, "data/gonad_bias_tau.csv", row.names = FALSE)
+```
+```{r}
+liver_bias_tau_all<-read.csv("data/liver_bias_tau.csv")
+gill_bias_tau_all<-read.csv("data/gill_bias_tau.csv")
+gonad_bias_tau_all<-read.csv("data/gonad_bias_tau.csv")
+```
+
+
+```{r, eval=FALSE}
+#Create a long format dataset that has the tissue information, logFC, tau, and geneID 
+logFC_tau_all <- data.frame(
+  tissue=c(rep("Gill", nrow(gill_bias_tau_all)),
+           rep("Gonad", nrow(gonad_bias_tau_all)),
+           rep("Liver", nrow(liver_bias_tau_all))),
+  logFC=c(gill_bias_tau_all$log2FoldChange,
+          gonad_bias_tau_all$log2FoldChange,
+          liver_bias_tau_all$log2FoldChange),
+  geneID=c(gill_bias_tau_all$Row.names,
+           gonad_bias_tau_all$Row.names,
+           liver_bias_tau_all$Row.names),
+  tau=c(gill_bias_tau_all$tau,
+        gonad_bias_tau_all$tau,
+        liver_bias_tau_all$tau)
+  )
+write.csv(logFC_tau_all, "data/logFC_tau_all.csv",row.names = FALSE)
+```
+```{r}
+logFC_tau_all <- read.csv("data/logFC_tau_all.csv")
+```
+
+
+```{r plot-tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed in the gonads, liver, and gills."}
 #Plot logFC against Tau for all of the organs
 par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
 plot(sqrt(abs(gonad_bias_tau_all$log2FoldChange)),
@@ -507,7 +539,7 @@ To further investigate the relationship between $\tau$ and sex biased and possib
 
 ### Within the sex-biased genes
 
-```{r bias-bin-cats, echo=FALSE}
+```{r bias-bin-cats, echo=FALSE, eval=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
 logFC_long <- data.frame(
   tissue=c(rep("Gill", nrow(gill_bias_tau)),
@@ -548,6 +580,9 @@ logFC_long$bias_cat <- factor(logFC_long$bias_cat,
 write.csv(logFC_long, "data/logFC_long_taubiasSB.csv", row.names = FALSE)
 
 ```
+```{r read-logFC-long}
+logFC_long<-read.csv("data/logFC_long_taubiasSB.csv")
+```
 
 ```{r tau-v-biascat-plot, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
@@ -586,7 +621,7 @@ geom_point(data = logFC_long[logFC_long$bias == "FB",],
 ### Across all significantly expressed genes
 I want to see how $\tau$ in unbiased genes compares to these categories as well. To do that I recreated the long-style dataset to include all of the sig. expressed genes rather than just the sex-biased genes.
 
-```{r bias-bin-cats-all, echo=FALSE}
+```{r bias-bin-cats-all, echo=FALSE, eval=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
 logFC_long_all <- data.frame(
   tissue=c(rep("Gill", nrow(gill_bias_tau_all)),
@@ -648,8 +683,12 @@ logFC_long_all$bias_cat <- ifelse(logFC_long_all$bias == "UB",
 #Making sure the ordering stays correct
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
-
+write.csv("data/logFC_long_all.csv",row.names = FALSE)
 ```
+```{r}
+logFC_long_all<-read.csv("data/logFC_long_all.csv")
+```
+
 
 ```{r readin-sex-specific-genes}
 #Specify the directory where Sex-specific gene files are located
@@ -677,7 +716,7 @@ for(file_name in SM_sex_specific_genes_files){
 }
 ```
 
-```{r cat-sex-specific}
+```{r cat-sex-specific, eval=FALSE}
 #Changing the bias category for the genes we just labeled as sex-specific
 organs <- c("Gill", "Gonad", "Liver",
             "Gill", "Gonad", "Liver")
@@ -726,7 +765,10 @@ for(i in 1:length(SM_sex_specific_genes)){
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
 
-#write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
+write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
+```
+```{r}
+logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv")
 ```
 
 ```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
@@ -1405,7 +1447,7 @@ geom_point(data = logFC_long_FBUB[logFC_long_all$bias == "UB",], aes(x=bias_cat,
 
 ```
 
-```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
+```{r tau-v-biascat-plot-all-vp-sig, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
 
 plotdat <- ggplot(logFC_long_all,
