@@ -16,29 +16,36 @@ editor_options:
 always_allow_html: true
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
+```{r setdir}
+knitr::opts_knit$set(root.dir='../',
+                     fig_path="../figs/")
+```
+
 
 ``` {r library, include = TRUE, message = FALSE, warning = FALSE}
-setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_macropterygia")
-#This is a cohesive list of all the libraries used in this document
+#This is a comprehensive list of all the libraries used in this document
 library(DESeq2)
 library(pheatmap)
 library(RColorBrewer)
-library(PCAtools)
 library(ggpubr)
 library(cowplot)
 library(UpSetR)
 library(ggplot2)
+library(knitr)
 library(kableExtra)
 library(tidyverse)
-library(knitr)
 library(magick)
 library(multcompView)
 library(spfTools)
 library(patchwork)
+library(ridgeline) #remotes::install_github("R-CoderDotCom/ridgeline@main")
+library(WGCNA)
+library(yarrr)
 ```
 
 ``` {r read-data}
