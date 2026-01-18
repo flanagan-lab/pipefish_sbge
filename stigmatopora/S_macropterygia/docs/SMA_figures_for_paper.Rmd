@@ -192,7 +192,8 @@ ggsave("figs/Fig2.png", fig2, height=8, width=6) # also save as a png
 fig2
 ```
 
+
 ## Figure 3: Pleiotropy as measured by tissue specificity
 
-
+create joy plots?
 
