@@ -16,15 +16,15 @@ editor_options:
   chunk_output_type: console
 ---
 
+
+
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir='../',
                      fig_path="figs/")
 ```
 
 ``` {r library, message = FALSE, warning = FALSE}
-setwd("~/Documents/GitHub/pipefish_sbge/stigmatopora/S_macropterygia")
-
-#This is a cohesive list of all the libraries used in this document
+#This is a comprehensive list of all the libraries used in this document
 
 library(DESeq2)
 library(spfTools)
@@ -118,34 +118,37 @@ This will be imperfect filtering in this case because I did individual single-fa
 
 It should also be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
 
-```{r filterTPMs}
-#Running the MF diff. expr. analysis
+```{r runDDS}
+#Running the MF diff. expr. analysis -- same as in SMA_DE_analysis.Rmd
 #Create the DESeq dataset
-dds_SM <- DESeqDataSetFromTximport(txi.macropterygia,
+ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
                                    colData = samples,
                                    design = ~ group)
 
 ##Remove S10, S23, S30 from the dataset
-dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10", "S23", "S30"))]
+ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
 
 ##Filter the dataset, only keeping rows that have at least 10 reads total
-keep <- rowSums(counts(dds_SM)) >= 10 
-dds_SM <- dds_SM[keep, ]
+keep <- rowSums(counts(ddsMF_SM)) >= 10 
+ddsMF_SM <- ddsMF_SM[keep, ]
 
 #Generate the expression values
-dds_SM_exp <- DESeq(dds_SM)
+ddsMF_SM_exp <- DESeq(ddsMF_SM)
+```
 
+
+```{r filterTPMs}
 #Filtering the tpm dataset
 #Only keeping the rows that weren't filtered out due to low counts
-tpms <- tpms[rownames(tpms) %in% rownames(dds_SM), ]
+tpms <- tpms[rownames(tpms) %in% rownames(ddsMF_SM), ]
 
 #Pulling out the geneIDs for genes that were categorized as "outliers" by DESeq2
 #Calculating the Cooks threshold that would have been used
-np <- length(resultsNames(dds_SM_exp))
-nsamp <- ncol(dds_SM_exp)
+np <- length(resultsNames(ddsMF_SM_exp))
+nsamp <- ncol(ddsMF_SM_exp)
 cooks_thresh <- qf(0.99, df1 = np, df2 = nsamp-np)
 
-out_ids <- names(mcols(dds_SM_exp)$maxCooks[mcols(dds_SM_exp)$maxCooks > cooks_thresh])
+out_ids <- names(mcols(ddsMF_SM_exp)$maxCooks[mcols(ddsMF_SM_exp)$maxCooks > cooks_thresh])
 
 #Removing the rows in the tpm dataset that were deemed "outliers" by DESeq2
 tpms <- tpms[!(rownames(tpms) %in% out_ids), ]
@@ -203,7 +206,7 @@ I then applied that function across each row in the TPMs matrix with my metadata
 I ran the $\tau$ function with the whole dataset, and then for just males and just females.
 
 ```{r calcTau}
-colData <- colData[!(colData$ID %in% c("S10", "S23", "S30")),]
+colData <- samples[!(samples$ID %in% c("S10", "S23", "S30")),]
 
 tau <- apply(tpms, 1, est_tau, colDat=colData)
 
@@ -259,15 +262,15 @@ tpms[rownames(tpms)== names(top_tau[9]),] #Ovary-specific
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SM, gene= names(top_tau[1]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[2]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[3]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[4]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[5]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[6]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[7]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[8]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau[9]), intgroup="organ")
 ```
 
 ```{r ts-plot-counts-low, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with the lowest tau", message=FALSE}
@@ -287,15 +290,15 @@ tpms[rownames(tpms)== names(bot_tau[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SM, gene= names(bot_tau[1]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[2]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[3]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[4]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[5]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[6]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[7]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[8]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau[9]), intgroup="organ")
 
 ```
 
@@ -809,16 +812,16 @@ Once we have the results from the new DESeq2 model, $\tau$ can once again be plo
 
 ```{r tau-v-FC-MFbias, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed. The fold change in this plot is a difference between males and females regardless of tissue type.", message=FALSE}
 ##Re-running the DESeq2 model to look at M-F diff expression across ALL tissues
-dds_SM_SF <- dds_SM
+ddsMF_SM_SF <- ddsMF_SM
 
 ##Remove S10, S23, S30 from the dataset
-dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10", "S15", "S23", "S30"))]
+ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S15", "S23", "S30"))]
 
-design(dds_SM_SF) <- ~ sex
-dds_SM_SF_exp <- DESeq(dds_SM_SF)
+design(ddsMF_SM_SF) <- ~ sex
+ddsMF_SM_SF_exp <- DESeq(ddsMF_SM_SF)
 
 #Pulling out the results and removing NAs
-sex_con_res <- results(dds_SM_SF_exp, alpha = 0.05)
+sex_con_res <- results(ddsMF_SM_SF_exp, alpha = 0.05)
 sex_con_res_noNA <- sex_con_res[!is.na(sex_con_res$padj),]
 
 #Merge the noNA dataset with the tau datasets
@@ -925,15 +928,15 @@ tpms[rownames(tpms)== names(top_tau_fem[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SM, gene= names(top_tau_fem[1]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[2]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[3]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[4]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[5]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[6]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[7]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[8]), intgroup="organ")
-plotCounts(dds_SM, gene= names(top_tau_fem[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_fem[9]), intgroup="organ")
 ```
 
 ```{r ts-plot-counts-med-fem, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with medium values of tau", message=FALSE}
@@ -953,15 +956,15 @@ tpms[rownames(tpms)== names(med_tau_fem[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SM, gene= names(med_tau_fem[1]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[2]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[3]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[4]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[5]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[6]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[7]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[8]), intgroup="organ")
-plotCounts(dds_SM, gene= names(med_tau_fem[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_fem[9]), intgroup="organ")
 
 ```
 
@@ -982,15 +985,15 @@ tpms[rownames(tpms)== names(bot_tau_fem[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SM, gene= names(bot_tau_fem[1]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[2]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[3]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[4]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[5]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[6]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[7]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[8]), intgroup="organ")
-plotCounts(dds_SM, gene= names(bot_tau_fem[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_fem[9]), intgroup="organ")
 
 ```
 
@@ -1128,7 +1131,7 @@ outer_legend("right",
 
 We can see wildly different patterns now: when we add in all of the points it seems that the best fit line for the gonads and gills both point downward. Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
-```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
+```{r tau-v-FC-cor-sig, echo=FALSE, warning=FALSE}
 cor.test(gonad_FB_UB_tau$tau_fem, abs(gonad_FB_UB_tau$log2FoldChange), method = "spearman") #sig, negative
 cor.test(liver_FB_UB_tau$tau_fem, abs(liver_FB_UB_tau$log2FoldChange), method = "spearman") #sig, positive
 cor.test(gill_FB_UB_tau$tau_fem, abs(gill_FB_UB_tau$log2FoldChange), method = "spearman") #sig, negative 
