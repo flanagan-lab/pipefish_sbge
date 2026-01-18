@@ -53,11 +53,39 @@ organ_cols<-c("Gill" = "#20B2AA",
 
 #### Making the combined figure
 
+
 ```{r assembleFigPCA, message=FALSE}
 figPCAa <- image_ggplot(image_read_pdf('figs/Fig_PCA1v2.pdf'),
                         interpolate = TRUE)
 figPCAb <- image_ggplot(image_read_pdf('figs/Fig_PCA1v3.pdf'),
                         interpolate = TRUE)
+wgcnaOrgan<-image_ggplot(image_read_pdf('figs/moduleOrganHeatmap.pdf'),
+                        interpolate = TRUE)
+wgcnaSex<-image_ggplot(image_read_pdf('figs/moduleSexHeatmap.pdf'),
+                        interpolate = TRUE)
+
+# make two patchworks
+pcas <- figPCAa + figPCAb
+wgcnas <- wgcnaOrgan + wgcnaSex
+
+# put the patchworks together
+figPCA <-  wrap_plots(pcas,
+                      wgcnas,
+                      ncol = 1 
+                      ) + 
+  plot_annotation(tag_levels = 'A') 
+
+ggsave("figs/Fig1.pdf", figPCA, height=4, width=5)
+ggsave("figs/Fig1.png", figPCA, height=4, width=5) # also save as a png
+```
+
+
+```{r showAssembledFigPCA, eval=TRUE}
+figPCA
+```
+
+```{r assembleFigPCA-heatmaps}
+
 figPCAc <- image_ggplot(image_read_pdf('figs/Fig_pc1_heatmap.pdf'),
                         interpolate = TRUE)
 figPCAd <- image_ggplot(image_read_pdf('figs/Fig_pc2_heatmap.pdf'),
