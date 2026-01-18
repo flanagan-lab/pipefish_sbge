@@ -142,74 +142,54 @@ abline(h=2,lwd=2,lty=2)
 vioplot(abs(logFC)~bias+tissue,
         data=logFC_long,
         plotCentre = "line", side = "left",
-        col=rep(my_colors,3),
+        col=rep(bias_colors,3),
         axes=FALSE,
         xaxt='n',
-        xlab="",
-        ylab="|logFC|",
+        add=TRUE,
         las=1,
         ylim=c(0,50))
 axis(1, pos=0, at=c(2,5,8),
      labels=c("Gill","Gonad","Liver"),tick = FALSE)
-count<-1
-for(s in c("FB","MB")){
-  props<-bias_cat_gill[s,]/sum(bias_cat_gill[s,])
-  ybs<-c(0,2,3,5,10)
-  yts<-c(1,3,4,6,11)
-  for(i in 1:length(biased_bins[-1])){
-    rect(
-    xleft=count,
-    ybottom=ybs[i],
-    xright=count+props[biased_bins[-1]][i],
-    ytop = yts[i],
-    col=bias_colors[s]
-  )
-    
-  }
-  count<-count+1
-}
-count<-count+1
-for(s in c("FB","MB")){
-  props<-bias_cat_gonad[s,]/sum(bias_cat_gonad[s,])
-  ybs<-c(0,2,3,5,10)
-  yts<-c(1,3,4,6,11)
-  for(i in 1:length(biased_bins[-1])){
-    rect(
-    xleft=count,
-    ybottom=ybs[i],
-    xright=count+props[biased_bins[-1]][i],
-    ytop = yts[i],
-    col=bias_colors[s]
-  )
-    
-  }
-  count<-count+1
-}
+axis(2, las=1)
 
-count<-count+1
-for(s in c("FB","MB")){
-  props<-bias_cat_liver[s,]/sum(bias_cat_liver[s,])
-  ybs<-c(0,2,3,5,10)
-  yts<-c(1,3,4,6,11)
-  for(i in 1:length(biased_bins[-1])){
-    rect(
-    xleft=count,
-    ybottom=ybs[i],
-    xright=count+props[biased_bins[-1]][i],
-    ytop = yts[i],
-    col=bias_colors[s]
-  )
-    
-  }
-  count<-count+1
-}
+cnts<-table(logFC_long$bias,logFC_long$tissue)
+text(x=1:9,
+     y=rep(15,9),
+     labels=paste0("n=",cnts),
+     col=rep(bias_colors,3),
+     srt=270,
+     pos = 4)
+
 
 legend("top",
        legend = c("Female-biased", "Male-biased","Unbiased"), 
-       fill = my_colors,
+       fill = bias_colors,
        bty='n',
        ncol = 3)
+dev.off()
+```
 
+```{r, message=FALSE}
+vio1<-image_ggplot(image_read_pdf('figs/logFC_violin.pdf'),
+                        interpolate = TRUE)
+vio2 <- image_ggplot(image_read_pdf('figs/WGCNA_logFC.pdf'),
+                           interpolate = TRUE)
+upset <- image_ggplot(image_read_pdf('figs/upset.pdf')[2],
+                          interpolate = TRUE)
+# put the patchworks together
+fig2 <-  wrap_plots(vio1,
+                           upset,
+                           vio2,
+                    nrow=3
+  
+) + 
+  plot_annotation(tag_levels = 'A') 
+
+ggsave("figs/Fig2.pdf", fig2, height=8, width=6)
+ggsave("figs/Fig2.png", fig2, height=8, width=6) # also save as a png
+```
+```{r}
+fig2
 ```
 
 ## Figure 3: Pleiotropy as measured by tissue specificity
