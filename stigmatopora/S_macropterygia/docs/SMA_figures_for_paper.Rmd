@@ -25,6 +25,9 @@ knitr::opts_knit$set(root.dir='../',
 ```
 ```{r}
 library(magick)
+library(patchwork)
+library(ggplot2)
+library(vioplot)
 ```
 
 
