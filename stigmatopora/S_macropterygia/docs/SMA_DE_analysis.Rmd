@@ -1,5 +1,6 @@
 ---
 title: "Differential Expression Analysis in _Stigmatopora macropterygia_"
+author: "This code was adapted from Coley Tosto's code by Emily Beasley and Sarah Flanagan."
 output:
   bookdown::pdf_document2:
     fig_caption: yes
