@@ -33,6 +33,7 @@ library(vioplot)
 
 ```{r loadData}
 vsd<-readRDS("data/vsd.RDS")
+logFC_long <- read.csv("data/logFC_long_sexbias.csv")
 ```
 ```{r setParams}
 #Setting the shapes I want to show up for the different organs
