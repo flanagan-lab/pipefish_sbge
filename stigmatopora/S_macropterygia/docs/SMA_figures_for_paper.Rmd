@@ -93,18 +93,14 @@ figPCAd <- image_ggplot(image_read_pdf('figs/Fig_pc2_heatmap.pdf'),
 figPCAe <- image_ggplot(image_read_pdf('figs/Fig_pc3_heatmap.pdf'),
                         interpolate = TRUE)
 
-# make two patchworks
-pcas <- figPCAa + figPCAb
 hms <- figPCAc + figPCAd + figPCAe
 
 # put the patchworks together
-figPCA <-  wrap_plots(pcas,
-                      hms,
-                      ncol=1) + 
+figPCA_supp_hm <-  wrap_plots(hms, ncol=2) + 
   plot_annotation(tag_levels = 'A') 
 
-ggsave("figs/FigPCA.pdf", figPCA, height=4, width=5)
-ggsave("figs/FigPCA.png", figPCA, height=4, width=5) # also save as a png
+ggsave("figs/FigPCA_heatmaps_supp.pdf", figPCA_supp, height=4, width=8)
+ggsave("figs/FigPCA_heatmaps)supp.png", figPCA_supp, height=4, width=8)
 ```
 
 ```{r assembleFigPCA-supp, message=FALSE}
@@ -121,9 +117,6 @@ ggsave("figs/FigPCA_supp.pdf", figPCA_supp, height=4, width=8)
 ggsave("figs/FigPCA_supp.png", figPCA_supp, height=4, width=8) # also save as a png
 ```
 
-```{r showAssembledFigPCA, eval=TRUE}
-figPCA
-```
 
 
 
