@@ -63,88 +63,85 @@ samples$organ <- as.factor(samples$organ)
 
 The package `DESeq2` was used for the differential expression analysis outlined below.
 
-# Single factor analysis - Comparing Males v Females across all organs
-To analyze your data with DESeq2 you must first generate the DESeqDataSet. In order to do this we need the abundance matrix generated with `tximport` and a `samples` file that lays out all of the conditions. The model for this single factor analysis was run as counts ~ Sex.
+To analyze your data with DESeq2 you must first generate the DESeqDataSet. In order to do this we need the abundance matrix generated with `tximport` and a `samples` file that lays out all of the conditions. If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis. 
 
-```{r DESeqDataSet, message=FALSE, warning=FALSE}
-#Create the DESeq dataset
-dds_SM <- DESeqDataSetFromTximport(txi.macropterygia, 
-                                   colData = samples,
-                                   design = ~ sex)
 
+# Multifactor design - Comparing M v F across the diff tissue types
+
+In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "S10" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
+
+```{r multi-factor-analysis, message=FALSE, warning=FALSE}
+#Create an additional column the has the two conditions combined(sex and organ type)
+samples$group <- factor(paste0(samples$sex, samples$organ))
+
+##Create a copy of the DESeq dataset
+ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
+                                     colData = samples,
+                                     design = ~ group)
 ```
 
-The data is then pre-filtered to remove low gene counts before running further DESeq2 functions. By doing this we remove rows in which there are very few reads thus reducing the memory size of the `dds` object and increasing the speed at which we can use the transformation and testing functions in DESeq2.
+The data is then filtered to remove low gene counts before running further DESeq2 functions. By doing this we remove rows in which there are very few reads thus reducing the memory size of the `dds` object and increasing the speed at which we can use the transformation and testing functions in DESeq2.
 
 The cutoff here was to remove rows that had counts fewer than 10 across all samples.
 
 Sample S23 (Mapping rate = 33.7558%) and S30 (Mapping rate = 11.6745%) both had lower than expected gene counts, so they were filtered out entirely. S10 was clustering in unexpected ways, so they were also removed from further analyses. 
 
-```{r pre-filtering, message=FALSE, warning=FALSE}
-#only keeping rows that have at lead 10 reads total
-keep <- rowSums(counts(dds_SM)) >= 10
-dds_SM <- dds_SM[keep, ]
+```{r multi-factor-analysis, message=FALSE, warning=FALSE}
+##Remove S10, S23, and S30 from the dataset
+ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
+samples<-samples[!(samples$ID %in%  c("S10", "S23", "S30")),]
 
-#Remove all samples that were previously determined to be unfit for inclusion 
-dds_SM <- dds_SM[, !(dds_SM$ID %in% c("S10","S23","S30"))]
-samples <- samples[!(samples$ID %in% c("S10","S23", "S30")),]
+##Filter the dataset, only keeping rows that have at least 10 reads total
+keep <- rowSums(counts(ddsMF_SM)) >= 10 
+ddsMF_SM <- ddsMF_SM[keep, ]
 
+#Run the differential expression analysis
+ddsMF_SM_exp <- DESeq(ddsMF_SM)
+resultsNames(ddsMF_SM_exp)
 ```
 
-After filtering we can now perform the standard differential expression analysis that is wrapped into DESeq2.
+## Visualising multifactor results
 
-```{r diff-exp, message=FALSE, warning=FALSE}
-#Generate the expression values
-dds_SM_exp <- DESeq(dds_SM)
-
-#Compile the results
-res <- results(dds_SM_exp)
-res
+```{r}
+resMF <- results(ddsMF_SM_exp)
 ```
 
-Once that has finished we can now start exploring some of the single-factor analysis results
-```{r investigate-DESeq-results-SM}
-##Ordering our results based on p-value
-resOrdered <- res[order(res$pvalue),]
-resOrdered
-
-summary(res)
-
-#How many ADJUSTED p-values were less than 0.1?
-sum(res$padj < 0.1, na.rm = TRUE)
-
-#Looking at  an alpha=0.05, the default is 0.1
-res05 <- results(dds_SM_exp, alpha = 0.05)
-summary(res05)
-sum(res05$padj < 0.05, na.rm = TRUE)
-
-```
-
-
-## Visualizing the results
-### MA-plot - MvF Differntial expression
-Generate an MA-plot to show the log2 fold changes attributable to sex over the mean of normalized counts for all of the samples in the `dds`. Points will be colored if the adjusted p-value is less that 0.1.
-
-```{r MA-plot, echo=FALSE, fig.cap="LogFC versus the mean normalised count for all of the genes. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
+```{r MAplotMultiFactor, echo=FALSE, fig.cap="LogFC versus the mean normalised count for all of the genes in the multifactor analysis. Points that are blue have a p-value less than 0.1. The two plots are the same with the only difference coming from an adjusted y-limit. Points that are triangles represent genes with a fold change higher/lower than the y-limit."}
 
 par(mfrow=c(1,2))
-plotMA(res, ylim = c(-2,2))
-plotMA(res)
+plotMA(resMF, ylim = c(-2,2))
+plotMA(resMF)
 
 ```
 
-### Heatmap - overall expression
-We can also generate a heat map to look at overall expression levels across our samples. Note, this is not differentially expressed genes.
-
-```{r heatmap, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels."}
+```{r getHeatmapData, echo=FALSE}
 #Pull out the top 20 rows with the most expression
-select <- order(rowMeans(counts(dds_SM_exp, normalized = TRUE)),
+select <- order(rowMeans(counts(ddsMF_SM_exp, normalized = TRUE)),
                 decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(dds_SM)[,c("sex", "organ")]) 
+df <- as.data.frame(colData(ddsMF_SM)[,c("sex", "organ")])
+```
 
+
+```{r transformDDS, echo=FALSE, eval=FALSE}
 #Transform the data
-vsd <- vst(dds_SM_exp, blind=FALSE)
+vsd <- vst(ddsMF_SM_exp, blind=FALSE)
+saveRDS(vsd,"data/vsd.RDS")
+```
+```{r}
+vsd<-readRDS("data/vsd.RDS")
+```
 
+
+Let's save the expression data to a file for future investigations.
+
+```{r eval=FALSE}
+# following https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
+expression_data<-t(assay(vsd))
+write.csv(expression_data,"data/expression_data_for_WGCNA.csv",row.names = TRUE)
+```
+
+
+```{r heatmapMF, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels in the multifactor analysis."}
 #Run the heat map with the function pheatmap
 pheatmap(assay(vsd)[select,], 
          cluster_rows = FALSE, 
@@ -191,30 +188,8 @@ pheatmap(sampleDistsMatrix,
 We can see that the highest similarities (aside from same samples comparisons) is between samples from the same organ. After that, the next highest similarities can be seen between male and female livers. 
 
 ### PCA plots
+
 Next we can look at PCA plots for our samples to see how our different samples are grouping. 
-
-
-```{r pca-pairs-plot, echo=FALSE, fig.cap="Principal components analysis pairsplot showing PCA axis 1 - 4."}
-#Generate the PCA data to create the pairs plot, using the PCAtools package
-p <- pca(assay(vsd), 
-         metadata = colData(dds_SM))
-
-#Create the pairs plot
-pairsplot(p,
-          components = getComponents(p, c(1:4)),
-          colby = "organ",
-          triangle = FALSE,
-          hline = 0, vline = 0,
-          colkey = c("Gill" = "#6E8B3D75", 
-                     "Gonad" = "#EEB42275", 
-                     "Liver" = "#EE826275"),
-          shape = "sex",
-          shapekey = c(16, 17),
-          pointSize = 3,
-          margingaps = unit(c(0.01, 0.01, 0.01, 0.01), 'cm'),
-          legendPosition = "left", legendIconSize = 3, legendLabSize = 10) 
-
-```
 
 ```{r pca-plot-1v2, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -229,7 +204,8 @@ pca_plotting_data$sex <- samples$sex
 pca_plotting_data$ID <- samples$ID
 
 #Calculate the percent variation attributed to each axis 
-percentVar <- round(p$variance, digits = 2)
+sumpca<-summary(pca)
+percentVar <- round(sumpca$importance[2,]*100, digits = 2)
 
 
 my_colors <- c("Gill" = "#6E8B3D75", "Gonad" = "#EEB42275", "Liver" = "#EE826275")
@@ -337,7 +313,7 @@ plot(pca_plotting_data$PC1,
      pca_plotting_data$PC2,
      col = paste0(sex_cols[pca_plotting_data$sex],"75"),
      pch = organ_shapes[pca_plotting_data$organ],
-     cex = 2,
+     cex = 3,
      cex.lab = 2,
      cex.axis = 1.75,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
@@ -370,7 +346,7 @@ plot(pca_plotting_data$PC1,
      pca_plotting_data$PC3,
      col = paste0(sex_cols[pca_plotting_data$sex],"75"),
      pch = organ_shapes[pca_plotting_data$organ],
-     cex = 2,
+     cex = 3,
      cex.lab = 2,
      cex.axis = 1.75,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
@@ -403,7 +379,7 @@ plot(pca_plotting_data$PC1,
      pca_plotting_data$PC4,
      col = paste0(sex_cols[pca_plotting_data$sex],"75"),
      pch = organ_shapes[pca_plotting_data$organ],
-     cex = 2,
+     cex = 3,
      cex.lab = 2,
      cex.axis = 1.75,
      xlab = paste0("PC1: ",percentVar[1], "% variance"),
@@ -411,9 +387,6 @@ plot(pca_plotting_data$PC1,
      bty = 'l',
      xpd = TRUE)
 
-text(pca_plotting_data$PC1[pca_plotting_data$ID == "S34"] + 50,
-     pca_plotting_data$PC4[pca_plotting_data$ID == "S34"] - 25,
-     labels = pca_plotting_data$ID[pca_plotting_data$ID == "S34"])
 
 #Add  legend describing the organs and sex
 outer_legend("right",
@@ -493,9 +466,9 @@ pc1 <- pheatmap(assay(vsd)[which(abs(pca_rotation[,1]) >= 0.02), col_order],
                 main = "Top loading genes on PC1")
 
 
-#save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
- #                 width=6,
-  #                height=6)
+save_pheatmap_pdf(pc1, "figs/Fig_pc1_heatmap.pdf",
+                 width=6,
+                height=6)
 
 ```
 
@@ -559,87 +532,7 @@ save_pheatmap_pdf(pc4, "figs/Fig_pc4_heatmap.pdf",
 
 ```
 
-#### Making the combined figure
 
-```{r assembleFigPCA, message=FALSE}
-figPCAa <- image_ggplot(image_read_pdf('figs/Fig_PCA1v2.pdf'),
-                        interpolate = TRUE)
-figPCAb <- image_ggplot(image_read_pdf('figs/Fig_PCA1v3.pdf'),
-                        interpolate = TRUE)
-figPCAc <- image_ggplot(image_read_pdf('figs/Fig_pc1_heatmap.pdf'),
-                        interpolate = TRUE)
-figPCAd <- image_ggplot(image_read_pdf('figs/Fig_pc2_heatmap.pdf'),
-                        interpolate = TRUE)
-figPCAe <- image_ggplot(image_read_pdf('figs/Fig_pc3_heatmap.pdf'),
-                        interpolate = TRUE)
-
-# make two patchworks
-pcas <- figPCAa + figPCAb
-hms <- figPCAc + figPCAd + figPCAe
-
-# put the patchworks together
-figPCA <-  wrap_plots(pcas,
-                      hms,
-                      ncol=1) + 
-  plot_annotation(tag_levels = 'A') 
-
-ggsave("figs/FigPCA.pdf", figPCA, height=4, width=5)
-ggsave("figs/FigPCA.png", figPCA, height=4, width=5) # also save as a png
-```
-
-```{r assembleFigPCA-supp, message=FALSE}
-figPCA4 <- image_ggplot(image_read_pdf('figs/Fig_PCA1v4.pdf'),
-                        interpolate = TRUE)
-figPCA4_hm <- image_ggplot(image_read_pdf('figs/Fig_pc4_heatmap.pdf'),
-                           interpolate = TRUE)
-
-# put the patchworks together
-figPCA_supp <-  wrap_plots(figPCA4, figPCA4_hm, ncol=2) + 
-  plot_annotation(tag_levels = 'A') 
-
-ggsave("figs/FigPCA_supp.pdf", figPCA_supp, height=4, width=8)
-ggsave("figs/FigPCA_supp.png", figPCA_supp, height=4, width=8) # also save as a png
-```
-
-```{r showAssembledFigPCA, eval=TRUE}
-figPCA
-```
-
-
-# Multifactor design - Comparing M v F across the diff tissue types
-If we investigate the column data of our DESeq dataset we can see that each sample has both a sex and organ type attached to it, we will be using these two factors in our multi-factor analysis. In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "S10" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
-
-```{r multi-factor-analysis, message=FALSE, warning=FALSE}
-
-#The abundance matrix generated via salmon and tximport to be used for the DE analysis
-txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
-
-#The samples file generated for tximport
-samples <- read.table("data/SM_samples.txt", header = TRUE)
-
-#Make sure the conditions are in the samples file as a factor
-samples$sex <- as.factor(samples$sex)
-samples$organ <- as.factor(samples$organ)
-
-#Create an additional column the has the two conditions combined(sex and organ type)
-samples$group <- factor(paste0(samples$sex, samples$organ))
-
-##Create a copy of the DESeq dataset
-ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
-                                     colData = samples,
-                                     design = ~ group)
-
-##Remove S10, S23, and S30 from the dataset
-ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
-
-##Filter the dataset, only keeping rows that have at least 10 reads total
-keep <- rowSums(counts(ddsMF_SM)) >= 10 #& rowSums(counts(ddsMF_SM)) < 1e6
-ddsMF_SM <- ddsMF_SM[keep, ]
-
-#Run the differential expression analysis
-ddsMF_SM_exp <- DESeq(ddsMF_SM)
-resultsNames(ddsMF_SM_exp)
-```
 
 ## Invesitgate the results of the differential expression
 Thanks to the multi-factor analysis we can now explore differential expression between all of the different combinations:
@@ -668,9 +561,6 @@ I have then pulled out all of the male-biased, female-biased, and non-biased gen
 #Removing the rows where padj. is NA in results
 liver_con_res_noNA <- liver_con_res[!is.na(liver_con_res$padj),]
 summary(liver_con_res_noNA) #We can now see that there are no outliers or low counts since the NAs have been removed
-
-#write.csv(as.data.frame(liver_con_res_noNA), "data/liver_res.csv", row.names = TRUE)
-
 #Creating a vector that contains all of the male-biased and female-biased genes in the liver
 liver_mal_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange >= 2
                                              & liver_con_res_noNA$padj <= 0.05),]
@@ -681,6 +571,13 @@ liver_fem_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange <
 liver_non_biased <- liver_con_res_noNA[which(liver_con_res_noNA$padj > 0.05),]
 
 ```
+
+
+```{r save-liver-sex-biased, eval=FALSE}
+write.csv(as.data.frame(liver_con_res_noNA), "data/liver_res.csv", row.names = TRUE)
+```
+
+
 
 I will be generating a table that outlines the genes that are the most male or female biased in each organ type. To do this I need to pull all differentially expressed genes in males or females, get the Trinity gene IDs and then BLAST the corresponding sequences. Here I am pulling out the Trinity gene IDs for those genes.
 
@@ -733,9 +630,6 @@ I have then pulled out all of the male-biased, female-biased, and non-biased gen
 gill_con_res_noNA <- gill_con_res[!is.na(gill_con_res$padj), ]
 summary(gill_con_res_noNA) #We can now see that there are no outliers or 
                            #low counts since the NAs have been removed
-
-#write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRUE)
-
 #Creating a vector that contains all of the male-biased and female-biased genes in the gills
 gill_mal_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange >= 2 
                                            & gill_con_res_noNA$padj <= 0.05),]
@@ -745,6 +639,10 @@ gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -
 #Creating an object that contains all of the non-biased genes in the gills, p>0.05
 gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
 ```
+```{r save-gill-sex-biased, eval=FALSE}
+write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRUE)
+```
+
 
 Here I am getting the trinity gene IDs that correspond to all differentially expressed genes for males and females. 
 
@@ -799,8 +697,6 @@ gonad_con_res_noNA <- gonad_con_res[!is.na(gonad_con_res$padj), ]
 summary(gonad_con_res_noNA) #We can now see that there are no outliers or 
                             #low counts since the NAs have been removed
 
-#write.csv(as.data.frame(gonad_con_res_noNA), "data/gonad_res.csv", row.names = TRUE)
-
 #Creating an object that contains all of the male-biased and female-biased genes in the gonads
 gonad_mal_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange >= 2 
                                              & gonad_con_res_noNA$padj <= 0.05),]
@@ -809,6 +705,9 @@ gonad_fem_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange <
 
 #Creating an object that contains all of the non-biased genes in the gonads, p>0.05
 gonad_non_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$padj > 0.05),]
+```
+```{r save-gonad-sex-biased}
+write.csv(as.data.frame(gonad_con_res_noNA), "data/gonad_res.csv", row.names = TRUE)
 ```
 
 I then pulled out the trinity gene IDs that corresponded to all differentially expressed genes in males and females so that I could BLAST the sequences.
@@ -892,72 +791,6 @@ plot_grid(liver_MA, gill_MA, gonad_MA,
 
 From the MA plots we can see the highest number of biased genes are found in the gonads (Fig. \@ref(fig:MA-plot-MF)) and then the liver and lastly the gills. In both the liver and the gonads there are more female-biased genes than male-biased genes.
 
-## Creating an Upset Plot
-```{r upset-plot-mal, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in males."}
-#Male-biased genes
-listInputMB <- list("Testis" = rownames(gonad_mal_biased),
-                  "Male Gill"=rownames(gill_mal_biased), 
-                  "Male Liver"=rownames(liver_mal_biased)
-                  )
-upset(fromList(listInputMB),
-      mainbar.y.label = "Number of Shared Male-Biased Genes",
-      sets.x.label = "Total Number of Male-Biased Genes",
-      point.size = 3)
-```
-
-```{r upset-plot-fem, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in females."}
-#Female-biased genes
-listInputFB <- list("Ovaries" = rownames(gonad_fem_biased),
-                  "Female Gill"=rownames(gill_fem_biased), 
-                  "Female Liver"=rownames(liver_fem_biased)
-                  )
-upset(fromList(listInputFB),
-      mainbar.y.label = "Number of Shared Female-Biased Genes",
-      sets.x.label = "Total Number of Female-Biased Genes",
-      point.size = 3)
-```
-
-```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
-#Exporting data used to make the Upset plot (run once and them commented out)
-#write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
- #           row.names = TRUE)
-#write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
- #           row.names = TRUE)
-
-#Checking there is no overlap between the two sexes
-listInputall <- list("Testes" = rownames(gonad_mal_biased),
-                  "Male Gill"=rownames(gill_mal_biased), 
-                  "Male Liver"=rownames(liver_mal_biased),
-                  "Ovaries" = rownames(gonad_fem_biased),
-                  "Female Gill"=rownames(gill_fem_biased), 
-                  "Female Liver"=rownames(liver_fem_biased))
-
-# Define the desired order of sets
-desired_order <- c("Male Gill", "Female Gill", "Male Liver", "Female Liver", "Ovaries", "Testes")
-
-# Create the UpSet object with custom set order
-upset(fromList(listInputall),
-      sets = desired_order,
-      mainbar.y.label = "Number of Shared Sex-Biased Genes",
-      sets.x.label = "Total Number of Sex-Biased Genes",
-      point.size = 3,
-      nsets = 6,
-      nintersects = NA,
-      keep.order = TRUE,
-      order.by = "degree")
-
-```
-
-In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
-
 ## Variation in FC across sex-bias and tissue type
 I want to create a plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types. To do this I first need to create a "long" dataset in the following format:
 
@@ -981,7 +814,7 @@ I want to create a plot the highlights the variation we see in fold-change both 
 
 That dataset is created here, with the Trinity gene IDs included as well:
 
-```{r logFC-long-dataset}
+```{r logFC-long-dataset, eval=FALSE}
 logFC_long<- data.frame(
   tissue=c(rep("Gill",nrow(gill_fem_biased)),
            rep("Gill", nrow(gill_mal_biased)),
@@ -1026,11 +859,16 @@ logFC_long<- data.frame(
   
 )
 
-#Exporting this data, run once and then commented out
-#write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+#Exporting this data, run once and then just read in the file
+write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+```
+```{r}
+logFC_long <- read.csv("data/logFC_long_sexbias.csv")
 ```
 
+
 With the dataset in the proper format now, we can generate the plot
+
 
 ```{r FC-var-plot, echo=FALSE, fig.cap="Absolute value of the logFC for genes that are female-biased, male-biased, and unbiased across each tissue type. Raw fold-change values are added on top of the boxplot as jitters."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray")
@@ -1051,6 +889,7 @@ ggplot(logFC_long,
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
 ```
+
 
 Range -30.33088  46.35090
 
@@ -1176,26 +1015,26 @@ spfTools::outer_legend("right",
 
 ```
 
-```{r mean-mvf-expression}
+```{r mean-mvf-expression, fig.height=7, fig.width=15,dpi=300}
 #Looking at the relationship between male expression and female expression
 organs <- c(unique(logFC_long$tissue))
 
-dds_SM_exp$organ <- ifelse(dds_SM_exp$organ %in% c("Ovaries", "Testes"),
+ddsMF_SM_exp$organ <- ifelse(ddsMF_SM_exp$organ %in% c("Ovaries", "Testes"),
                            paste0("Gonad"), 
-                           paste0(dds_SM_exp$organ))
+                           paste0(ddsMF_SM_exp$organ))
 
 bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
 
-dev.new(width=15, height=7)
+#dev.new(width=15, height=7)
 
 par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(10,5,5,0))
 
 for (organ in organs) {
   
   #browser()
-  tmp <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ])
-  tmpF <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ & dds_SM_exp$sex == "F"])
-  tmpM <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ & dds_SM_exp$sex == "M"])
+  tmp <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ])
+  tmpF <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ & ddsMF_SM_exp$sex == "F"])
+  tmpM <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ & ddsMF_SM_exp$sex == "M"])
   
   tmp$Fmean <- apply(tmpF, 1, mean)
   tmp$Mmean <- apply(tmpM, 1, mean)
@@ -1210,6 +1049,8 @@ for (organ in organs) {
   xmax <- max(tmp$Fmean, na.rm = TRUE) + 1
   
   plot(tmp$Fmean, tmp$Mmean,
+       xlab="",
+       ylab="",
        #ylab = expression('log'[2] * '(Male Expression)'),
        #xlab = expression('log'[2] * '(Female Expression)'),
        #axes=FALSE,
@@ -1423,44 +1264,44 @@ for(gene in gill_fem_biased_geneIDS){
 ```
 
 ### Pulling out the gene IDs for all of the sex-specific genes
-```{r}
+```{r, eval=FALSE}
 #Run once to create the file and then commented out
-#write.table(cbind(rownames(SM_sex_specific_genes$Gill_male_specific)),
- #           'data/SM_malG_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-#write.table(cbind(rownames(SM_sex_specific_genes$Gill_female_specific)),
- #           'data/SM_femG_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-#write.table(cbind(rownames(SM_sex_specific_genes$Gonad_male_specific)),
- #           'data/SM_malGon_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-#write.table(cbind(rownames(SM_sex_specific_genes$Gonad_female_specific)),
- #           'data/SM_femGon_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-#write.table(cbind(rownames(SM_sex_specific_genes$Liver_male_specific)),
- #           'data/SM_malL_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
-#write.table(cbind(rownames(SM_sex_specific_genes$Liver_female_specific)),
- #           'data/SM_femL_specific_TRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Gill_male_specific)),
+          'data/SM_malG_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Gill_female_specific)),
+          'data/SM_femG_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Gonad_male_specific)),
+          'data/SM_malGon_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Gonad_female_specific)),
+          'data/SM_femGon_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Liver_male_specific)),
+          'data/SM_malL_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
+write.table(cbind(rownames(SM_sex_specific_genes$Liver_female_specific)),
+          'data/SM_femL_specific_TRgenes.txt',
+         sep = "",
+        quote=FALSE,
+       row.names = FALSE,
+      col.names = FALSE)
 ```
 
 
@@ -1475,7 +1316,6 @@ This binned was only done on the sex-biased genes, will not have a category for 
 Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
 
 ```{r bin-sex-bias, fig.width=15}
-
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
@@ -1550,7 +1390,10 @@ write.table(bias_cat_gonad, "data/bias_cat_gonad.txt", row.names = TRUE)
 
 bias_cat_liver <- bias_cat_table[,, "Liver"]
 write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
+```
 
+
+```{r bin-sex-bias, fig.width=15}
 #Plot the counts for each tissue type
 par(mfrow=c(1, 3))
 barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_gill) + 1), col = c("#7fc97f", "#beaed4"),
@@ -1564,7 +1407,97 @@ legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f
 ```
 
 
-## Gene Ontology Analysis
+
+
+# Patterns across genes
+
+## Creating an Upset Plot
+```{r upset-plot-mal, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in males."}
+#Male-biased genes
+listInputMB <- list("Testis" = rownames(gonad_mal_biased),
+                  "Male Gill"=rownames(gill_mal_biased), 
+                  "Male Liver"=rownames(liver_mal_biased)
+                  )
+upset(fromList(listInputMB),
+      mainbar.y.label = "Number of Shared Male-Biased Genes",
+      sets.x.label = "Total Number of Male-Biased Genes",
+      point.size = 3)
+```
+
+```{r upset-plot-fem, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in females."}
+#Female-biased genes
+listInputFB <- list("Ovaries" = rownames(gonad_fem_biased),
+                  "Female Gill"=rownames(gill_fem_biased), 
+                  "Female Liver"=rownames(liver_fem_biased)
+                  )
+upset(fromList(listInputFB),
+      mainbar.y.label = "Number of Shared Female-Biased Genes",
+      sets.x.label = "Total Number of Female-Biased Genes",
+      point.size = 3)
+```
+
+```{r exportUpsetData, eval=FALSE}
+#Exporting data used to make the Upset plot (run once and them commented out)
+write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
+           row.names = TRUE)
+write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
+           row.names = TRUE)
+write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
+           row.names = TRUE)
+write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
+           row.names = TRUE)
+write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
+           row.names = TRUE)
+write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
+           row.names = TRUE)
+```
+
+```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
+
+
+#Checking there is no overlap between the two sexes
+listInputall <- list("Testes" = rownames(gonad_mal_biased),
+                  "Male Gill"=rownames(gill_mal_biased), 
+                  "Male Liver"=rownames(liver_mal_biased),
+                  "Ovaries" = rownames(gonad_fem_biased),
+                  "Female Gill"=rownames(gill_fem_biased), 
+                  "Female Liver"=rownames(liver_fem_biased))
+
+# Define the desired order of sets
+desired_order <- c("Male Gill", "Female Gill", "Male Liver", "Female Liver", "Testes", "Ovaries")
+
+# Create the UpSet object with custom set order
+pdf("figs/upset.pdf",height=4,width=10)
+upset(fromList(listInputall),
+      sets = desired_order,
+      mainbar.y.label = "Number of Shared Sex-Biased Genes",
+      sets.x.label = "Total Number of Sex-Biased Genes",
+      point.size = 3,
+      nsets = 6,
+      nintersects = NA,
+      keep.order = TRUE,
+      order.by = "degree",
+      sets.bar.color  = rev(c(organ_cols["Gonad"],
+                          organ_cols["Gonad"],
+                          organ_cols["Liver"],
+                          organ_cols["Liver"],
+                          organ_cols["Gill"],
+                          organ_cols["Gill"])),
+      shade.color = sex_cols["M"],
+      main.bar.color=c(rep("gray23",11),
+                       c(organ_cols["Gonad"],
+                          organ_cols["Gonad"],
+                          organ_cols["Liver"],
+                          organ_cols["Liver"],
+                          organ_cols["Gill"],
+                          organ_cols["Gill"]))
+)
+dev.off()
+```
+
+In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
+
+# Gene Ontology Analysis
 We wanted to figure out two things:   
 
   1) What are the genes that are sex-biased within each tissue type   
