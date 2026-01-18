@@ -43,6 +43,9 @@ organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15)
 sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
 
 bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
+organ_cols<-c("Gill" = "#20B2AA",
+              "Gonad" = "#EEB422", 
+              "Liver" = "#EE8262")
 ```
 
 ## Figure 1: General patterns
