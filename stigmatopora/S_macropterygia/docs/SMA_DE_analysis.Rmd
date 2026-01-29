@@ -1584,18 +1584,21 @@ This script was run as `bash ../scripts/blast_pipeline.sh SMA_TR_genes/ ../scrip
 Once the BLAST results were obtained in the RCC I read them into R for further filtering (keeping only one hit per gene)
 ```{r readin_blast_results}
 #Specify the directory where BLAST results are located
-blast_path <- "data/cory_BLAST/"
+blast_path <- "//file/Research/FlanaganLab/intermediate_data/SMA_DE_pipeline_analysis_2024/07_TRgenes/cory_BLAST"
 
 #Create a list of the files I want
-SM_blast_files <- list.files(blast_path, pattern = "cory")
+SM_blast_files <- list.files(blast_path, 
+                             pattern = "cory",
+                             full.names = TRUE)
 
 #Create an empty list to store my datasets in
 SM_blast_list <- list()
 
 #Create a loop to read in all of the blast results
 for(file_name in SM_blast_files){
+  print(file_name)
    # Read the file and store it in a new object
-  file_data <- read.delim(file.path("data/cory_BLAST/", file_name), 
+  file_data <- read.delim( file_name, 
                           stringsAsFactors = FALSE, 
                           quote = "", 
                           sep = "\t",
