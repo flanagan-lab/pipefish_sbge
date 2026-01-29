@@ -1785,3 +1785,231 @@ table(tissue_sex_biased$tissue, tissue_sex_biased$bias)
 ```
 
 
+On the RCH:
+```{bash, eval=FALSE}
+module load DIAMOND/2.1.11-GCC-13.3.0
+diamond makedb --in stigmatopora_nigra/data/GCF_051989575.1/protein.faa --db s_nigra
+```
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+#
+#SBATCH --job-name=diamondblast
+#
+#SBATCH --ntasks=1
+#SBATCH --time=25:00:00
+#SBATCH --mem-per-cpu=3GB
+#SBATCH --cpus-per-task=8
+#SBATCH --error=job_%x_%j.err
+#SBATCH --output=job_%x_%j.out
+
+
+module load prefix/latest
+module load DIAMOND/2.1.11-GCC-13.3.0
+
+# process highly tissue specific and sex biased genes
+./subset_fasta_file -c -f SMA_supertranscriptome.fasta -l tissue_sex_biased_IDs.txt
+mv SMA_supertranscriptome.subset.fasta tissue_sex_biased.fasta
+
+
+# run diamond blastx
+diamond blastx --threads 8 --db s_nigra --out tissue_sex_biased.dmdblastx --query tissue_sex_biased.fasta --outfmt 6
+
+```
+
+```{r}
+parse_gff<-function(filename){
+  gff <- read.delim(filename,
+                  comment.char = "#", 
+                  header = FALSE)
+  colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+  return(gff)
+}
+```
+
+```{r}
+# read in the blast data
+tissue_sex_blast<-read.table("data/tissue_sex_biased.dmdblastx",header=FALSE)
+colnames(tissue_sex_blast)<-c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
+```
+```{r}
+filter_blast<-function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[,1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <-  colnames(data_frame)
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- data_frame[which(data_frame[,1] == gene),]
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+}
+```
+
+
+
+```{r}
+gff<-parse_gff("stigmatopora_nigra/genomic.gff")
+annotations<-read.delim("stigmatopora_nigra/GCF_051989575.1-RS_2025_11_gene_ontology.gaf",
+                        comment.char="!", 
+                        header = FALSE)
+colnames(annotations)<-c(
+  "DB","GeneID","Symbol","Qualifier","GO_ID","Reference","Evidence_Code","With_From","Aspect","Gene_Name","Gene_Synonym","Type","Taxon","Date","Assigned_By","Annot_Ext","Gene_Product_Form_ID"
+)
+```
+```{r}
+library(GO.db)
+# get keys for selection
+go <- keys(GO.db, keytype="GOID")
+goids <- select(GO.db,
+                columns=c("GOID","TERM","ONTOLOGY","DEFINITION"),
+                keys=go, 
+                keytype="GOID")
+annotations<-merge(annotations,
+                   goids,
+                   by.x="GO_ID",
+                   by.y="GOID",
+                   all.x=TRUE)
+
+```
+
+```{r}
+tissue_sex_blast_filtered<-filter_blast(tissue_sex_blast)
+```
+
+```{r}
+tissue_sex_blast_info<-as.data.frame(do.call(rbind,lapply(tissue_sex_blast_filtered$sseqid, function(sid,gff){
+  this_gff<-gff[grep(sid, gff$description),]
+  product<-paste(unique(gsub("^.*product=(.*)\\;protein_id.*$","\\1",this_gff$description)),collapse=";")
+  gene_id<-paste(unique(gsub("^.*GeneID\\:(\\d+)\\,.*$","\\1",this_gff$description)),collapse=";")
+  if(length(product)<1){ browser() }
+  return(data.frame(product, gene_id))
+},gff=gff)))
+
+tissue_sex_blast_filtered$GeneID<-tissue_sex_blast_info$gene_id
+tissue_sex_blast_filtered$product <- tissue_sex_blast_info$prods
+
+
+write.csv(tissue_sex_blast_filtered,"data/tissue_sex_blast_filtered.csv",row.names = FALSE)
+```
+```{r}
+
+
+go_anns<-apply(tissue_sex_blast_filtered, 1, function(this_gene, annotations){
+  
+  this_ann<-annotations[annotations$GeneID==as.numeric(this_gene["GeneID"]),]
+  
+  return(paste(paste(this_ann$Qualifier, this_ann$TERM),collapse=";"))
+  
+}, annotations=annotations)
+#tissue_sex_blast_filtered$GO<-go_anns
+
+all_go_anns<-do.call(rbind,apply(tissue_sex_blast_filtered, 1, function(this_gene, annotations){
+  #browser()
+  this_ann<-annotations[annotations$GeneID==as.numeric(this_gene["GeneID"]),]
+  
+  return(this_ann)
+  
+}, annotations=annotations))
+
+all_go_anns_tab<-table(all_go_anns$TERM)
+hist(all_go_anns_tab)
+tissue_sex_blast_ann<-merge(tissue_sex_blast_filtered,
+                            all_go_anns, 
+                            by.x="GeneID",
+                            by.y="GeneID", 
+                            all.x=TRUE, 
+                            all.y=FALSE)
+```
+```{r}
+tissue_sex_blast_ann<-merge(tissue_sex_blast_ann, 
+                            tissue_sex_biased,
+                            by.x="qseqid",
+                            by.y="geneID",
+                            all.x=TRUE, 
+                            all.y=TRUE)
+write.csv(tissue_sex_blast_ann,"data/tissue_sex_blast_ann.csv", row.names = FALSE,quote=FALSE)
+```
+
+```{r}
+matched_genes<-unique(tissue_sex_blast$qseqid)
+unmatched<-tissue_sex_biased[!tissue_sex_biased$geneID %in% matched_genes,]
+
+length(matched_genes)
+#[1] 510
+unmatched<-unique(tissue_sex_biased$geneID [!tissue_sex_biased$geneID  %in% matched_genes])
+#unmatched<-tissue_sex_biased[!tissue_sex_biased$geneID %in% matched_genes,]
+
+length(unmatched)
+#332
+```
+```{r}
+liver_MB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="MB" &
+                                                   tissue_sex_blast_ann$tissue=="Liver"]))
+liver_MB_table<-liver_MB_table[liver_MB_table$Freq>0,]
+liver_MB_table$bias<-"MB"
+liver_MB_table$tissue<-"Liver"
+
+
+gill_MB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="MB" &
+                                                   tissue_sex_blast_ann$tissue=="Gill"]))
+gill_MB_table<-gill_MB_table[gill_MB_table$Freq>0,]
+gill_MB_table$bias<-"MB"
+gill_MB_table$tissue<-"Gill"
+
+
+gonad_MB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="MB" &
+                                                   tissue_sex_blast_ann$tissue=="Gonad"]))
+gonad_MB_table<-gonad_MB_table[gonad_MB_table$Freq>0,]
+gonad_MB_table$bias<-"MB"
+gonad_MB_table$tissue<-"Gonad"
+
+liver_FB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="FB" &
+                                                   tissue_sex_blast_ann$tissue=="Liver"]))
+liver_FB_table<-liver_FB_table[liver_FB_table$Freq>0,]
+liver_FB_table$bias<-"FB"
+liver_FB_table$tissue<-"Liver"
+
+
+gill_FB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="FB" &
+                                                   tissue_sex_blast_ann$tissue=="Gill"]))
+gill_FB_table<-gill_FB_table[gill_FB_table$Freq>0,]
+gill_FB_table$bias<-"FB"
+gill_FB_table$tissue<-"Gill"
+
+gonad_FB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="FB" &
+                                                   tissue_sex_blast_ann$tissue=="Gonad"]))
+gonad_FB_table<-gonad_FB_table[gonad_FB_table$Freq>0,]
+gonad_FB_table$bias<-"FB"
+gonad_FB_table$tissue<-"Gonad"
+
+tissue_sex_go_table<-rbind(
+  gonad_MB_table,
+  liver_MB_table,
+  gill_MB_table,
+  gonad_FB_table,
+  liver_FB_table,
+  gill_FB_table
+)
+colnames(tissue_sex_go_table)<-c("GO_Term","Number of matches", "bias","tissue")
+write.csv(tissue_sex_go_table, "data/tissue_sex_GO_table.csv",row.names = FALSE, quote=FALSE)
+```
+
