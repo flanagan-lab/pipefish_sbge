@@ -943,6 +943,8 @@ interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
 
 "sex-biased genes displayed a broad range of log2 fold-change values, generally exceeding those observed in the liver or gills "
 
+### Visualising male vs female expression
+
 ```{r mvf-expression}
 #Looking at the relationship between male expression and female expression
 organs <- c(unique(logFC_long$tissue))
