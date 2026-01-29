@@ -208,5 +208,136 @@ fig2
 
 ## Figure 3: Pleiotropy as measured by tissue specificity
 
-create joy plots?
+
+```{r}
+logFC_long<-read.csv("data/logFC_long_taubiasSB.csv")
+logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv", 
+                          stringsAsFactors = TRUE)
+logFC_long_all$bias_cat<-factor(logFC_long_all$bias_cat,
+                                levels=c("Unbiased","Low","Med","High","Extreme","Sex-specific"))
+
+# create plotting categories
+logFC_long_all$group<-paste0(logFC_long_all$bias_cat,
+                             logFC_long_all$bias)
+logFC_long_all$group<-factor(logFC_long_all$group,
+                             levels=c(
+                               "UnbiasedUB",
+                               "LowFB",
+                               "MedFB",
+                               "HighFB",
+                               "ExtremeFB",
+                               "Sex-specificFB",
+                               "LowMB",
+                               "MedMB",
+                               "HighMB",
+                               "ExtremeMB",
+                               "Sex-specificMB"
+                             ))
+```
+
+### correlation plots
+
+```{r}
+par(mar=c(3,5.5,1,1))
+
+for(organ in c("Gill","Liver","Gonad")){
+  cairo_pdf(paste0("figs/",organ,"_logFC_tau.pdf"),height=5,width=7)
+  logFC_long$abs_logFC<-abs(logFC_long$logFC)
+  plot(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC,
+       bty='l',
+       col=scales::alpha(sex_cols["M"],0.5),
+       pch=17,
+       xlab="|logFC|",
+       ylab=expression(tau["TPM"]),
+       main=organ,
+       cex.axis=1.15,
+       cex.lab=1.15
+       )
+  points(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC,
+       bty='l',
+       col=scales::alpha(sex_cols["F"],0.5),
+       pch=16)
+  abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC),
+         lwd=2,
+         col=sex_cols["M"])
+  abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC),
+         lwd=2,
+         col=sex_cols["F"])
+  dev.off()
+}
+
+
+
+```
+
+
+
+### by bias category
+
+```{r}
+for(organ in c("Gill","Liver","Gonad")){
+  cairo_pdf(paste0("figs/Tau_",organ,".pdf"),height=5,width=7)
+  par(mar=c(3,5.5,1,1))
+  r<-ridgeline(x=logFC_long_all$tau[logFC_long_all$tissue==organ],
+            y=logFC_long_all$group[logFC_long_all$tissue==organ],
+            #palette = scales::alpha(c(bias_colors["UB"],rep(sex_cols,5)),0.75),
+            #border = scales::alpha(c(bias_colors["UB"],rep(sex_cols,5)),0.75),
+            # labels=c("Unbiased",
+            #          "Low","",
+            #          "Med","",
+            #          "High","",
+            #          "Extreme","",
+            #          "Sex-specific",""),
+            palette = scales::alpha(c(bias_colors["UB"],
+                                      rep(sex_cols["F"],5),
+                                      rep(sex_cols["M"],5)),0.75),
+            border = scales::alpha(c(bias_colors["UB"],
+                                      rep(sex_cols["F"],5),
+                                      rep(sex_cols["M"],5)),0.75),
+            labels=c("Unbiased",
+                     rep(c("Low",
+                     "Med",
+                     "High",
+                     "Extreme",
+                     "Sex-specific"),2)),
+            bty='l',
+            mode=TRUE)
+  mtext(side=3,organ,font=2,cex=1.15)
+  mtext(side=1,expression(tau["TPM"]),line=2,cex=1.15)
+  dev.off()
+}
+
+```
+
+```{r}
+corrsGill<-image_ggplot(image_read_pdf('figs/Gill_logFC_tau.pdf'),
+                        interpolate = TRUE)
+corrsGonad<-image_ggplot(image_read_pdf('figs/Gonad_logFC_tau.pdf'),
+                        interpolate = TRUE)
+corrsLiver<-image_ggplot(image_read_pdf('figs/Liver_logFC_tau.pdf'),
+                        interpolate = TRUE)
+tauGill <- image_ggplot(image_read_pdf('figs/Tau_Gill.pdf'),
+                        interpolate = TRUE)
+tauGonad <- image_ggplot(image_read_pdf('figs/Tau_Gonad.pdf'),
+                        interpolate = TRUE)
+tauLiver<-image_ggplot(image_read_pdf('figs/Tau_Liver.pdf'),
+                        interpolate = TRUE)
+
+# make two patchworks
+joys <- tauGill + tauLiver + tauGonad
+cors<-corrsGill + corrsLiver + corrsGonad
+
+# put the patchworks together
+fig3 <-  wrap_plots(cors,joys,
+                      nrow=2
+                      ) + 
+  plot_annotation(tag_levels = 'A') 
+fig3
+```
+
+
+```{r}
+ggsave("figs/Fig3.pdf", fig3, height=3, width=6)
+ggsave("figs/Fig3.png", fig3, height=3, width=6) # also save as a png
+```
 
