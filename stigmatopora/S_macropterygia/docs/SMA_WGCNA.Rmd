@@ -238,7 +238,7 @@ labeledHeatmap(Matrix= moduleTraitCor[,-1],
 dev.off()
 ```
 
-
+## Compare to other values, logFC and tau
 
 ```{r}
 logFC_long$module<-NA
@@ -252,6 +252,38 @@ for(col in unique(ModuleColors)){
 }
 
 logFC_long$module<-as.factor(logFC_long$module)
+```
+
+
+```{r}
+mod_lm<-lm(rank(logFC_long$logFC)~logFC_long$tissue *logFC_long$module)
+anova(mod_lm)
+mod_labs<-multcompLetters4(aov(mod_lm), 
+                           TukeyHSD(aov(mod_lm)))
+mod_labs
+```
+```{r}
+par(mfrow=c(3,1))
+plot(TukeyHSD(aov(mod_lm)))
+```
+```{r}
+tukey_tab<-TukeyHSD(aov(mod_lm))
+tukey_tab[[3]][grep("black",rownames(tukey_tab[[3]])),]
+```
+
+
+```{r}
+module_medians<-tapply(logFC_long$logFC,
+       paste(logFC_long$tissue, logFC_long$module),
+       median)
+module_medians[unlist(lapply(c("black","blue","red","turquoise"),
+                      grep,
+                      x=names(module_medians)))]
+
+lapply(names(table(ModuleColors))[!names(table(ModuleColors)) %in% c("black","blue","red","turquoise")],
+       function(col){
+         max(module_medians[grep(col, names(module_medians))])
+       })
 ```
 
 
