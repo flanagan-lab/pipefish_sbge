@@ -96,11 +96,11 @@ figPCAe <- image_ggplot(image_read_pdf('figs/Fig_pc3_heatmap.pdf'),
 hms <- figPCAc + figPCAd + figPCAe
 
 # put the patchworks together
-figPCA_supp_hm <-  wrap_plots(hms, ncol=2) + 
+figPCA_supp_hm <-  wrap_plots(hms, nrow=1) + 
   plot_annotation(tag_levels = 'A') 
 
-ggsave("figs/FigPCA_heatmaps_supp.pdf", figPCA_supp, height=4, width=8)
-ggsave("figs/FigPCA_heatmaps)supp.png", figPCA_supp, height=4, width=8)
+ggsave("figs/FigPCA_heatmaps_supp.pdf", figPCA_supp_hm, height=3.5, width=6)
+ggsave("figs/FigPCA_heatmaps_supp.png", figPCA_supp_hm, height=3.5, width=6)
 ```
 
 ```{r assembleFigPCA-supp, message=FALSE}
