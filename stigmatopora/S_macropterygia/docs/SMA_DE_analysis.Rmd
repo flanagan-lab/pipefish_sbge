@@ -1330,10 +1330,13 @@ This binned was only done on the sex-biased genes, will not have a category for 
 
 Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
 
-```{r bin-sex-bias, fig.width=15}
+```{r bin-sex-bias}
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+```
 
+
+```{r bin-sex-bias-cat, eval=FALSE}
 #Create a new column in the dataset and use ifelse statements to set the category limits
 #abs(logFC) was used to account for the fem-biased genes possessing negative values
 logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
@@ -1408,17 +1411,20 @@ write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
 ```
 
 
-```{r bin-sex-bias, fig.width=15}
+```{r bin-sex-bias}
+bins_to_use<-biased_bins[biased_bins!="Unbiased"]
+bins_to_use[bins_to_use == "Sex-specific"]<-"Sex.specific"
 #Plot the counts for each tissue type
+png("figs/barplots_S1.png",height=5,width=15,units = "in", res=300)
 par(mfrow=c(1, 3))
-barplot(bias_cat_gill[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_gill) + 1), col = c("#7fc97f", "#beaed4"),
+barplot(as.matrix(bias_cat_gill[,bins_to_use]), beside = TRUE, ylim = c(0, max(bias_cat_gill) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Gill", ylab = "Number of Genes", xlab = "Bias Category")
-barplot(bias_cat_gonad[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_gonad) + 1), col = c("#7fc97f", "#beaed4"),
+barplot(as.matrix(bias_cat_gonad[,bins_to_use]), beside = TRUE, ylim = c(0, max(bias_cat_gonad) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Gonad")
-barplot(bias_cat_liver[,biased_bins[biased_bins!="Unbiased"]], beside = TRUE, ylim = c(0, max(bias_cat_liver) + 1), col = c("#7fc97f", "#beaed4"),
+barplot(as.matrix(bias_cat_liver[,bins_to_use]), beside = TRUE, ylim = c(0, max(bias_cat_liver) + 1), col = c("#7fc97f", "#beaed4"),
         main = "Liver")
 legend("topright", legend = c("Female-biased", "Male-biased"), fill = c("#7fc97f", "#beaed4"))
-
+dev.off()
 ```
 
 
