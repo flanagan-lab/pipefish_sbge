@@ -653,32 +653,239 @@ my_path<-"\\file\Research\FlanaganLab\intermediate_data\SMA_DE_pipeline_analysis
 blast_results_files<-list.files(pattern="blast.txt", path=my_path)
 ```
 
+#### annotating hubs
 
 
-Or CoDiNA:
+```{bash, eval=FALSE}
+#!/bin/bash
+
+#
+#SBATCH --job-name=blast
+#
+#SBATCH --ntasks=1
+#SBATCH --time=1:00:00
+#SBATCH --mem-per-cpu=3GB
+#SBATCH --cpus-per-task=8
+#SBATCH --error=job_%x_%j.err
+#SBATCH --output=job_%x_%j.out
+
+
+module load prefix/latest
+module load DIAMOND/2.1.11-GCC-13.3.0
+
+# process hub genes
+./subset_fasta_file -c -f SMA_supertranscriptome.fasta -l hub_gene_IDs.txt
+mv SMA_supertranscriptome.subset...fasta hub_genes.fasta
+
+# run diamond blastx
+diamond blastx --threads 8 --db s_nigra --out hub_genes.dmdblastx --query hub_genes.fasta --outfmt 6
+```
 
 ```{r}
-library(wTO)
-library(CoDiNA)
-
-expression_matrix<-as.data.frame(assay(vsd))
-
-wto_sma<-CorrelationOverlap(Data = expression_matrix,
-                               Overlap = rownames(expression_matrix), 
-                               method = 's') %>% 
-  wTO(., sign = 'abs')
-
-wto_complete<- wTO.Complete(k = 2, 
-                            n = 100,
-                            Data = expression_matrix, 
-                            Overlap = rownames(expression_matrix), 
-                            method = 's', 
-                            method_resampling = 'Bootstrap',
-                            pvalmethod = 'BH', 
-                            savecor = TRUE, 
-                            expected.diff = 0.2, 
-                            plot = TRUE)
+parse_gff<-function(filename){
+  gff <- read.delim(filename,
+                  comment.char = "#", 
+                  header = FALSE)
+  colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+  return(gff)
+}
 ```
+
+```{r}
+# read in the blast data
+hub_blast<-read.table("data/hub_genes.dmdblastx",header = FALSE)
+colnames(hub_blast)<-c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
+```
+```{r}
+filter_blast<-function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[,1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <-  colnames(data_frame)
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- data_frame[which(data_frame[,1] == gene),]
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+}
+```
+
+
+```{r}
+gff<-parse_gff("stigmatopora_nigra/genomic.gff")
+annotations<-read.delim("stigmatopora_nigra/GCF_051989575.1-RS_2025_11_gene_ontology.gaf",
+                        comment.char="!", 
+                        header = FALSE)
+colnames(annotations)<-c(
+  "DB","GeneID","Symbol","Qualifier","GO_ID","Reference","Evidence_Code","With_From","Aspect","Gene_Name","Gene_Synonym","Type","Taxon","Date","Assigned_By","Annot_Ext","Gene_Product_Form_ID"
+)
+```
+```{r}
+library(GO.db)
+# get keys for selection
+go <- keys(GO.db, keytype="GOID")
+goids <- select(GO.db,
+                columns=c("GOID","TERM","ONTOLOGY","DEFINITION"),
+                keys=go, 
+                keytype="GOID")
+annotations<-merge(annotations,
+                   goids,
+                   by.x="GO_ID",
+                   by.y="GOID",
+                   all.x=TRUE)
+
+```
+
+
+```{r, eval=FALSE}
+hub_blast_filtered<-filter_blast(hub_blast)
+
+hub_blast_info<-as.data.frame(do.call(rbind, lapply(hub_blast_filtered$sseqid, function(sid,gff){
+  this_gff<-gff[grep(sid, gff$description),]
+  product<-paste(unique(gsub("^.*product=(.*)\\;protein_id.*$","\\1",this_gff$description)),collapse=";")
+  gene_id<-paste(unique(gsub("^.*GeneID\\:(\\d+)\\,.*$","\\1",this_gff$description)),collapse=";")
+  if(length(product)<1){ browser() }
+  return(c(product, gene_id))
+},gff=gff)))
+hub_blast_info$V2<-round(as.numeric(hub_blast_info$V2),2)
+
+hub_blast_filtered$GeneID<-hub_blast_info$V2
+hub_blast_filtered$product<-hub_blast_info$V1
+write.csv(hub_blast_filtered,"data/hub_genes_blast_filtered.csv",row.names = FALSE)
+```
+
+```{r}
+hub_blast_filtered<-read.csv("data/hub_genes_blast_filtered.csv")
+```
+
+```{r}
+go_anns<-apply(hub_blast_filtered, 1, function(this_gene, annotations){
+  
+  this_ann<-annotations[annotations$GeneID==as.numeric(this_gene["GeneID"]),]
+  
+  return(paste(paste(this_ann$Qualifier, this_ann$TERM),collapse=";"))
+  
+}, annotations=annotations)
+hub_blast_filtered$GO<-go_anns
+
+all_go_anns<-do.call(rbind,apply(hub_blast_filtered, 1, function(this_gene, annotations){
+  #browser()
+  this_ann<-annotations[annotations$GeneID==as.numeric(this_gene["GeneID"]),]
+  
+  return(this_ann)
+  
+}, annotations=annotations))
+
+all_go_anns_tab<-table(all_go_anns$TERM)
+hist(all_go_anns_tab)
+
+hub_blast_ann<-merge(hub_blast_filtered,
+                            all_go_anns, 
+                            by.x="GeneID",
+                            by.y="GeneID", 
+                            all.x=TRUE, 
+                            all.y=FALSE)
+```
+```{r}
+hub_blast_ann<-merge(hub_blast_ann, 
+                            all_hub_gene_info,
+                            by.x="qseqid",
+                            by.y="Gene",
+                            all.x=TRUE, 
+                            all.y=TRUE)
+```
+
+```{r}
+matched_genes<-unique(hub_blast$qseqid)
+unmatched<-all_hub_genes[!all_hub_genes$Gene %in% matched_genes,]
+
+length(matched_genes)
+#[1] 320
+unmatched<-unique(all_hub_genes$Gene[!all_hub_genes$Gene %in% matched_genes])
+length(unmatched)
+#139
+```
+
+
+```{r}
+liver_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Liver"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Liver"]))
+liver_MB_table<-liver_MB_table[liver_MB_table$Freq>0,]
+liver_MB_table$bias<-"MB"
+liver_MB_table$tissue<-"Liver"
+
+gill_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Gill"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Gill"]))
+gill_MB_table<-gill_MB_table[gill_MB_table$Freq>0,]
+gill_MB_table$bias<-"MB"
+gill_MB_table$tissue<-"Gill"
+
+gonad_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Gonad"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                                           hub_blast_ann$tissue=="Gonad"]))
+gonad_MB_table<-gonad_MB_table[gonad_MB_table$Freq>0,]
+gonad_MB_table$bias<-"MB"
+gonad_MB_table$tissue<-"Gonad"
+
+liver_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Liver"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Liver"]))
+liver_FB_table<-liver_FB_table[liver_FB_table$Freq>0,]
+liver_FB_table$bias<-"FB"
+liver_FB_table$tissue<-"Liver"
+
+gill_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Gill"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Gill"]))
+# there were no matches
+#gill_FB_table<-gill_FB_table[gill_FB_table$Freq>0,]
+#gill_FB_table$bias<-"FB"
+#gill_FB_table$tissue<-"Gill"
+
+gonad_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Gonad"],
+                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                                           hub_blast_ann$tissue=="Gonad"]))
+gonad_FB_table<-gonad_FB_table[gonad_FB_table$Freq>0,]
+gonad_FB_table$bias<-"FB"
+gonad_FB_table$tissue<-"Gonad"
+
+module_go_table<-rbind(
+  gonad_MB_table,
+  liver_MB_table,
+  gill_MB_table,
+  gonad_FB_table,
+  liver_FB_table
+)
+colnames(module_go_table)<-c("GO_Term","module","Number of matches", "bias","tissue")
+write.csv(module_go_table, "data/module_GO_table.csv",row.names = FALSE, quote=FALSE)
+```
+
+
 
 ## Evolutionary analysis
 
