@@ -548,11 +548,111 @@ dev.off()
 
 the two most highly correlated modules with male gene expression have significantly higher tissue specificity than the other modules; but the same was not true for the other significantly correlated with males module, nor for the female-correlated module. Strong correlations with up- or down-regulation in tissues was not associated with tissue specificity.
 
-### alternative methods
+### identifying hubs
 
-........check out https://github.com/tpq/propr
+First need to get gene significance and module membership
 
-https://github.com/jolespin/ensemble_networkx?tab=readme-ov-file#bidirectional-clustered-networks-using-leiden-or-louvain-community-detection
+```{r}
+# based on https://ngs101.com/how-to-build-gene-co-expression-networks-from-rna-seq-data-using-wgcna-complete-step-by-step-guide-for-absolute-beginners/
+# Calculate gene significance (correlation with trait) for sex
+gene_trait_cor <- cor(expression_data_subset, 
+                      trait_data$female, 
+                      use = "pairwise.complete.obs")
+gene_trait_pvalue <- corPvalueStudent(as.numeric(gene_trait_cor), nrow(trait_data))
+ 
+# Add gene names to the p-value vector
+names(gene_trait_cor) <- colnames(expression_data_subset)
+names(gene_trait_pvalue) <- colnames(expression_data_subset)
+
+# create objects to put data into
+all_hub_gene_info<-data.frame() 
+all_hub_genes<-data.frame()
+
+for(sex_module in c("black","blue","red","turquoise")){
+
+  # Get genes in this module
+  module_genes <- colnames(expression_data_subset)[ModuleColors == gsub("ME","",sex_module)]
+  cat("Number of genes in", sex_module, "module:", length(module_genes), "\n")
+  
+   
+  # Calculate module membership for these genes
+  # MM measures how correlated each gene is with the module eigengene
+  gene_module_membership <- cor(expression_data_subset[, module_genes],
+                                 MEs[, paste0("ME",sex_module)],
+                                 use = "pairwise.complete.obs")
+   
+  # Create a data frame with gene information
+  module_gene_info <- data.frame(
+    Gene = module_genes,
+    ModuleMembership = as.numeric(gene_module_membership),
+    GeneSignificance = gene_trait_cor[module_genes],
+    MM_pvalue = corPvalueStudent(as.numeric(gene_module_membership), nrow(trait_data)),
+    GS_pvalue = gene_trait_pvalue[module_genes],
+    stringsAsFactors = FALSE
+  )
+   
+  # Sort by module membership
+  module_gene_info <- module_gene_info[order(-abs(module_gene_info$ModuleMembership)), ]
+   
+  
+  # Calculate connectivity (intramodular connectivity)
+  # First, calculate adjacency matrix for genes in this module
+  adjacency_matrix <- adjacency(
+    expression_data_subset[, module_genes],
+    power = soft_power,
+    type = "signed"
+  )
+   
+  # Calculate connectivity: sum of connection weights for each gene
+  # (subtract 1 to exclude self-connection)
+  connectivity <- rowSums(adjacency_matrix) - 1
+   
+  # Combine all metrics for hub gene identification
+  hub_gene_info <- data.frame(
+    Gene = module_genes,
+    Connectivity = connectivity,
+    ModuleMembership = as.numeric(gene_module_membership),
+    GeneSignificance =  gene_trait_cor[module_genes],
+    stringsAsFactors = FALSE
+  )
+   
+  # Sort by connectivity to identify hubs
+  hub_gene_info <- hub_gene_info[order(-hub_gene_info$Connectivity), ]
+  hub_gene_info$module <- sex_module 
+  
+  hub_genes<-hub_gene_info[which(hub_gene_info$Connectivity > quantile(hub_gene_info$Connectivity,0.9) &
+                                   hub_gene_info$ModuleMembership > 0.7 &
+                                   abs(hub_gene_info$GeneSignificance) > moduleTraitCor[paste0("ME",sex_module),1]),]
+  
+  # save to bigger data frames
+  all_hub_gene_info <- rbind(all_hub_gene_info, hub_gene_info)
+  all_hub_genes<-rbind(all_hub_genes, hub_genes)
+}
+write.table(all_hub_genes$Gene,"data/hub_gene_IDs.txt",
+          row.names=FALSE,
+          col.names=FALSE,
+          quote=FALSE)
+```
+```{r}
+table(all_hub_genes$module)
+```
+
+```{r}
+all_hub_gene_info<-merge(all_hub_gene_info, 
+                         logFC_long_all,
+                         by.x="Gene",
+                         by.y="geneID",
+                         all.x=TRUE
+                         )
+write.csv(all_hub_gene_info,"all_hub_gene_info.csv",row.names = FALSE)
+```
+
+
+```{r}
+my_path<-"\\file\Research\FlanaganLab\intermediate_data\SMA_DE_pipeline_analysis_2024\07_TRgenes\cory_BLAST"
+blast_results_files<-list.files(pattern="blast.txt", path=my_path)
+```
+
 
 
 Or CoDiNA:
