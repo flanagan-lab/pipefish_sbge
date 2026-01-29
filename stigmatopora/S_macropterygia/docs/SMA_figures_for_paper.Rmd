@@ -127,6 +127,14 @@ Show:
 - violin plots of expression
 - upset plot
 
+```{r}
+fc_var_aov <- aov(rank(abs(logFC_long$logFC)) ~ logFC_long$bias*logFC_long$tissue)
+labs<-multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
+labs<-labs$`logFC_long$bias:logFC_long$tissue`
+labs<-labs$Letters[c("FB:Gill","MB:Gill","UB:Gill",
+                     "FB:Gonad","MB:Gonad","UB:Gonad",
+                     "FB:Liver","MB:Liver","UB:Liver")]
+```
 
 ```{r}
 pdf("figs/logFC_violin.pdf",width = 10, height=4)
@@ -166,6 +174,11 @@ legend("top",
        fill = bias_colors,
        bty='n',
        ncol = 3)
+
+text(x=1:9,
+     y=rep(-1,9),
+     labels = labs,
+     xpd=TRUE)
 dev.off()
 ```
 
