@@ -370,9 +370,122 @@ logFC_tau_all$grp<-paste0(logFC_tau_all$module,"_",logFC_tau_all$tissue)
 logFC_tau_all$grp<-as.factor(logFC_tau_all$grp)
 ```
 
+```{r}
+tau_col_dat<-logFC_tau_all[which(logFC_tau_all$module != "grey"),]
+tau_col_dat$module <- factor(tau_col_dat$module)
+write.csv(tau_col_dat, "data/tau_col_dat.csv", row.names = FALSE, quote=FALSE)
+```
+```{r}
+tau_col_dat<-read.csv("data/tau_col_dat.csv")
+```
+
 
 ```{r}
-plot_cols<-unlist(lapply(levels(as.factor(ModuleColors)),rep,times=3))
+
+library(betareg)
+library(emmeans)
+library(multcomp)
+tau_mod<-betareg(tau~tissue *module, dat=tau_col_dat)
+```
+```{r}
+par(mfrow=c(3,2))
+plot(tau_mod)
+```
+```{r}
+joint_tests(tau_mod)
+
+emm <- emmeans(tau_mod, ~ tissue * module, type="response")
+pairwise_emm<-pairs(emm, adjust = "tukey")
+tau_mod_lab<-multcomp::cld(emm, Letters = letters)
+write.csv(tau_mod_lab, "data/tau_by_module_tissue_pairwise_letters.csv")
+```
+
+Call:
+betareg(formula = tau ~ tissue * module, data = tau_col_dat)
+
+Randomized quantile residuals:
+    Min      1Q  Median      3Q     Max 
+-3.6939 -0.6212  0.0656  0.7097  3.3496 
+
+Coefficients (mu model with logit link):
+                              Estimate Std. Error z value Pr(>|z|)
+(Intercept)                  9.990e-02  4.102e-02   2.435 0.014872
+tissueGonad                 -1.956e-01  5.312e-02  -3.682 0.000231
+tissueLiver                  2.758e-08  5.801e-02   0.000 1.000000
+moduleblue                  -4.816e-03  4.463e-02  -0.108 0.914060
+modulebrown                 -5.321e-01  4.871e-02 -10.923  < 2e-16
+modulegreen                 -7.044e-01  5.327e-02 -13.224  < 2e-16
+modulemagenta               -1.061e+00  7.597e-02 -13.971  < 2e-16
+modulepink                  -2.611e-01  6.483e-02  -4.027 5.64e-05
+modulepurple                -1.063e+00  7.609e-02 -13.966  < 2e-16
+modulered                   -1.049e+00  6.047e-02 -17.354  < 2e-16
+moduleturquoise             -7.815e-01  4.347e-02 -17.979  < 2e-16
+moduleyellow                -3.039e-01  5.071e-02  -5.992 2.08e-09
+tissueGonad:moduleblue      -4.289e-02  5.737e-02  -0.748 0.454671
+tissueLiver:moduleblue      -5.577e-08  6.311e-02   0.000 0.999999
+tissueGonad:modulebrown      6.778e-02  6.403e-02   1.059 0.289812
+tissueLiver:modulebrown      1.542e-08  6.872e-02   0.000 1.000000
+tissueGonad:modulegreen      1.647e-01  6.983e-02   2.358 0.018370
+tissueLiver:modulegreen     -1.348e-07  7.520e-02   0.000 0.999999
+tissueGonad:modulemagenta    1.145e-01  9.843e-02   1.163 0.244739
+tissueLiver:modulemagenta   -4.808e-08  1.073e-01   0.000 1.000000
+tissueGonad:modulepink       7.621e-02  8.691e-02   0.877 0.380576
+tissueLiver:modulepink      -2.431e-09  9.168e-02   0.000 1.000000
+tissueGonad:modulepurple     1.530e-01  1.003e-01   1.525 0.127218
+tissueLiver:modulepurple    -5.199e-08  1.073e-01   0.000 1.000000
+tissueGonad:modulered        9.594e-02  7.680e-02   1.249 0.211613
+tissueLiver:modulered       -9.952e-08  8.527e-02   0.000 0.999999
+tissueGonad:moduleturquoise  9.744e-02  5.619e-02   1.734 0.082914
+tissueLiver:moduleturquoise -7.446e-08  6.129e-02   0.000 0.999999
+tissueGonad:moduleyellow     1.161e-01  6.663e-02   1.743 0.081356
+tissueLiver:moduleyellow    -7.864e-08  7.170e-02   0.000 0.999999
+                               
+(Intercept)                 *  
+tissueGonad                 ***
+tissueLiver                    
+moduleblue                     
+modulebrown                 ***
+modulegreen                 ***
+modulemagenta               ***
+modulepink                  ***
+modulepurple                ***
+modulered                   ***
+moduleturquoise             ***
+moduleyellow                ***
+tissueGonad:moduleblue         
+tissueLiver:moduleblue         
+tissueGonad:modulebrown        
+tissueLiver:modulebrown        
+tissueGonad:modulegreen     *  
+tissueLiver:modulegreen        
+tissueGonad:modulemagenta      
+tissueLiver:modulemagenta      
+tissueGonad:modulepink         
+tissueLiver:modulepink         
+tissueGonad:modulepurple       
+tissueLiver:modulepurple       
+tissueGonad:modulered          
+tissueLiver:modulered          
+tissueGonad:moduleturquoise .  
+tissueLiver:moduleturquoise    
+tissueGonad:moduleyellow    .  
+tissueLiver:moduleyellow       
+
+Phi coefficients (phi model with identity link):
+      Estimate Std. Error z value Pr(>|z|)    
+(phi)  10.6634     0.2186   48.78   <2e-16 ***
+
+Exceedence parameter (extended-support xbetax model):
+        Estimate Std. Error z value Pr(>|z|)    
+Log(nu)   -3.152      0.078  -40.41   <2e-16 ***
+
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Exceedence parameter nu: 0.0428
+Type of estimator: ML (maximum likelihood)
+Log-likelihood:  8305 on 32 Df
+Number of iterations in BFGS optimization: 47 
+
 
 par(mar=c(4,4,1,1))
 plot(x=0:34,
