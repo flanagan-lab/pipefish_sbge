@@ -1567,6 +1567,8 @@ liver_plot
 gill_plot
 ```
 
+## Statistically comparing correlations
+
 ```{r comp-correlations}
 # Function to compare two correlation coefficients
 compare_correlations <- function(r1, r2, n1, n2) {
@@ -1676,4 +1678,110 @@ cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
 cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
 
 ```
+
+Statistically test for differences in tau across categories and tissues
+
+```{r}
+library(betareg)
+library(emmeans)
+library(multcomp)
+
+logFC_long_all$bias_group<-paste0(logFC_long_all$bias,logFC_long_all$bias_cat)
+tau_mod<-betareg(tau~tissue*bias_group,
+             data=logFC_long_all)
+
+
+joint_tests(tau_mod)
+
+emm <- emmeans(tau_mod, ~ tissue * bias_group, type="response")
+pairwise_emm<-pairs(emm, adjust = "tukey")
+tau_mod_lab<-multcomp::cld(emm, Letters = letters)
+write.csv(tau_mod_lab, "data/tau_by_tissue_bias_pairwise_letters.csv",
+          row.names = FALSE, quote=FALSE)
+```
+Call:
+betareg(formula = tau ~ tissue * bias_group, data = logFC_long_all)
+
+Randomized quantile residuals:
+    Min      1Q  Median      3Q     Max 
+-4.1803 -0.6802 -0.0324  0.6939  3.7333 
+
+Coefficients (mu model with logit link):
+                                     Estimate Std. Error z value Pr(>|z|)   
+(Intercept)                           0.05870    0.40867   0.144  0.88579   
+tissueGonad                          -0.70004    0.41808  -1.674  0.09405 . 
+tissueLiver                           0.91855    0.51394   1.787  0.07389 . 
+bias_groupFBHigh                     -0.04845    0.64604  -0.075  0.94021   
+bias_groupFBLow                      -0.44253    0.51935  -0.852  0.39417   
+bias_groupFBMed                      -0.48624    0.50380  -0.965  0.33447   
+bias_groupFBSex-specific              0.77938    0.66905   1.165  0.24406   
+bias_groupMBExtreme                   0.21562    0.41394   0.521  0.60244   
+bias_groupMBHigh                      0.00169    0.46105   0.004  0.99707   
+bias_groupMBLow                      -0.49965    0.58272  -0.857  0.39120   
+bias_groupMBMed                      -0.82656    0.51456  -1.606  0.10820   
+bias_groupMBSex-specific              0.01303    0.45339   0.029  0.97708   
+bias_groupUBUnbiased                 -0.78835    0.40870  -1.929  0.05374 . 
+tissueGonad:bias_groupFBHigh          0.09703    0.65283   0.149  0.88185   
+tissueLiver:bias_groupFBHigh         -1.46648    0.74303  -1.974  0.04842 * 
+tissueGonad:bias_groupFBLow           0.32326    0.52730   0.613  0.53985   
+tissueLiver:bias_groupFBLow          -1.39364    0.62562  -2.228  0.02591 * 
+tissueGonad:bias_groupFBMed           0.44002    0.51206   0.859  0.39017   
+tissueLiver:bias_groupFBMed          -0.98332    0.61933  -1.588  0.11235   
+tissueGonad:bias_groupFBSex-specific -0.49851    0.67552  -0.738  0.46054   
+tissueLiver:bias_groupFBSex-specific -2.10665    0.74996  -2.809  0.00497 **
+tissueGonad:bias_groupMBExtreme       1.12037    0.44117   2.540  0.01110 * 
+tissueLiver:bias_groupMBExtreme      -1.00729    0.53586  -1.880  0.06014 . 
+tissueGonad:bias_groupMBHigh          0.66134    0.46992   1.407  0.15933   
+tissueLiver:bias_groupMBHigh         -1.36841    0.56378  -2.427  0.01522 * 
+tissueGonad:bias_groupMBLow           0.39815    0.58962   0.675  0.49950   
+tissueLiver:bias_groupMBLow          -1.12230    0.66542  -1.687  0.09168 . 
+tissueGonad:bias_groupMBMed           0.85952    0.52232   1.646  0.09985 . 
+tissueLiver:bias_groupMBMed          -0.67196    0.60459  -1.111  0.26638   
+tissueGonad:bias_groupMBSex-specific  0.68408    0.46224   1.480  0.13889   
+tissueLiver:bias_groupMBSex-specific -1.42942    0.55617  -2.570  0.01017 * 
+tissueGonad:bias_groupUBUnbiased      0.54679    0.41813   1.308  0.19096   
+tissueLiver:bias_groupUBUnbiased     -0.91694    0.51399  -1.784  0.07443 . 
+
+Phi coefficients (phi model with identity link):
+      Estimate Std. Error z value Pr(>|z|)    
+(phi)  6.89367    0.03847   179.2   <2e-16 ***
+
+Exceedence parameter (extended-support xbetax model):
+        Estimate Std. Error z value Pr(>|z|)    
+Log(nu) -4.63074    0.04913  -94.25   <2e-16 ***
+
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Exceedence parameter nu: 0.0097
+Type of estimator: ML (maximum likelihood)
+Log-likelihood: 3.666e+04 on 35 Df
+Number of iterations in BFGS optimization: 47 
+
+
+ joint_tests(tau_mod)
+ model term        df1 df2 F.ratio   Chisq p.value
+ tissue              2 Inf   4.424   8.848  0.0120
+ bias_group         10 Inf  54.229 542.290  <.0001
+ tissue:bias_group  20 Inf   7.438 148.760  <.0001
+
+
+# Identifying the most tissue specific and highly expressed genes
+
+```{r}
+tau_cutoff<-round(quantile(logFC_long_all$tau,probs = 0.9),2)
+logFC_cutoff<-round(quantile(abs(logFC_long_all$logFC),probs = 0.9, na.rm=TRUE),2)
+tissue_sex_biased<-logFC_long_all[which(logFC_long_all$tau > tau_cutoff &
+                       abs(logFC_long_all$logFC) > logFC_cutoff &
+                         logFC_long_all$bias!="UB"),]
+
+write.table(tissue_sex_biased$geneID,
+            "tissue_sex_biased_IDs.txt",
+            col.names = FALSE, 
+            row.names = FALSE, 
+            quote=FALSE)
+```
+```{r}
+table(tissue_sex_biased$tissue, tissue_sex_biased$bias)
+```
+
 
