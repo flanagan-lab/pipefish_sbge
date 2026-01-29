@@ -44,6 +44,9 @@ library(multcompView)
 library(spfTools)
 library(patchwork)
 library(ridgeline) #remotes::install_github("R-CoderDotCom/ridgeline@main")
+
+library(car)
+library(multcompView)
 library(WGCNA)
 library(yarrr)
 ```
