@@ -2578,19 +2578,18 @@ write.csv(all_blast_filtered,
 ```{r merge-SB-blast}
 
 logFC_long_tauSB <- read.csv("data/logFC_long_taubiasSB.csv")
-blast_output_all <- read.csv("data/SM_blast_output.csv")
 
-blast_SB_merged <- merge(logFC_long_tauSB, blast_output_all, by = "trin_geneid", all = TRUE)
+blast_SB_merged <- merge(logFC_long_tauSB, all_blast_filtered, by.x = "trin_geneid", by.y="qseqid", all = TRUE)
 
 #write once then comment out
 #write.csv(as.data.frame(blast_SB_merged), "data/SM_blast_SB_merged.csv", row.names = TRUE)
 
-#add SS dataset
+#add sex specific dataset
 logFC_long_tauSS <- read.csv("data/logFC_long_taubias_SS.csv")
 
 blast_SB_SS_merged <- merge(blast_SB_merged, logFC_long_tauSS, by = "trin_geneid", all = TRUE)
 
 #write once then comment out
-#write.csv(as.data.frame(blast_SB_SS_merged), "data/SM_blast_SB_SS_merged.csv", row.names = TRUE)
+write.csv(as.data.frame(blast_SB_SS_merged), "data/SM_blast_ann_SB_SS_merged.csv", row.names = TRUE)
 ```
 
