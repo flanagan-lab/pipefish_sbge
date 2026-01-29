@@ -896,42 +896,52 @@ ggplot(logFC_long,
 
 Range -30.33088  46.35090
 
+### Statistical analysis
+
+
 There appears to be differences in the logFC across both the organs and the sex-bias groups (male-biased, fem-biased, and non-biased) (Fig. \@ref(fig:FC-var-plot)). Let's explore some analyses to see if we can put some statistical power behind those differences.
 
 ```{r FC-var-summary-stats, warning=FALSE, eval=FALSE}
 #Looking at some summary statistics for logFC between the different groups
 tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), mean)
 tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
+```
 
-par(mfrow=c(1,1))
-interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
+
+We'll run an ANOVA on rank-transformed data
+
+```{r FC-var-anova, warning=FALSE, eval=FALSE}
 
 logFC_long$tissue <- as.factor(logFC_long$tissue)
 logFC_long$bias <- as.factor(logFC_long$bias)
 
-fc_var_aov <- aov(abs(logFC_long$logFC) ~ logFC_long$bias*logFC_long$tissue)
-anova(fc_var_aov)
+fc_var_aov <- aov(rank(abs(logFC_long$logFC)) ~ logFC_long$bias*logFC_long$tissue)
 
 par(mfrow = c(2,2))
-plot(fc_var_aov)
-
-library(car)
-leveneTest(fc_var_aov)
+plot(fc_var_aov) 
+leveneTest(fc_var_aov) # not equal variances
 par(mfrow=c(1,1))
 hist(resid(fc_var_aov))
-#shapiro.test(resid(fc_var_aov)) 
-
-plot(TukeyHSD(fc_var_aov))
-library(multcompView)
-multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
-
-##Fitting a negative binomial model
-library(MASS)
-model <- glm.nb(abs(logFC_long$logFC) ~ logFC_long$tissue * logFC_long$bias)
-
-linear_model <- lm(abs(logFC_long$logFC)~ logFC_long$tissue * logFC_long$bias)
 ```
 
+
+```{r FC-var-anova, warning=FALSE, eval=FALSE}
+anova(fc_var_aov)
+plot(TukeyHSD(fc_var_aov))
+
+multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
+
+```
+
+```{r}
+par(mfrow=c(1,1))
+interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
+
+```
+
+
+
+"sex-biased genes displayed a broad range of log2 fold-change values, generally exceeding those observed in the liver or gills "
 
 ```{r mvf-expression}
 #Looking at the relationship between male expression and female expression
