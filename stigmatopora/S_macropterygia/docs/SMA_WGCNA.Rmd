@@ -487,49 +487,66 @@ Log-likelihood:  8305 on 32 Df
 Number of iterations in BFGS optimization: 47 
 
 
+```{r}
+png("figs/tau_modules_vioplot.png",height = 4.5,width=10,units="in",res=300)
+
+plot_cols<-unlist(lapply(levels(as.factor(ModuleColors[ModuleColors!="grey"])),rep,times=3))
 par(mar=c(4,4,1,1))
-plot(x=0:34,
-     y=seq(0,1,length.out=35),
+plot(x=0:length(plot_cols),
+     y=seq(0,1,length.out=length(plot_cols)+1),
       xaxt='n',
         xlab="",
         ylab=expression(tau),
      type='n',
      las=1)
 
-vioplot(logFC_tau_all$tau~logFC_tau_all$tissue+logFC_tau_all$module,
+vioplot(tau_col_dat$tau~tau_col_dat$tissue+tau_col_dat$module,
         col=plot_cols,
         add=TRUE)
 
-axis(1,at=1:33,labels=rep(c("G","Go","L"),11))
+axis(1,
+     at=1:length(plot_cols),
+     labels=rep(levels(tau_col_dat$tissue),
+                length(levels(tau_col_dat$module))),
+     las=2,tick = FALSE)
 
      
-    
-
-# get the correlation coefficients
+# get the correlation coefficients with sex
 cor_vals<-signif(moduleTraitCor, 2)[,1]
 names(cor_vals)<-gsub("ME","",names(cor_vals))
-cor_vals<-cor_vals[levels(logFC_long$module)]
+cor_vals<-cor_vals[levels(tau_col_dat$module)]
 
-text(x=seq(2,32,length.out=11),
-     y=rep(1,11),
+text(x=seq(2,length(plot_cols)-1,length.out=length(levels(tau_col_dat$module))),
+     y=rep(1,length(levels(tau_col_dat$module))),
      paste0("r=",cor_vals))
 
 # add the tissue specific correlation coefficients?
 moduleTraitCorPlots<-signif(moduleTraitCor, 2)
 moduleTraitCorPlots<-moduleTraitCorPlots[,-1]
 dimnames(moduleTraitCorPlots)[[1]]<-gsub("ME","",dimnames(moduleTraitCorPlots)[[1]])
-moduleTraitCorPlots<-moduleTraitCorPlots[levels(logFC_long$module),]
+moduleTraitCorPlots<-moduleTraitCorPlots[levels(tau_col_dat$module),]
 moduleTraitCorPlots<-t(moduleTraitCorPlots)
 cor_vec<-unlist(as.list(moduleTraitCorPlots))
+cor_vec<-cor_vec
 
-text(x=1:35,
-     y=rep(-0.1,34),
+text(x=1:length(plot_cols),
+     y=rep(-0.06,length(plot_cols)),
      cor_vec, 
      xpd=TRUE,
      cex=0.5)
 
+
+# get labels
+vio_labels<-tau_mod_lab[,c("tissue","module",".group")]
+vio_labels$.group<-gsub("\\s+","",vio_labels$.group)
+vio_labels<-vio_labels[order(vio_labels$module, vio_labels$tissue),]
+text(x=1:length(plot_cols),
+     y=rep(0.95, length(plot_cols)),
+     vio_labels$.group)
+dev.off()
 ```
 
+the two most highly correlated modules with male gene expression have significantly higher tissue specificity than the other modules; but the same was not true for the other significantly correlated with males module, nor for the female-correlated module. Strong correlations with up- or down-regulation in tissues was not associated with tissue specificity.
 
 ### alternative methods
 
