@@ -2013,3 +2013,4 @@ colnames(tissue_sex_go_table)<-c("GO_Term","Number of matches", "bias","tissue")
 write.csv(tissue_sex_go_table, "data/tissue_sex_GO_table.csv",row.names = FALSE, quote=FALSE)
 ```
 
+

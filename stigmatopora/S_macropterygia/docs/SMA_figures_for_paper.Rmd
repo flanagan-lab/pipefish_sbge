@@ -341,3 +341,4 @@ ggsave("figs/Fig3.pdf", fig3, height=3, width=6)
 ggsave("figs/Fig3.png", fig3, height=3, width=6) # also save as a png
 ```
 
+
