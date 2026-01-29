@@ -2462,6 +2462,119 @@ ggsave("figs/FigGO_indv.png", figGO, height=5, width=8)
      #       col.names = FALSE)
 ```
 
+```{r}
+gff<-parse_gff("stigmatopora_nigra/genomic.gff")
+annotations<-read.delim("stigmatopora_nigra/GCF_051989575.1-RS_2025_11_gene_ontology.gaf",
+comment.char="!",
+header = FALSE)
+colnames(annotations)<-c(
+"DB","GeneID","Symbol","Qualifier","GO_ID","Reference","Evidence_Code","With_From","Aspect","Gene_Name","Gene_Synonym","Type","Taxon","Date","Assigned_By","Annot_Ext","Gene_Product_Form_ID"
+)
+
+```
+
+
+```{r}
+filter_blast<-function(data_frame){
+ 
+  #Pull out the Unique Trinity gene IDs
+  uniqueID <- unique(data_frame[,1])
+  
+  #Create an empty dataframe to store intermediate results in
+  output <- data.frame(matrix(data = NA, ncol = ncol(data_frame), nrow = 0))
+  colnames(output) <-  colnames(data_frame)
+  
+  #Generate a for loop that pulls out the lowest e-value + highest % identity for each gene
+  for(gene in uniqueID){
+    
+    #Subset the dataset for each Trinity gene
+    this_trin_gene<- data_frame[which(data_frame[,1] == gene),]
+    #Pull out gene with smallest e-value
+    uni_gene_subset_lowe <- this_trin_gene[which(this_trin_gene$evalue == min(this_trin_gene$evalue)),]
+    #In case mult. genes have same e-value, pull out gene with highest % identity
+    uni_gene_subset_lowe_highpid <- uni_gene_subset_lowe[which(uni_gene_subset_lowe$pident == max(uni_gene_subset_lowe$pident)),]
+    
+    # keep only one of multiple identical rows
+    uni_gene_subset_lowe_highpid <- unique(uni_gene_subset_lowe_highpid)
+    
+    #Add the final gene into the empty dataframe from above
+    output <- rbind(output, uni_gene_subset_lowe_highpid)
+  }
+  
+  return(output)
+}
+parse_gff<-function(filename){
+  gff <- read.delim(filename,
+                  comment.char = "#", 
+                  header = FALSE)
+  colnames(gff) <- c("chromosome","method","type","start","stop","x","strand","y","description")
+  return(gff)
+}
+```
+```{r, eval=FALSE}
+gff<-parse_gff("stigmatopora_nigra/genomic.gff")
+annotations<-read.delim("stigmatopora_nigra/GCF_051989575.1-RS_2025_11_gene_ontology.gaf",
+                        comment.char="!", 
+                        header = FALSE)
+colnames(annotations)<-c(
+  "DB","GeneID","Symbol","Qualifier","GO_ID","Reference","Evidence_Code","With_From","Aspect","Gene_Name","Gene_Synonym","Type","Taxon","Date","Assigned_By","Annot_Ext","Gene_Product_Form_ID"
+)
+library(GO.db)
+# get keys for selection
+go <- keys(GO.db, keytype="GOID")
+goids <- select(GO.db,
+                columns=c("GOID","TERM","ONTOLOGY","DEFINITION"),
+                keys=go, 
+                keytype="GOID")
+annotations<-merge(annotations,
+                   goids,
+                   by.x="GO_ID",
+                   by.y="GOID",
+                   all.x=TRUE)
+write.csv(annotations,
+          "stigmatopora_nigra/go_annotations.csv",
+          row.names=FALSE)
+```
+
+```{r filterBlast, eval=FALSE}
+blast_filtered<-filter_blast(blast_output_all)
+
+write.csv(all_blast_filtered,"sex_bias_blast_filtered.csv")
+```
+
+
+```{r blastAnnotate}
+all_blast_filtered <- read.csv("data/sex_bias_blast_filtered.csv", row.names = 1)
+annotations<-read.csv("stigmatopora_nigra/go_annotations.csv")
+
+all_blast_info<-as.data.frame(do.call(rbind, lapply(all_blast_filtered$sseqid, function(sid,gff){
+  this_gff<-gff[grep(sid, gff$description),]
+  product<-paste(unique(gsub("^.*product=(.*)\\;protein_id.*$","\\1",this_gff$description)),collapse=";")
+  gene_id<-paste(unique(gsub("^.*GeneID\\:(\\d+)\\,.*$","\\1",this_gff$description)),collapse=";")
+  if(length(product)<1){ browser() }
+  return(c(product, gene_id))
+},gff=gff)))
+all_blast_info$V2<-round(as.numeric(all_blast_info$V2),2)
+
+all_blast_filtered$GeneID<-all_blast_info$V2
+all_blast_filtered$product<-all_blast_info$V1
+
+# get the GO annotations
+go_anns<-apply(all_blast_filtered, 1, function(this_gene, annotations){
+  
+  this_ann<-annotations[annotations$GeneID==as.numeric(this_gene["GeneID"]),]
+  
+  return(paste(paste(this_ann$Qualifier, this_ann$TERM),collapse=";"))
+  
+}, annotations=annotations)
+all_blast_filtered$GO<-go_anns
+write.csv(all_blast_filtered,
+          "data/sex_bias_blast_filtered_annotated.csv",
+          row.names=FALSE)
+```
+
+
+
 ```{r merge-SB-blast}
 
 logFC_long_tauSB <- read.csv("data/logFC_long_taubiasSB.csv")
