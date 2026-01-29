@@ -898,7 +898,7 @@ Range -30.33088  46.35090
 
 There appears to be differences in the logFC across both the organs and the sex-bias groups (male-biased, fem-biased, and non-biased) (Fig. \@ref(fig:FC-var-plot)). Let's explore some analyses to see if we can put some statistical power behind those differences.
 
-```{r FC-var-stats, warning=FALSE, eval=FALSE}
+```{r FC-var-summary-stats, warning=FALSE, eval=FALSE}
 #Looking at some summary statistics for logFC between the different groups
 tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), mean)
 tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
