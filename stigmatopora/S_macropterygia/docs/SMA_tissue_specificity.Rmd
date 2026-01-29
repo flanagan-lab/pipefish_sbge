@@ -683,7 +683,7 @@ logFC_long_all$bias_cat <- ifelse(logFC_long_all$bias == "UB",
 #Making sure the ordering stays correct
 logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat,
     levels = biased_bins, ordered = TRUE)
-write.csv("data/logFC_long_all.csv",row.names = FALSE)
+write.csv(logFC_long_all,"data/logFC_long_all.csv",row.names = FALSE)
 ```
 ```{r}
 logFC_long_all<-read.csv("data/logFC_long_all.csv")
@@ -825,8 +825,7 @@ plotdat <- ggplot(logFC_long_all,
   labs(x="Bias Category", y=expression(tau["TPM"])) +
   guides(fill = guide_legend(title = "Bias Level", order = 3))
 
-plotdat 
-+ 
+plotdat + 
 geom_point(data = logFC_long_all[logFC_long_all$bias == "MB",], aes(x=as.numeric(bias_cat)+0.185, y=tau),
           size=0.6, 
           position = position_jitter(width = 0.15),
@@ -1016,7 +1015,7 @@ To further investigate the relationship between $\tau$ and sex biased and possib
 
 ### Within the sex-biased genes
 
-```{r bias-bin-cats-fem, echo=FALSE}
+```{r bias-bin-cats-fem, echo=FALSE, eval=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
 logFC_long_fem <- data.frame(
   tissue=c(rep("Gill", nrow(gill_bias_tau_fem)),
@@ -1054,9 +1053,13 @@ logFC_long_fem$bias_cat <- ifelse(abs(logFC_long_fem$logFC) >= 2 & abs(logFC_lon
 logFC_long_fem$bias_cat <- factor(logFC_long_fem$bias_cat,
     levels = biased_bins, ordered = TRUE)
 
-#write.csv(logFC_long, "data/logFC_long_taubiasFB.csv", row.names = FALSE)
+write.csv(logFC_long_fem, "data/logFC_long_taubiasFB.csv", row.names = FALSE)
 
 ```
+```{r}
+logFC_long_fem<-read.csv("data/logFC_long_taubiasFB.csv")
+```
+
 
 ```{r tau-v-biascat-plot-fem, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
