@@ -288,26 +288,43 @@ lapply(names(table(ModuleColors))[!names(table(ModuleColors)) %in% c("black","bl
 
 
 ```{r, fig.width=10, fig.height=4.5}
+pdf("figs/WGCNA_logFC.pdf",height = 4,width = 10)
 plot_cols<-unlist(lapply(levels(as.factor(ModuleColors)),rep,times=3))
 
 par(mar=c(4,4,1,1))
 plot(x=0:34,
-     y=seq(-40,50,length.out=35),
+     y=seq(-30,50,length.out=35),
       xaxt='n',
         xlab="",
         ylab="logFC",
      type='n',
-     las=1)
-abline(h=0,lty=2,lwd=2)
+     las=1,
+     bty='n')
+abline(h=0,lty=1,lwd=1)
+abline(h=2,lty=2,lwd=2,col="grey")
+abline(h=-2,lty=2,lwd=2,col="grey")
 vioplot(logFC_long$logFC~logFC_long$tissue + logFC_long$module,
         col=plot_cols,
-        add=TRUE)
-
-axis(1,at=1:33,labels=rep(c("G","Go","L"),11))
+        add=TRUE,
+        bty='n',
+        xaxt='n',
+        axes=FALSE,
+        border="black",
+        rectCol=plot_cols,
+        lineCol=plot_cols,
+        colMed="white",
+        plotCentre=TRUE)
+points(x=13:15,
+       y=logFC_long$logFC[which(logFC_long$module=="grey")],
+       col="black",
+       bg="grey",
+       pch=23,
+       cex=1.25)
+axis(1,at=1:33,labels=rep(c("Gill","Gonad","Liver"),11),las=2)
 axis(2,
      at=c(-30,30),
      c("female-biased","male-biased"),
-     tick = 0,pos = -2.75)  
+     tick = 0,pos = -2.5)  
      
     
 
@@ -316,9 +333,18 @@ cor_vals<-signif(moduleTraitCor, 2)[,1]
 names(cor_vals)<-gsub("ME","",names(cor_vals))
 cor_vals<-cor_vals[levels(logFC_long$module)]
 
-text(x=seq(2,32,length.out=11),
-     y=rep(-35,11),
-     paste0("r=",cor_vals))
+sig_sex_cor<-which(moduleTraitPvalue[,1]<=0.05)
+sig_x<-which(plot_cols %in% gsub("ME","",names(sig_sex_cor)))
+sig_x<-sig_x[seq(2,length(sig_x),by=3)]
+non_sex_cor<-which(moduleTraitPvalue[,1]>0.05)
+non_x<-which(plot_cols %in% gsub("ME","",names(non_sex_cor)))
+non_x<-non_x[seq(2,length(non_x),by=3)]
+text(x=sig_x,
+     y=rep(-30,length(sig_x)),
+     labels=cor_vals[names(cor_vals) %in% gsub("ME","",names(sig_sex_cor))],
+     font = 2)
+
+dev.off()
 ```
 
 
