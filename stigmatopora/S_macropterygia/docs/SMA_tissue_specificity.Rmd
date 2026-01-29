@@ -1525,7 +1525,7 @@ outer_legend("right",
 
 ```
 
-```{r tau-0.75}
+```{r tau-0.75, eval=FALSE}
 #import dataset
 tau_75 <- read.csv("data/tau_75.csv")
 
