@@ -1409,6 +1409,14 @@ write.table(bias_cat_gonad, "data/bias_cat_gonad.txt", row.names = TRUE)
 bias_cat_liver <- bias_cat_table[,, "Liver"]
 write.table(bias_cat_liver, "data/bias_cat_liver.txt", row.names = TRUE)
 ```
+```{r}
+bias_cat_gill<-read.table("data/bias_cat_gills.txt",
+                          row.names = 1)
+bias_cat_gonad<-read.table("data/bias_cat_gonad.txt",
+                          row.names = 1)
+bias_cat_liver<-read.table("data/bias_cat_liver.txt",
+                          row.names = 1)
+```
 
 
 ```{r bin-sex-bias}
