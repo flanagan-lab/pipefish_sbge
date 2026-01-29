@@ -1327,15 +1327,15 @@ tpms[rownames(tpms)== names(top_tau_mal[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SN, gene= names(top_tau_mal[1]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[2]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[3]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[4]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[5]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[6]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[7]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[8]), intgroup="organ")
-plotCounts(dds_SN, gene= names(top_tau_mal[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(top_tau_mal[9]), intgroup="organ")
 ```
 
 ```{r ts-plot-counts-med-mal, echo=FALSE, fig.height=20, fig.width=15, fig.cap="Plots of the counts from the DESeq2 Dataset for genes with medium values of tau", message=FALSE}
@@ -1355,15 +1355,15 @@ tpms[rownames(tpms)== names(med_tau_mal[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SN, gene= names(med_tau_mal[1]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[2]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[3]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[4]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[5]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[6]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[7]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[8]), intgroup="organ")
-plotCounts(dds_SN, gene= names(med_tau_mal[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(med_tau_mal[9]), intgroup="organ")
 
 ```
 
@@ -1384,15 +1384,15 @@ tpms[rownames(tpms)== names(bot_tau_mal[9]),]
 
 #Plotting the gene counts from DESeq2 for the toptau genes
 par(mfrow=c(3, 3))
-plotCounts(dds_SN, gene= names(bot_tau_mal[1]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[2]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[3]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[4]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[5]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[6]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[7]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[8]), intgroup="organ")
-plotCounts(dds_SN, gene= names(bot_tau_mal[9]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[1]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[2]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[3]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[4]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[5]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[6]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[7]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[8]), intgroup="organ")
+plotCounts(ddsMF_SM, gene= names(bot_tau_mal[9]), intgroup="organ")
 
 ```
 
