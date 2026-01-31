@@ -1682,24 +1682,17 @@ Not all of the trinity genes had a BLAST hit come back, but I still want to incl
 
 ```{r merge-SB-blast}
 all_blast_filtered<-read.csv("data/sex_bias_blast_filtered_annotated.csv")
-# get the sex biased ones
-logFC_long_tauSB <- read.csv("data/logFC_long_taubiasSB.csv")
+# get the sex bias and tau info
+logFC_long_all <- read.csv("data/logFC_long_all.csv")
 
 
-blast_SB_merged <- merge(logFC_long_tauSB, all_blast_filtered, by.x = "geneID", by.y="qseqid", all = TRUE)
-
-#add sex specific dataset
-logFC_long_tauSS <- read.csv("data/logFC_long_taubias_SS.csv")
+blast_merged <- merge(logFC_long_all, all_blast_filtered, by.x = "geneID", by.y="qseqid", all = TRUE)
 
 
-blast_SB_SS_merged <- merge(blast_SB_merged, 
-                      logFC_long_tauSS[which(logFC_long_tauSS$bias_cat=="Sex-specific"),], 
-                            by = "geneID", 
-                            all = TRUE)
-
-blast_SB_SS_merged$bias_cat.x[is.na(blast_SB_SS_merged$bias_cat.x)]<-blast_SB_SS_merged$bias_cat.y[is.na(blast_SB_SS_merged$bias_cat.x)]
 #write once then comment out
-write.csv(as.data.frame(blast_SB_SS_merged), "data/SM_blast_ann_SB_SS_merged.csv", row.names = TRUE)
+write.csv(as.data.frame(logFC_long_all), 
+          "data/SuppTable_SM_blast_annotated.csv", 
+          row.names = FALSE)
 ```
 
 
