@@ -1690,7 +1690,7 @@ blast_merged <- merge(logFC_long_all, all_blast_filtered, by.x = "geneID", by.y=
 
 
 #write once then comment out
-write.csv(as.data.frame(logFC_long_all), 
+write.csv(as.data.frame(blast_merged), 
           "data/SuppTable_SM_blast_annotated.csv", 
           row.names = FALSE)
 ```
