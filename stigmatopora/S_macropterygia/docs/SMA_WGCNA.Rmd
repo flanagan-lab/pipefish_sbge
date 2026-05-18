@@ -441,7 +441,7 @@ dev.off()
 ### Compare to tau
 
 
-```{r read-logFC-long}
+```{r read-logFC-long, eval=FALSE}
 logFC_tau_all<-read.csv("data/logFC_tau_all.csv")
 logFC_tau_all$tissue<-factor(logFC_tau_all$tissue, levels=c("Gill","Liver","Gonad"))
 logFC_tau_all$module<-NA
@@ -460,7 +460,7 @@ logFC_tau_all$grp<-paste0(logFC_tau_all$module,"_",logFC_tau_all$tissue)
 logFC_tau_all$grp<-as.factor(logFC_tau_all$grp)
 ```
 
-```{r}
+```{r, eval=FALSE}
 tau_col_dat<-logFC_tau_all[which(logFC_tau_all$module != "grey"),]
 tau_col_dat$module <- factor(tau_col_dat$module)
 write.csv(tau_col_dat, "data/tau_col_dat.csv", row.names = FALSE, quote=FALSE)
@@ -638,7 +638,7 @@ dev.off()
 
 the two most highly correlated modules with male gene expression have significantly higher tissue specificity than the other modules; but the same was not true for the other significantly correlated with males module, nor for the female-correlated module. Strong correlations with up- or down-regulation in tissues was not associated with tissue specificity.
 
-### identifying hubs
+## Identifying hubs
 
 First need to get gene significance and module membership
 
