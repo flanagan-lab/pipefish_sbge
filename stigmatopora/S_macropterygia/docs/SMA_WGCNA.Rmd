@@ -253,6 +253,96 @@ for(col in unique(ModuleColors)){
 
 logFC_long$module<-as.factor(logFC_long$module)
 ```
+```{r eval=FALSE}
+logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv", 
+                          stringsAsFactors = TRUE)
+logFC_long_all$bias_cat<-factor(logFC_long_all$bias_cat,
+                                levels=c("Unbiased","Low","Med","High","Extreme","Sex-specific"))
+
+logFC_long_all$module<-NA
+
+
+for(col in unique(ModuleColors)){
+  genes<-colnames(expression_data_subset)[ModuleColors==col]
+
+  logFC_long_all$module[logFC_long_all$geneID%in%genes]<-col
+  
+}
+
+logFC_long_all$module<-as.factor(logFC_long_all$module)
+write.csv(logFC_long_all,"data/logFC_long_all_module.csv",row.names = FALSE)
+```
+
+
+```{r}
+logFC_long_all <- read.csv("data/logFC_long_all_module.csv")
+
+
+liver<-logFC_long_all[logFC_long_all$tissue=="Liver" &
+                        !is.na(logFC_long_all$module),]
+gill <- logFC_long_all[logFC_long_all$tissue=="Gill" &
+                        !is.na(logFC_long_all$module),]
+gonad<- logFC_long_all[logFC_long_all$tissue=="Gonad" &
+                        !is.na(logFC_long_all$module),]
+```
+
+We can make a supplemental figure showing how the genes fall into the various categories per module per tissue.
+
+```{r moduleBiasBarplot, fig.width=1000, fig.height=550}
+pdf("figs/moduleBiasBarplot.pdf", height=5.5, width=10.5)
+colors<-rep(levels(as.factor(logFC_long_all$module)), each=3)
+
+par(mfrow=c(1,3), oma=c(1.2,3.4,3,0.5), mar=c(2.5,2,1,0.5))
+
+barplot(table(gill$bias,gill$module),
+        col=colors,
+        beside=TRUE,
+        horiz = TRUE,
+        density = c(100,50,0),
+        angle=c(45,135,0),
+        las=1,
+        border=colors,
+        xlim=c(0,3000),
+        main="gill")
+
+
+barplot(table(liver$bias,liver$module),
+        col=colors,
+        beside=TRUE,
+        horiz = TRUE,
+        density = c(100,50,0),
+        angle=c(45,135,0),
+        las=1,
+        border=colors,
+        axisnames = FALSE,
+        xlim=c(0,3000),
+        main="liver")
+
+barplot(table(gonad$bias,gonad$module),
+        col=colors,
+        beside=TRUE,
+        horiz = TRUE,
+        density = c(100,50,0),
+        angle=c(45,135,0),
+        las=1,
+        border=colors,
+        axisnames = FALSE,
+        xlim=c(0,3000),
+        main="gonad")
+mtext("number of genes",1,outer=TRUE)
+mtext("module",2,outer=TRUE, line=2.1)
+outer_legend(
+  "top",
+  ncol=3,
+  c("UB","MB","FB"),
+  col="darkgrey",
+  density=c(0, 50, 100), 
+  angle=c(0,135,45),
+  bty="n",
+  cex=1.75
+)
+dev.off()
+```
 
 
 ```{r}
