@@ -138,7 +138,7 @@ labs<-labs$Letters[c("FB:Gill","MB:Gill","UB:Gill",
 
 ```{r}
 pdf("figs/logFC_violin.pdf",width = 10, height=4)
-par(mar=c(3,4,1,1))
+par(mar=c(5,4,1,1))
 plot(0:9,
      seq(0,50,length.out=10),
      type='n',
