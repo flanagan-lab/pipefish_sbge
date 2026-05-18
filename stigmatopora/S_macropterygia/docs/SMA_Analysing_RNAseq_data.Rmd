@@ -20,7 +20,7 @@ knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 #library(tximport) #This was used to generate an abundance matrix from the salmon quant outputs
 
 ```
-This pipeline follows a pipeline outlined for _Syngnathus floridae_. Changes in scripts and outputs are outlined in this document. This pipeline was run on the University of Canterbury's RCC.
+This pipeline follows a pipeline outlined for _Syngnathus floridae_, written by Coley Tosto. Changes in scripts and outputs are outlined in this document. This pipeline was run on the University of Canterbury's RCC.
 
 # Pre-assembly Quality Control and Filtering
 
