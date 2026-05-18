@@ -89,7 +89,7 @@ The cutoff here was to remove rows that had counts fewer than 10 across all samp
 
 Sample S23 (Mapping rate = 33.7558%) and S30 (Mapping rate = 11.6745%) both had lower than expected gene counts, so they were filtered out entirely. S10 was clustering in unexpected ways, so they were also removed from further analyses. 
 
-```{r multi-factor-analysis, message=FALSE, warning=FALSE}
+```{r multi-factor-analysis, eval=FALSE, message=FALSE, warning=FALSE}
 ##Remove S10, S23, and S30 from the dataset
 ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
 samples<-samples[!(samples$ID %in%  c("S10", "S23", "S30")),]
@@ -102,6 +102,14 @@ ddsMF_SM <- ddsMF_SM[keep, ]
 ddsMF_SM_exp <- DESeq(ddsMF_SM)
 resultsNames(ddsMF_SM_exp)
 ```
+```{r, eval=FALSE}
+saveRDS(ddsMF_SM_exp, "data/ddsMF_SM_exp.RDS")
+```
+```{r}
+ddsMF_SM_exp <- readRDS("data/ddsMF_SM_exp.RDS")
+```
+
+
 
 ## Visualising multifactor results
 
