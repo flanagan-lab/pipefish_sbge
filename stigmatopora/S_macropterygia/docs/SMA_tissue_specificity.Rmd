@@ -367,11 +367,6 @@ points(sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gill"])),
      col = "#20B2AA75")
 
 
-#Add the best fit lines
-abline(lm(gonad_bias_tau$tau ~ sqrt(abs(gonad_bias_tau$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau$tau ~ sqrt(abs(liver_bias_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 3)
-abline(lm(gill_bias_tau$tau ~ sqrt(abs(gill_bias_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
-
 #Add a legend
 outer_legend("right",
              c("Gonad", "Liver", "Gill"),
@@ -700,11 +695,6 @@ points(sqrt(abs(no_males$logFC[no_males$tissue=="Gill"])),
      col = "#20B2AA75")
 
 
-#Add the best fit lines
-abline(lm(gonad_FB_UB_tau$tau_fem ~ sqrt(abs(gonad_FB_UB_tau$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_FB_UB_tau$tau_fem ~ sqrt(abs(liver_FB_UB_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
-abline(lm(gill_FB_UB_tau$tau_fem ~ sqrt(abs(gill_FB_UB_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
-
 #Add a legend
 outer_legend("right",
              c("Gonad", "Liver", "Gill"),
@@ -979,11 +969,6 @@ points(sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gill"])),
      col = "#20B2AA75")
 
 
-#Add the best fit lines
-abline(lm(gonad_bias_tau_mal$tau_mal ~ sqrt(abs(gonad_bias_tau_mal$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau_mal$tau_mal ~ sqrt(abs(liver_bias_tau_mal$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
-abline(lm(gill_bias_tau_mal$tau_mal ~ sqrt(abs(gill_bias_tau_mal$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
-
 #Add a legend
 outer_legend("right",
              c("Gonad", "Liver", "Gill"),
@@ -1034,10 +1019,6 @@ points(sqrt(abs(no_females$logFC[no_females$tissue=="Gill"])),
      col = "#20B2AA75")
 
 
-#Add the best fit lines
-abline(lm(gonad_MB_UB_tau$tau_mal ~ sqrt(abs(gonad_MB_UB_tau$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_MB_UB_tau$tau_mal ~ sqrt(abs(liver_MB_UB_tau$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 2)
-abline(lm(gill_MB_UB_tau$tau_mal ~ sqrt(abs(gill_MB_UB_tau$log2FoldChange))), col = "#20B2AA", lwd = 3, lty = 3)
 
 #Add a legend
 outer_legend("right",
