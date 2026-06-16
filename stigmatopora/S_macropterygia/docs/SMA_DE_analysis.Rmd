@@ -159,12 +159,7 @@ vsd<-readRDS("data/vsd.RDS")
 ```
 
 
-Let's save the expression data to a file for future investigations.
 
-```{r eval=FALSE}
-# following https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
-expression_data<-t(assay(vsd))
-write.csv(expression_data,"data/expression_data_for_WGCNA.csv",row.names = TRUE)
 ```
 
 
@@ -1549,6 +1544,16 @@ dev.off()
 ```
 
 In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
+
+# Saving data for future analysis
+Let's save the expression data to a file for future investigations.
+
+```{r eval=FALSE}
+# following https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
+expression_data<-t(assay(vsd))
+expression_data_subset<-expression_data[,logFC_long$geneID[logFC_long$bias!="UB"]]
+write.csv(expression_data_subset,"data/expression_data_for_WGCNA.csv",row.names = TRUE)
+```
 
 # Gene Ontology Analysis
 
