@@ -644,8 +644,8 @@ gill_mal_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange >= 2
 gill_fem_biased <- gill_con_res_noNA[which(gill_con_res_noNA$log2FoldChange <= -2 
                                            & gill_con_res_noNA$padj <= 0.05),]
 
-#Creating an object that contains all of the non-biased genes in the gills, p>0.05
-gill_non_biased <- gill_con_res_noNA[which(gill_con_res_noNA$padj > 0.05),]
+#Creating an object that contains all of the other genes, including NA ones
+gill_non_biased <- gill_con_res[which(!gill_con_res$trin_geneid %in% c(gill_mal_biased$trin_geneid, gill_fem_biased$trin_geneid)),]
 ```
 ```{r save-gill-sex-biased, eval=FALSE}
 write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRUE)
@@ -711,8 +711,8 @@ gonad_mal_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange >
 gonad_fem_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange <= -2 
                                              & gonad_con_res_noNA$padj <= 0.05),]
 
-#Creating an object that contains all of the non-biased genes in the gonads, p>0.05
-gonad_non_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$padj > 0.05),]
+#Creating an object that contains all of the other genes, including NA ones
+gonad_non_biased <- gonad_con_res[which(!gonad_con_res$trin_geneid %in% c(gonad_mal_biased$trin_geneid, gonad_fem_biased$trin_geneid)),]
 ```
 ```{r save-gonad-sex-biased}
 write.csv(as.data.frame(gonad_con_res_noNA), "data/gonad_res.csv", row.names = TRUE)
