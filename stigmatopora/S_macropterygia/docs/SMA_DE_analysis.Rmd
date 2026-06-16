@@ -902,8 +902,12 @@ ggplot(logFC_long,
 
 ```
 
+And the summary statistics are:
 
-Range -30.33088  46.35090
+```{r}
+summary(logFC_long$logFC)
+```
+
 
 ### Statistical analysis
 
