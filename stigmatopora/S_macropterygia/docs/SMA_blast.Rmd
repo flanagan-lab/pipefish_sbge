@@ -418,11 +418,12 @@ colnames(hub_blast)<-c("qseqid", "sseqid", "pident", "length", "mismatch", "gapo
 
 
 ```{r}
+all_hub_gene_info<-read.csv("all_hub_gene_info.csv")
 matched_genes<-unique(hub_blast$qseqid)
 
 length(matched_genes)
 #[1] 320
-unmatched<-unique(all_hub_genes$Gene[!all_hub_genes$Gene %in% matched_genes])
+unmatched<-unique(all_hub_gene_info$Gene[!all_hub_gene_info$Gene %in% matched_genes])
 length(unmatched)
 #139
 ```
@@ -478,7 +479,7 @@ hist(all_go_anns_tab)
 ```{r}
 liver_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Liver"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Liver"]))
 liver_MB_table<-liver_MB_table[liver_MB_table$Freq>0,]
 liver_MB_table$bias<-"MB"
@@ -486,7 +487,7 @@ liver_MB_table$tissue<-"Liver"
 
 gill_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gill"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gill"]))
 gill_MB_table<-gill_MB_table[gill_MB_table$Freq>0,]
 gill_MB_table$bias<-"MB"
@@ -494,7 +495,7 @@ gill_MB_table$tissue<-"Gill"
 
 gonad_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gonad"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gonad"]))
 gonad_MB_table<-gonad_MB_table[gonad_MB_table$Freq>0,]
 gonad_MB_table$bias<-"MB"
@@ -502,7 +503,7 @@ gonad_MB_table$tissue<-"Gonad"
 
 liver_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Liver"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Liver"]))
 liver_FB_table<-liver_FB_table[liver_FB_table$Freq>0,]
 liver_FB_table$bias<-"FB"
@@ -510,7 +511,7 @@ liver_FB_table$tissue<-"Liver"
 
 gill_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gill"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gill"]))
 # there were no matches
 #gill_FB_table<-gill_FB_table[gill_FB_table$Freq>0,]
@@ -519,7 +520,7 @@ gill_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
 
 gonad_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gonad"],
-                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gonad"]))
 gonad_FB_table<-gonad_FB_table[gonad_FB_table$Freq>0,]
 gonad_FB_table$bias<-"FB"
