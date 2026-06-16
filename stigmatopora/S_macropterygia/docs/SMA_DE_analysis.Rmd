@@ -578,8 +578,8 @@ liver_mal_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange >
 liver_fem_biased <- liver_con_res_noNA[which(liver_con_res_noNA$log2FoldChange <= -2 
                                              & liver_con_res_noNA$padj <= 0.05),]
 
-#Creating an object that contains all of the non-biased genes in the liver
-liver_non_biased <- liver_con_res_noNA[which(liver_con_res_noNA$padj > 0.05),]
+#Creating an object that contains all of the other genes, including NA ones
+liver_non_biased <- liver_con_res[which(!liver_con_res$trin_geneid %in% c(liver_mal_biased$trin_geneid, liver_fem_biased$trin_geneid)),]
 
 ```
 
