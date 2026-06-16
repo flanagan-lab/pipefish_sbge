@@ -610,21 +610,65 @@ write.csv(all_hub_gene_info,"data/all_hub_gene_info.csv",row.names = FALSE)
 Once the hub genes were identified and saved to a file, they were blasted against the _Stigmatopora nigra_ genome, implemented on the RCH. This process is documented in the file `SMA_blast.Rmd`.
 
 
+### Further investigation of key hub genes
 
+First, let's narrow down the types of genes we might want to annotate: 
 
+- hub genes that are sex-biased (or even just sex-specific?)
+- the most highly connected hub genes
 
 
 ```{r}
+par(mfrow=c(1,2), mar=c(4,4,2,2), oma=c(2,2,2,2))
+hist(all_hub_gene_info$Connectivity,
+     main="",
+     xlab="Connectivity",
+     ylab="number of hubs")
+hist(all_hub_gene_info$GeneSignificance,
+     main="",
+     xlab="Gene significance",
+     ylab="") 
+text(x=-0.5, y=-600,"male",xpd=TRUE)
+text(x=0.5, y=-600,"female",xpd=TRUE)
+# note: some genes are double-counted if they appeared in multiple tissues
 
 ```
 
+is there a way to better understand module-sexbias relationships?
 
+let's go module by module, maybe? and focus on highly significant genes in wgcna
 
 ```{r}
+mods<-c("black","blue","red","turquoise")
+organ_cols<-c("Gill" = "#20B2AA",
+              "Gonad" = "#EEB422", 
+              "Liver" = "#EE8262")
+organ_shapes <- c(Gill = 16, Gonad = 15,Liver = 17)
 ```
 
 
+```{r }
+par(mfrow=c(2,2), mar=c(2,2,2,2))
+for(module in mods){
+  this_mod<-all_hub_gene_info[all_hub_gene_info$module.x==module,]
   
+  plot(this_mod$GeneSignificance, this_mod$logFC,
+       col=scales::alpha(organ_cols[this_mod$tissue],0.5),
+       bty='l',
+       pch=organ_shapes[this_mod$tissue],
+       main=module,
+       xlab="",
+       ylab="")
+}
+mtext("Gene Significance",1,outer=TRUE)
+mtext("logFC",2,outer=TRUE)
+outer_legend("top",
+             names(organ_cols),
+             col=organ_cols,
+             pch=organ_shapes,
+             bty='n',
+             ncol=3, 
+             cex=1.5)
 
 ```
 
