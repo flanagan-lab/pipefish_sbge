@@ -36,7 +36,10 @@ library(tidyr)
 ``` {r read-data, message = FALSE, warning = FALSE}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
+```
 
+
+``` {r read-data-samples, message = FALSE, warning = FALSE}
 #The samples file generated for tximport
 samples <- read.table("data/SM_samples.txt", header = TRUE)
 
@@ -59,7 +62,8 @@ colData <- as.data.frame(samples)
 rownames(colData) <- samples$ID
 ```
 
-# Differential Expression Analysis
+# Obtaining results of Differential Expression Analysis
+
 The main goal of this analysis is to relate measure of pleiotropic constraints (tissue specificity) to sex bias. In order to do that I need to combine my sex-bias data that I generated in a separate .Rmd with the tau values I will be generating in this document.
 
 Here I am reading in the sex-bias datasets that correspond to each of the organ's single-factor analysis. These datasets include all of the genes where the p-value was not equal to "NA".
