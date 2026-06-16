@@ -1160,7 +1160,10 @@ cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
 ##LIVER
 # First calculate correlations for each group
 female_corr_liver <- cor.test(
-  liver_bias_tau_fem$tau_fem,
+  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Liver" &
+                          logFC_tau_all$bias=="FB"],
+  sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Liver" &
+                          logFC_tau_all$bias=="FB"])),
   method = "spearman"
 )$estimate[["rho"]]
 
