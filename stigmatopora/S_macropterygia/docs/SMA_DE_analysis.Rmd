@@ -171,16 +171,16 @@ pheatmap(assay(vsd)[select,],
 
 From the heatmap (Fig. \@ref(fig:heatmap)) we can see that for all of these top 20 expressed genes the highest expression in found in the liver. There are also a few genes that appear to be highly expressed across all of the tissue types. With this heatmap we can also pull out the names of the Trinity genes that are showing this high expression and BLAST the corresponding sequences to see what the genes are.
 
-```{r heatmap_genes}
+```{r heatmap_genes, eval=FALSE}
 #Pull out the corresponding trinity_geneIDS that are plotted in the heatmap
 heatmap_TG <- cbind(row.names(assay(vsd)[select,]))
 #Run once to create the file and then commented out
-#write.table(heatmap_TG,
- #           'data/heatmap_trinitygenes.txt',
-  #          sep = "",
-   #         quote=FALSE,
-    #        row.names = FALSE,
-     #       col.names = FALSE)
+write.table(heatmap_TG,
+           'data/heatmap_trinitygenes.txt',
+          sep = "",
+         quote=FALSE,
+        row.names = FALSE,
+       col.names = FALSE)
 ```
 
 ### Sample-dist Heatmap
