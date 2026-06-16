@@ -381,7 +381,7 @@ outer_legend("right",
 
 ```
 
-The absolute value of the log2 fold change was square root transformed. There appears to be some fuckery going on between $\tau$ and sex bias (Fig. \@ref(fig:tau-v-bias)). Not sure why this is, but let's look further into it with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+The absolute value of the log2 fold change was square root transformed. There appears to be something going on between $\tau$ and sex bias (Fig. \@ref(fig:tau-v-bias)). Not sure why this is, but let's look further into it with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor, echo=FALSE, message=FALSE, warning=FALSE}
 cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gonad"], sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gonad"])), method = "spearman") #sig, positive
@@ -392,7 +392,6 @@ cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gill"], sqrt(abs(logFC_tau_sig
 
 We can see a significant positive correlation gonad and liver, but negative and not significant in gills.
 
-## $\tau$ and logFC for all the signficantly expressed genes in each organ
 Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
 
 I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
@@ -412,35 +411,6 @@ plot(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gonad"])),
      logFC_tau_all$tau[logFC_tau_all$tissue=="Gonad"],
      pch=19,
      col = "#EEB42275",
-     xlab="sex bias (|log2 fold change|)",
-     ylab=expression(tau["TPM"]),
-     xlim = c(0, 5.5),
-     ylim = c(0, 1))
-points(sqrt(abs(liver_bias_tau_all$log2FoldChange)),
-     liver_bias_tau_all$tau,
-     pch=19,
-     col="#EE826275")
-points(sqrt(abs(gill_bias_tau_all$log2FoldChange)),
-     gill_bias_tau_all$tau,
-     pch=19,
-     col = "#20B2AA75")
-
-
-#Add the best fit lines
-abline(lm(gonad_bias_tau_all$tau ~ sqrt(abs(gonad_bias_tau_all$log2FoldChange))), col="#EEB422", lwd = 3)
-abline(lm(liver_bias_tau_all$tau ~ sqrt(abs(liver_bias_tau_all$log2FoldChange))), col = "#EE8262", lwd = 3, lty = 3)
-abline(lm(gill_bias_tau_all$tau ~ sqrt(abs(gill_bias_tau_all$log2FoldChange))), col = "#6E8B3D", lwd = 3, lty = 3)
-
-outer_legend("right",
-             c("Gonad", "Liver", "Gill"),
-             col = c("#EEB422", "#EE8262", "#6E8B3D"),
-             pch = 19,
-             lwd = 3,
-             bty = 'n',
-             cex = 1.5,
-             lty = 1:3,
-             ncol = 1)
-
      xlab="Sex bias (|log2 fold change|)",
      ylab=expression(tau["TPM"]))
 points(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Liver"])),
@@ -551,8 +521,11 @@ logFC_tau_all$bias_cat <- factor(logFC_tau_all$bias_cat,
                                            "Sex-specific"))
 ```
 
+
+### Within the sex-biased genes
+
+
 ```{r tau-v-biascat-plot, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
-my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
 
 logFC_tau_bias <- logFC_tau_all[logFC_tau_all$bias!="UB",]
 
@@ -592,8 +565,7 @@ I want to see how $\tau$ in unbiased genes compares to these categories as well.
 
 ### Categories of all logFC genes
 
-```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
-my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+```{r tau-v-biascat-plot-all-fb-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
 
 plotdat <- ggplot(logFC_tau_all,
        aes(x = bias_cat, y = tau, fill = bias)) +
@@ -629,8 +601,7 @@ geom_point(data = logFC_tau_all[logFC_tau_all$bias == "UB",], aes(x=bias_cat, y=
 
 ```
 
-```{r tau-v-biascat-plot-all-vp, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male-biased versus unbiased and jitters were added to show all of the raw tau values."}
-my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
+```{r tau-v-biascat-plot-all-vp-sig, echo=FALSE, fig.height=8, fig.cap="Violin plot showing tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
 
 plotdat <- ggplot(logFC_tau_all,
        aes(x = bias_cat, y = tau, fill = bias)) +
@@ -721,8 +692,6 @@ cor.test(no_males$tau[no_males$tissue=="Gill"], abs(no_males$logFC[no_males$tiss
 
 ## Categories of DE and $\tau$ in female-biased genes for each organ
 
-```{r tau-v-biascat-plot-fem, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
-my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
 ```{r tau-v-biascat-plot-fem-sb, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
 logFC_tau_fem<-logFC_tau_all[which(logFC_tau_all$bias=="FB"),]
 
@@ -797,12 +766,7 @@ outer_legend("right",
 ```
 
 
-```{r cat-sex-specific-FB}
-#Changing the bias category for the genes we just labeled as sex-specific
-organs <- c("Gill", "Gonad", "Liver",
-            "Gill", "Gonad", "Liver")
-bias <- c("FB", "FB", "FB",  
-          "MB", "MB", "MB")
+There appears to be a relationship between $\tau$ and female bias for the gonads and the liver, but potentially not for the gills. This may be due to a low number of female-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor-fem, echo=FALSE, message=FALSE, warning=FALSE}
 cor.test(logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
@@ -819,8 +783,6 @@ cor.test(logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
 
 ```
 
-```{r tau-v-biascat-plot-all-fb-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Color denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
-my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
 
 ## Let's investigate the samples with a tau value of 0 but some degree of sex bias
 
