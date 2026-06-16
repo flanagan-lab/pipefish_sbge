@@ -1158,11 +1158,15 @@ out_ids <- names(mcols(ddsMF_SM_exp)$maxCooks[mcols(ddsMF_SM_exp)$maxCooks >
 #Checking to make sure we have correct number of outliers
 length(out_ids)
 
+# label the outliers in logFC_long
+logFC_long$bias[logFC_long$geneID%in% out_ids]<-"outlier"
+
 #Filtering out the dds dataset to remove the outliers determined by DESeq
 ddsMF_SM_exp_filtered <- ddsMF_SM_exp[!(rownames(ddsMF_SM_exp) %in% out_ids), ]
 
 #Create a vector with the different organ types
-organs <- levels(colData(ddsMF_SM_exp_filtered)$organ)
+organs <- unique(colData(ddsMF_SM_exp_filtered)$organ)
+```
 
 #Create an empty list to store my datasets in
 SM_sex_specific_genes <- list()
