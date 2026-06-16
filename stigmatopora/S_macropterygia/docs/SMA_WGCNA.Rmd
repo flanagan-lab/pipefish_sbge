@@ -246,27 +246,12 @@ labeledHeatmap(Matrix= moduleTraitCor[,-1],
 dev.off()
 ```
 
-## Compare to other values, logFC and tau
+## Compare to other values
 
-```{r}
-logFC_long$module<-NA
+### logFC
 
 
-for(col in unique(ModuleColors)){
-  genes<-colnames(expression_data_subset)[ModuleColors==col]
-
-  logFC_long$module[logFC_long$geneID%in%genes]<-col
-  
-}
-
-logFC_long$module<-as.factor(logFC_long$module)
-```
 ```{r eval=FALSE}
-logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv", 
-                          stringsAsFactors = TRUE)
-logFC_long_all$bias_cat<-factor(logFC_long_all$bias_cat,
-                                levels=c("Unbiased","Low","Med","High","Extreme","Sex-specific"))
-
 logFC_long_all$module<-NA
 
 
@@ -278,13 +263,19 @@ for(col in unique(ModuleColors)){
 }
 
 logFC_long_all$module<-as.factor(logFC_long_all$module)
-write.csv(logFC_long_all,"data/logFC_long_all_module.csv",row.names = FALSE)
+
+
+write.csv(logFC_long_all,"data/logFC_long_all_module_updated.csv",row.names = FALSE)
+```
+
+```{r}
+logFC_long_all<-read.csv("data/logFC_long_all_module_updated.csv")
+# sanity checks: missing ones are UB
+summary(logFC_long_all$bias[is.na(logFC_long_all$module)])
 ```
 
 
 ```{r}
-logFC_long_all <- read.csv("data/logFC_long_all_module.csv")
-
 
 liver<-logFC_long_all[logFC_long_all$tissue=="Liver" &
                         !is.na(logFC_long_all$module),]
