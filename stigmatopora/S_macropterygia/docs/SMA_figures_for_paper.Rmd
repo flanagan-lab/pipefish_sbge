@@ -193,11 +193,10 @@ upset <- image_ggplot(image_read_pdf('figs/upset.pdf')[2],
                           interpolate = TRUE)
 # put the patchworks together
 fig2 <-  wrap_plots(vio1,
-                           upset,
-                           vio2,
+                    upset,
+                    vio2,
                     nrow=3
-  
-) + 
+                    ) + 
   plot_annotation(tag_levels = 'A') 
 
 ggsave("figs/Fig2.pdf", fig2, height=8, width=6)
@@ -212,7 +211,7 @@ fig2
 
 
 ```{r}
-logFC_long<-read.csv("data/logFC_long_taubiasSB.csv")
+logFC_long<-read.csv("data/logFC_long_sexspecific_all.csv")
 logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv", 
                           stringsAsFactors = TRUE)
 logFC_long_all$bias_cat<-factor(logFC_long_all$bias_cat,
@@ -244,27 +243,28 @@ par(mar=c(3,5.5,1,1))
 
 for(organ in c("Gill","Liver","Gonad")){
   cairo_pdf(paste0("figs/",organ,"_logFC_tau.pdf"),height=5,width=7)
-  logFC_long$abs_logFC<-abs(logFC_long$logFC)
-  plot(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC,
+  logFC_long_all$abs_logFC<-abs(logFC_long_all$logFC)
+  plot(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$abs_logFC,
        bty='l',
        col=scales::alpha(sex_cols["M"],0.5),
        pch=17,
        xlab="|logFC|",
        ylab=expression(tau["TPM"]),
        main=organ,
-       cex.axis=1.15,
-       cex.lab=1.15
+       cex.axis=1.5,
+       cex.lab=1.5
        )
-  points(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC,
+  points(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$abs_logFC,
        bty='l',
        col=scales::alpha(sex_cols["F"],0.5),
-       pch=16)
-  abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC),
-         lwd=2,
-         col=sex_cols["M"])
-  abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC),
-         lwd=2,
-         col=sex_cols["F"])
+       pch=16,
+       cex=1.5)
+  #abline(lm(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$abs_logFC),
+         #lwd=2.5,
+         #col=sex_cols["M"])
+  #abline(lm(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$abs_logFC),
+         #lwd=2.5,
+         #col=sex_cols["F"])
   dev.off()
 }
 
@@ -282,14 +282,6 @@ for(organ in c("Gill","Liver","Gonad")){
   par(mar=c(3,5.5,1,1))
   r<-ridgeline(x=logFC_long_all$tau[logFC_long_all$tissue==organ],
             y=logFC_long_all$group[logFC_long_all$tissue==organ],
-            #palette = scales::alpha(c(bias_colors["UB"],rep(sex_cols,5)),0.75),
-            #border = scales::alpha(c(bias_colors["UB"],rep(sex_cols,5)),0.75),
-            # labels=c("Unbiased",
-            #          "Low","",
-            #          "Med","",
-            #          "High","",
-            #          "Extreme","",
-            #          "Sex-specific",""),
             palette = scales::alpha(c(bias_colors["UB"],
                                       rep(sex_cols["F"],5),
                                       rep(sex_cols["M"],5)),0.75),
@@ -303,9 +295,10 @@ for(organ in c("Gill","Liver","Gonad")){
                      "Extreme",
                      "Sex-specific"),2)),
             bty='l',
-            mode=TRUE)
-  mtext(side=3,organ,font=2,cex=1.15)
-  mtext(side=1,expression(tau["TPM"]),line=2,cex=1.15)
+            mode=TRUE,
+            )
+  mtext(side=3,organ,font=2,cex=1.5)
+  mtext(side=1,expression(tau["TPM"]),line=2,cex=1.5)
   dev.off()
 }
 
