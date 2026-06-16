@@ -57,17 +57,25 @@ write.csv(trait_data,"data/trait_data_for_WGCNA.csv",row.names = TRUE)
 ```{r readData}
 trait_data<-read.csv("data/trait_data_for_WGCNA.csv",
                      row.names = 1)
-expression_data<-read.csv("data/expression_data_for_WGCNA.csv", row.names = 1)
-logFC_long <- read.csv("data/logFC_long_sexbias.csv")
+expression_data_subset<-read.csv("data/expression_data_for_WGCNA.csv", row.names = 1)
+logFC_long_all<-read.csv("data/logFC_tau_all.csv",
+                     stringsAsFactors = TRUE)
+logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat, 
+                                  levels=c("Unbiased",
+                                           "Low",
+                                           "Med",
+                                           "High",
+                                           "Extreme",
+                                           "Sex-specific"))
 ```
 
 
 ## WGCNA
 
-I'm going to subset the dataset to only include the genes that showed some form of bias -- otherwise we have >90,000 genes and that's difficult to work with.
+I've subsetted the dataset to only include the genes that showed some form of bias -- otherwise we have >90,000 genes and that's difficult to work with.
 
 ```{r}
-expression_data_subset<-expression_data[,logFC_long$geneID[logFC_long$bias!="UB"]]
+
 # make sure we have trait data only for the individuals in the analysis
 trait_data<-trait_data[rownames(trait_data) %in% rownames(expression_data),]
 ```
