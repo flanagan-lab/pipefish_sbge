@@ -311,14 +311,6 @@ ggplot(pca_plotting_data, aes(x=PC1, y=PC4, color = organ, shape = sex)) +
 #### Saving the PCA plots to use in figure creation
 I will be including the PCAs describing the relationship between PC1 - 3 in the main text, as they account for the majority of the differences between our samples. The plot with PC1 and PC4 I still want to export, and will likely include as a supplemental to highlight why samples related to S34 will be removed from the subsequent analyses.
 
-```{r setParams-PCAs}
-#Setting the shapes I want to show up for the different organs
-organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15)
-
-#Setting the colors I want for each sex
-sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
-
-```
 
 ```{r figPCA1v2, eval = FALSE}
 #Create the blank pdf to store the plot in
