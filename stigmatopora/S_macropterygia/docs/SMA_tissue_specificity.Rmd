@@ -75,6 +75,7 @@ logFC_long<-read.csv("data/logFC_long_sexspecific_all.csv",
 ```
 
 # Calculating Tissue Specificity
+
 To estimate tissue specificity, the TPM estimates are needed which is the number of transcripts from a particular gene normalized first by gene length, and then by sequencing depth (in millions) in the sample. The output quant.sf files from salmon have the following format:
 
 ```
@@ -82,10 +83,10 @@ Name | Length | EffectiveLength | TPM | NumReads
 
 ```
 
-## Pulling out TPM values 
+## Extracting TPM values 
 From the Salmon outputs I pulled out the TPM values from each sample.
 
-```{r getTPMs}
+```{r getTPMs, eval=FALSE}
 
 #Get the list of file names/paths for all of the quant.sf files
 files <- list.files(pattern = ".sf", path = "data/macropterygia_expression_files",
@@ -103,7 +104,13 @@ tpms <- do.call(cbind, lapply(files, function(file){
 
 #Remove the sample that was removed in the differential expression analysis 
 tpms <- tpms[, !(colnames(tpms) %in% c("S10", "S23", "S30"))]
+write.csv(tpms,"data/tpms.csv",row.names = TRUE,quote=FALSE)
 ```
+```{r}
+tpms <- read.csv("data/tpms.csv",stringsAsFactors = TRUE,
+                 row.names = 1)
+```
+
 
 ## Filtering the TPM dataset
 I want to filter the TPM dataset to remove a few things. These include similar things that I filtered out in the DESeq2 datasets prior to performing the differential expression analysis. This includes:
