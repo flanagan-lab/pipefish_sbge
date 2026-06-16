@@ -390,11 +390,6 @@ cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gill"], sqrt(abs(logFC_tau_sig
 
 ```
 
-We can see a significant positive correlation gonad and liver, but negative and not significant in gills.
-
-Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
-
-I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
 
 
 ### All significantly expressed genes $\tau$ and logFC per organ
@@ -454,38 +449,22 @@ top_gonad <- logFC_tau_all[which(logFC_tau_all$tissue=="Gonad" &
                              logFC_tau_all$tau > 0.7), ]
 
 #Looking at the TPMS
-tpms[rownames(tpms)== top_gonad$Row.names[1],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[2],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[3],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[4],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[5],] #Testis-Specific MB
-tpms[rownames(tpms)== top_gonad$Row.names[6],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[7],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[8],] #Testis-specific MB
-tpms[rownames(tpms)== top_gonad$Row.names[9],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[10],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[11],] #Ovary-specific FB
-tpms[rownames(tpms)== top_gonad$Row.names[12],] #Ovary-specific FB
-
+tpms[rownames(tpms)== top_gonad$geneID[1],] #gonad specific MB
+tpms[rownames(tpms)== top_gonad$geneID[2],] #gonad specific MB
 #Liver
 top_liver <- logFC_tau_all[which(logFC_tau_all$tissue=="Liver" &
                              sqrt(abs(logFC_tau_all$logFC)) > 4 & 
                              logFC_tau_all$tau > 0.7), ]
 #Looking at the TPMS
-tpms[rownames(tpms)== top_liver$Row.names[1],] #Liver-specific FB
-tpms[rownames(tpms)== top_liver$Row.names[2],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[3],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[4],] #Liver-specific FB
-tpms[rownames(tpms)== top_liver$Row.names[5],] #Liver-specific FB
-tpms[rownames(tpms)== top_liver$Row.names[6],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[7],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[8],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[9],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[10],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[11],] #Liver-specific FB
-tpms[rownames(tpms)== top_liver$Row.names[12],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[13],] #Liver-specific MB
-tpms[rownames(tpms)== top_liver$Row.names[14],] #Liver-specific FB
+tpms[rownames(tpms)== top_liver$geneID[1],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[2],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[3],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[4],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[5],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[6],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[7],] #Liver-specific MB
+tpms[rownames(tpms)== top_liver$geneID[8],] #Liver-specific FB
+tpms[rownames(tpms)== top_liver$geneID[9],] #Liver-specific MB
 
 #Gill
 top_gill <- logFC_tau_all[which(logFC_tau_all$tissue=="Gill" &
@@ -493,11 +472,9 @@ top_gill <- logFC_tau_all[which(logFC_tau_all$tissue=="Gill" &
                              logFC_tau_all$tau > 0.7), ]
 
 #Looking at the TPMS
-tpms[rownames(tpms)== top_gill$Row.names[1],] #Gill-specific FB
-tpms[rownames(tpms)== top_gill$Row.names[2],] #Gill-specific FB
-tpms[rownames(tpms)== top_gill$Row.names[3],] #Gill-specific MB
-
-
+tpms[rownames(tpms)== top_gill$geneID[1],] #Gill-specific MB
+tpms[rownames(tpms)== top_gill$geneID[2],] #Gill-specific MB
+tpms[rownames(tpms)== top_gill$geneID[3],] #Gill-specific MB
 ```
 
 Most of the genes looked at above had a TPM of 0 in every sample, with a few exceptions in each tissue. 
