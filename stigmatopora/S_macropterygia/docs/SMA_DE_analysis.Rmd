@@ -1673,7 +1673,9 @@ Once those sequences were fetched they were blasted against the _Stigmatopora ni
 
 
 
+## Justification of outliers
 
+We ultimately opted to exclude three samples, so in this section we just create some justification of those decisions.
 
 
 
