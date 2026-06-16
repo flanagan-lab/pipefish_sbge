@@ -1704,9 +1704,14 @@ Statistically test for differences in tau across categories and tissues
 ```{r}
 logFC_long_all$bias_group<-paste0(logFC_long_all$bias,logFC_long_all$bias_cat)
 tau_mod<-betareg(tau~tissue*bias_group,
-             data=logFC_long_all)
+             data=logFC_tau_noNA)
+saveRDS(tau_mod, "data/tau_mod_bias.RDS") # Save it because it's slow!
+```
 
 
+```{r}
+tau_mod <- readRDS("data/tau_mod_bias.RDS")
+summary(tau_mod)
 joint_tests(tau_mod)
 
 emm <- emmeans(tau_mod, ~ tissue * bias_group, type="response")
@@ -1728,7 +1733,7 @@ tissue_sex_biased<-logFC_long_all[which(logFC_long_all$tau > tau_cutoff &
                          logFC_long_all$bias!="UB"),]
 
 write.table(tissue_sex_biased$geneID,
-            "tissue_sex_biased_IDs.txt",
+            "data/tissue_sex_biased_IDs.txt",
             col.names = FALSE, 
             row.names = FALSE, 
             quote=FALSE)
