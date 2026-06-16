@@ -508,7 +508,7 @@ the two most highly correlated modules with male gene expression have significan
 
 First need to get gene significance and module membership
 
-```{r}
+```{r, eval=FALSE}
 # based on https://ngs101.com/how-to-build-gene-co-expression-networks-from-rna-seq-data-using-wgcna-complete-step-by-step-guide-for-absolute-beginners/
 # Calculate gene significance (correlation with trait) for sex
 gene_trait_cor <- cor(expression_data_subset, 
@@ -584,14 +584,15 @@ for(sex_module in c("black","blue","red","turquoise")){
   all_hub_gene_info <- rbind(all_hub_gene_info, hub_gene_info)
   all_hub_genes<-rbind(all_hub_genes, hub_genes)
 }
+
+table(all_hub_genes$module)
 write.table(all_hub_genes$Gene,"data/hub_gene_IDs.txt",
           row.names=FALSE,
           col.names=FALSE,
           quote=FALSE)
 ```
-```{r}
-table(all_hub_genes$module)
-```
+black      blue       red turquoise 
+       32       221        39       166 
 
 ```{r}
 all_hub_gene_info<-merge(all_hub_gene_info, 
@@ -600,14 +601,9 @@ all_hub_gene_info<-merge(all_hub_gene_info,
                          by.y="geneID",
                          all.x=TRUE
                          )
-write.csv(all_hub_gene_info,"all_hub_gene_info.csv",row.names = FALSE)
+write.csv(all_hub_gene_info,"data/all_hub_gene_info.csv",row.names = FALSE)
 ```
 
-
-```{r}
-my_path<-"\\file\Research\FlanaganLab\intermediate_data\SMA_DE_pipeline_analysis_2024\07_TRgenes\cory_BLAST"
-blast_results_files<-list.files(pattern="blast.txt", path=my_path)
-```
 
 #### annotating hubs
 
