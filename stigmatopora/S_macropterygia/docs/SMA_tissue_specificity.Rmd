@@ -209,6 +209,7 @@ tau_fem<-apply(tpms[,which(colData$sex=="F")], 1, est_tau,
 tau_mal<-apply(tpms[,which(colData$sex=="M")], 1, est_tau,
                colData[which(colData$sex=="M"),])
 
+
 ```
 
 ```{r tauHist,fig.cap="Distribution of tissue specificity estimates for only the male samples (left) versus only the female samples (middle) versus the male samples and the female samples (right).", echo=FALSE}
@@ -296,7 +297,24 @@ plotCounts(ddsMF_SM_exp, gene= names(bot_tau[9]), intgroup="organ")
 
 We can see that for the genes that have high tau values the plots of the normalized counts show higher expression in just that tissue, whereas for the plots of the lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
 
-# Sex Bias and Tissue Specificity
+```{r, eval=FALSE}
+tau_df <- merge(as.data.frame(tau),
+                as.data.frame(tau_fem),
+                by="row.names")
+tau_df <- merge(tau_df, 
+                as.data.frame(tau_mal),
+                by.x="Row.names",
+                by.y="row.names")
+colnames(tau_df)[1]<-"geneID"
+write.csv(tau_df,"data/tau_df.csv", quote=FALSE)
+```
+```{r}
+tau_df<-read.csv("data/tau_df.csv")
+```
+
+
+# Correlating Sex Bias and Tissue Specificity
+
 Now that I have calculated $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type.
 
 ## $\tau$ and logFC in sex-biased genes for each organ
