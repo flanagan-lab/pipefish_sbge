@@ -54,13 +54,24 @@ library(yarrr)
 ``` {r read-data}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
+```
 
+
+``` {r read-data}
 #The samples file generated for tximport
 samples <- read.table("data/SM_samples.txt", header = TRUE)
 
 #Make sure the conditions are in the samples file as a factor
 samples$sex <- as.factor(samples$sex)
 samples$organ <- as.factor(samples$organ)
+
+```
+```{r setPlotParams}
+#Setting the shapes I want to show up for the different organs
+organ_shapes <- c(Gill = 16, Liver = 17, Gonad = 15)
+
+#Setting the colors I want for each sex
+sex_cols <- c("F" = "#7fc97f", "M" = "#beaed4")
 
 ```
 
