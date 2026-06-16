@@ -69,15 +69,9 @@ The main goal of this analysis is to relate measure of pleiotropic constraints (
 Here I am reading in the sex-bias datasets that correspond to each of the organ's single-factor analysis. These datasets include all of the genes where the p-value was not equal to "NA".
 
 ```{r read-in-sb-datasets}
-liver_res <- read.csv("data/liver_res.csv", 
-                      row.names = 1, 
-                      header = TRUE)
-gill_res <- read.csv("data/gill_res.csv", 
-                      row.names = 1, 
-                      header = TRUE)
-gonad_res <- read.csv("data/gonad_res.csv", 
-                      row.names = 1, 
-                      header = TRUE)
+
+logFC_long<-read.csv("data/logFC_long_sexspecific_all.csv", 
+                     stringsAsFactors = TRUE)
 ```
 
 # Calculating Tissue Specificity
