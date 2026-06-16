@@ -967,26 +967,26 @@ f <- orm(abs(logFC_long$logFC) ~ logFC_long$bias*logFC_long$tissue)
 
 ### Visualising male vs female expression
 
-```{r mvf-expression}
+```{r mvf-expression, eval=FALSE}
 #Looking at the relationship between male expression and female expression
 organs <- c(unique(logFC_long$tissue))
 
-dds_SM_exp$organ <- ifelse(dds_SM_exp$organ %in% c("Ovaries", "Testis"),
+ddsMF_SM_exp$organ <- ifelse(ddsMF_SM_exp$organ %in% c("Ovaries", "Testis"),
                            paste0("Gonad"), 
-                           paste0(dds_SM_exp$organ))
+                           paste0(ddsMF_SM_exp$organ))
 
 bias_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "#A9A9A975") 
 
-#pdf("figs/Fig_MFexpression.pdf", width = 10, height=4)
+pdf("figs/Fig_MFexpression_median.pdf", width = 10, height=4)
 
 par(mfrow=c(1,3), oma=c(4,4,2,8), mar=c(1,1,1,0))
 
 for (organ in organs) {
   
   #browser()
-  tmp <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ])
-  tmpF <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ & dds_SM_exp$sex == "F"])
-  tmpM <- as.data.frame(counts(dds_SM_exp, normalized = TRUE)[, dds_SM_exp$organ == organ & dds_SM_exp$sex == "M"])
+  tmp <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ])
+  tmpF <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ & ddsMF_SM_exp$sex == "F"])
+  tmpM <- as.data.frame(counts(ddsMF_SM_exp, normalized = TRUE)[, ddsMF_SM_exp$organ == organ & ddsMF_SM_exp$sex == "M"])
   
   tmp$Fmedian <- apply(tmpF, 1, median)
   tmp$Mmedian <- apply(tmpM, 1, median)
@@ -1001,9 +1001,9 @@ for (organ in organs) {
   xmax <- max(tmp$Fmedian, na.rm = TRUE) + 1
   
   plot(tmp$Fmedian, tmp$Mmedian,
-       #ylab = expression('log'[2] * '(Male Expression)'),
+      # ylab = expression('log'[2] * '(Male Expression)'),
        #xlab = expression('log'[2] * '(Female Expression)'),
-       #axes=FALSE,
+       axes=FALSE,
        cex.main=2,
        #main = organ,
        col = bias_colors[tmp$bias],
@@ -1047,10 +1047,13 @@ spfTools::outer_legend("right",
                        y.intersp = 1.5,
                        pt.cex=2)
 
-#dev.off()
-
+dev.off()
 
 ```
+```{r}
+knitr::include_graphics("figs/Fig_MFexpression_median.pdf")
+```
+
 
 ```{r mean-mvf-expression, fig.height=7, fig.width=15,dpi=300}
 #Looking at the relationship between male expression and female expression
@@ -1088,9 +1091,9 @@ for (organ in organs) {
   plot(tmp$Fmean, tmp$Mmean,
        xlab="",
        ylab="",
-       #ylab = expression('log'[2] * '(Male Expression)'),
-       #xlab = expression('log'[2] * '(Female Expression)'),
-       #axes=FALSE,
+      # ylab = expression('log'[2] * '(Male Expression)'),
+     #  xlab = expression('log'[2] * '(Female Expression)'),
+       axes=FALSE,
        cex.main=2,
        #main = organ,
        col = bias_colors[tmp$bias],
