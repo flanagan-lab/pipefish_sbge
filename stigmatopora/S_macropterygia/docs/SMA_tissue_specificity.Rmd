@@ -35,6 +35,7 @@ library(betareg)
 library(emmeans)
 library(multcomp)
 
+my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
 ```
 
 ``` {r read-data, message = FALSE, warning = FALSE}
