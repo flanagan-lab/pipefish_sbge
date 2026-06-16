@@ -461,10 +461,10 @@ tau_tukey<-TukeyHSD(aov(tau_mod))
 tau_mod_lab<-multcompView::multcompLetters4(aov(tau_mod), tau_tukey)
 ```
 
-```{r}
+```{r, eval=FALSE}
 png("figs/tau_modules_vioplot.png",height = 4.5,width=10,units="in",res=300)
 
-plot_cols<-unlist(lapply(levels(as.factor(ModuleColors[ModuleColors!="grey"])),rep,times=3))
+plot_cols<-levels(tau_col_dat$module)
 par(mar=c(4,4,1,1))
 plot(x=0:length(plot_cols),
      y=seq(0,1,length.out=length(plot_cols)+1),
@@ -474,14 +474,13 @@ plot(x=0:length(plot_cols),
      type='n',
      las=1)
 
-vioplot(tau_col_dat$tau~tau_col_dat$tissue+tau_col_dat$module,
+vioplot(tau_col_dat$tau~tau_col_dat$module,
         col=plot_cols,
         add=TRUE)
 
 axis(1,
      at=1:length(plot_cols),
-     labels=rep(levels(tau_col_dat$tissue),
-                length(levels(tau_col_dat$module))),
+     labels=levels(tau_col_dat$module),
      las=2,tick = FALSE)
 
      
@@ -490,33 +489,16 @@ cor_vals<-signif(moduleTraitCor, 2)[,1]
 names(cor_vals)<-gsub("ME","",names(cor_vals))
 cor_vals<-cor_vals[levels(tau_col_dat$module)]
 
-text(x=seq(2,length(plot_cols)-1,length.out=length(levels(tau_col_dat$module))),
-     y=rep(1,length(levels(tau_col_dat$module))),
-     paste0("r=",cor_vals))
-
-# add the tissue specific correlation coefficients?
-moduleTraitCorPlots<-signif(moduleTraitCor, 2)
-moduleTraitCorPlots<-moduleTraitCorPlots[,-1]
-dimnames(moduleTraitCorPlots)[[1]]<-gsub("ME","",dimnames(moduleTraitCorPlots)[[1]])
-moduleTraitCorPlots<-moduleTraitCorPlots[levels(tau_col_dat$module),]
-moduleTraitCorPlots<-t(moduleTraitCorPlots)
-cor_vec<-unlist(as.list(moduleTraitCorPlots))
-cor_vec<-cor_vec
-
 text(x=1:length(plot_cols),
      y=rep(-0.06,length(plot_cols)),
-     cor_vec, 
-     xpd=TRUE,
-     cex=0.5)
-
+     paste0("r=",cor_vals), 
+     xpd=TRUE)
 
 # get labels
-vio_labels<-tau_mod_lab[,c("tissue","module",".group")]
-vio_labels$.group<-gsub("\\s+","",vio_labels$.group)
-vio_labels<-vio_labels[order(vio_labels$module, vio_labels$tissue),]
+vio_labels<-tau_mod_lab[[1]]$Letters
 text(x=1:length(plot_cols),
      y=rep(0.95, length(plot_cols)),
-     vio_labels$.group)
+     vio_labels)
 dev.off()
 ```
 
