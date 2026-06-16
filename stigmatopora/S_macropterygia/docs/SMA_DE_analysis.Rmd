@@ -141,13 +141,6 @@ plotMA(resMF)
 
 ```
 
-```{r getHeatmapData, echo=FALSE}
-#Pull out the top 20 rows with the most expression
-select <- order(rowMeans(counts(ddsMF_SM_exp, normalized = TRUE)),
-                decreasing = TRUE)[1:20]
-df <- as.data.frame(colData(ddsMF_SM)[,c("sex", "organ")])
-```
-
 
 ```{r transformDDS, echo=FALSE, eval=FALSE}
 #Transform the data
@@ -160,8 +153,12 @@ vsd<-readRDS("data/vsd.RDS")
 
 
 
+```{r getHeatmapData, echo=FALSE}
+#Pull out the top 20 rows with the most expression
+select <- order(rowMeans(counts(ddsMF_SM_exp, normalized = TRUE)),
+                decreasing = TRUE)[1:20]
+df <- as.data.frame(colData(ddsMF_SM)[,c("sex", "organ")])
 ```
-
 
 ```{r heatmapMF, echo=FALSE, fig.cap= "Heatmap showing the expression level across all organs for the top 20 genes with the highest expression levels in the multifactor analysis."}
 #Run the heat map with the function pheatmap
