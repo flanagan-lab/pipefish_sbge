@@ -440,37 +440,12 @@ dev.off()
 
 ### Compare to tau
 
-
-```{r read-logFC-long, eval=FALSE}
-logFC_tau_all<-read.csv("data/logFC_tau_all.csv")
-logFC_tau_all$tissue<-factor(logFC_tau_all$tissue, levels=c("Gill","Liver","Gonad"))
-logFC_tau_all$module<-NA
-
-
-for(col in unique(ModuleColors)){
-  genes<-colnames(expression_data_subset)[ModuleColors==col]
-
-  logFC_tau_all$module[logFC_tau_all$geneID%in%genes]<-col
-  
-}
-
-logFC_tau_all$module<-as.factor(logFC_tau_all$module)
-
-logFC_tau_all$grp<-paste0(logFC_tau_all$module,"_",logFC_tau_all$tissue)
-logFC_tau_all$grp<-as.factor(logFC_tau_all$grp)
-```
+Because tau is a single value per gene, there is no point in looking at it across tissues (unless we wanted to also incorporate logFC, which I do not at this stage). So this is a one-way ANOVA type of analysis.
 
 ```{r, eval=FALSE}
-tau_col_dat<-logFC_tau_all[which(logFC_tau_all$module != "grey"),]
+tau_col_dat<-logFC_long_all[which(logFC_long_all$module != "grey"),]
+tau_col_dat <- tau_col_dat[!is.na(tau_col_dat$module),]
 tau_col_dat$module <- factor(tau_col_dat$module)
-write.csv(tau_col_dat, "data/tau_col_dat.csv", row.names = FALSE, quote=FALSE)
-```
-```{r}
-tau_col_dat<-read.csv("data/tau_col_dat.csv")
-```
-
-
-```{r}
 
 library(betareg)
 library(emmeans)
