@@ -123,22 +123,9 @@ This will be imperfect filtering in this case because I did individual single-fa
 
 It should also be noted that the DESeq2 filtering was done based off of the count data and not the TPMs, but as TPMs are just normalized counts they should be correlated and something that was had low gene counts should also have a low TPM and anything that was considered an outlier in the counts could also be an outlier in terms of TPM, but it may not be perfect.
 
-```{r runDDS}
-#Running the MF diff. expr. analysis -- same as in SMA_DE_analysis.Rmd
-#Create the DESeq dataset
-ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
-                                   colData = samples,
-                                   design = ~ group)
-
-##Remove S10, S23, S30 from the dataset
-ddsMF_SM <- ddsMF_SM[, !(ddsMF_SM$ID %in% c("S10", "S23", "S30"))]
-
-##Filter the dataset, only keeping rows that have at least 10 reads total
-keep <- rowSums(counts(ddsMF_SM)) >= 10 
-ddsMF_SM <- ddsMF_SM[keep, ]
-
-#Generate the expression values
-ddsMF_SM_exp <- DESeq(ddsMF_SM)
+```{r getDDS}
+# Read in the expression values
+ddsMF_SM_exp <- readRDS("data/ddsMF_SM_exp.RDS")
 ```
 
 
