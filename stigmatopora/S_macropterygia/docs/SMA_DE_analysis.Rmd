@@ -922,17 +922,24 @@ tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
 
 
 We'll run an ANOVA on rank-transformed data
+We'll run an ANOVA on rank-transformed data (because logFC caused non-normality of residuals)
+
 
 ```{r FC-var-anova, warning=FALSE, eval=FALSE}
-
 logFC_long$tissue <- as.factor(logFC_long$tissue)
 logFC_long$bias <- as.factor(logFC_long$bias)
 
+
 fc_var_aov <- aov(rank(abs(logFC_long$logFC)) ~ logFC_long$bias*logFC_long$tissue)
 
-par(mfrow = c(2,2))
-plot(fc_var_aov) 
 leveneTest(fc_var_aov) # not equal variances
+
+par(mfrow = c(2,2))
+plot(fc_var_aov)
+```
+
+
+```{r FC-var-anovaResids, warning=FALSE, eval=FALSE}
 par(mfrow=c(1,1))
 hist(resid(fc_var_aov))
 ```
@@ -952,9 +959,11 @@ interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
 
 ```
 
+```{r}
+f <- orm(abs(logFC_long$logFC) ~ logFC_long$bias*logFC_long$tissue)
+```
 
 
-"sex-biased genes displayed a broad range of log2 fold-change values, generally exceeding those observed in the liver or gills "
 
 ### Visualising male vs female expression
 
