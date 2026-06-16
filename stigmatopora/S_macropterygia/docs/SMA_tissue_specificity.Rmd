@@ -322,7 +322,7 @@ tau_df<-read.csv("data/tau_df.csv")
 
 Now that I have calculated $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type.
 
-## $\tau$ and logFC in sex-biased genes for each organ
+## Determining $\tau$ and logFC in sex-biased genes for each organ
 A gene was determined to be sex-biased if it had a log-fold change $\ge |2|$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e. the genes that were not given a p-value of NA from DESeq). 
 
 From these datasets I can pull out the female- and male-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
@@ -409,7 +409,9 @@ liver_bias_tau_all<-read.csv("data/liver_bias_tau.csv")
 gill_bias_tau_all<-read.csv("data/gill_bias_tau.csv")
 gonad_bias_tau_all<-read.csv("data/gonad_bias_tau.csv")
 ```
+### All significantly expressed genes $\tau$ and logFC per organ
 
+Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
 
 ```{r, eval=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
@@ -432,6 +434,7 @@ write.csv(logFC_tau_all, "data/logFC_tau_all.csv",row.names = FALSE)
 ```{r}
 logFC_tau_all <- read.csv("data/logFC_tau_all.csv")
 ```
+I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed outliers.
 
 
 ```{r plot-tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed in the gonads, liver, and gills."}
@@ -548,11 +551,9 @@ tpms[rownames(tpms)== top_gill$Row.names[3],] #Gill-specific MB
 
 Most of the genes looked at above had a TPM of 0 in every sample, with a few exceptions in each tissue. 
 
-## Categories of sex bias vs $\tau$
 
-To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorised the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
 
-### Within the sex-biased genes
+## Relating categories of sex bias vs $\tau$
 
 ```{r bias-bin-cats, echo=FALSE, eval=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
@@ -570,6 +571,7 @@ logFC_long <- data.frame(
         gonad_bias_tau$tau,
         liver_bias_tau$tau)
   )
+To further investigate the relationship between $\tau$ and sex biased and possibly get a cleaner idea of what may be going on I categorised the sex biased genes based on a series of logFC thresholds. After that I can plot $\tau$ against the bias level.
 
 #Add a column to denote female-biased or male biased
 logFC_long$bias <- ifelse(logFC_long$logFC < 0, paste0("FB"), paste0("MB"))
@@ -591,6 +593,7 @@ logFC_long$bias_cat <- ifelse(abs(logFC_long$logFC) >= 2 & abs(logFC_long$logFC)
 #Making sure the ordering stays correct
 logFC_long$bias_cat <- factor(logFC_long$bias_cat,
     levels = biased_bins, ordered = TRUE)
+### Within the sex-biased genes
 
 write.csv(logFC_long, "data/logFC_long_taubiasSB.csv", row.names = FALSE)
 
@@ -785,6 +788,7 @@ write.csv(logFC_long_all, "data/logFC_long_taubias_SS.csv", row.names = FALSE)
 ```{r}
 logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv")
 ```
+### Categories of all logFC genes
 
 ```{r tau-v-biascat-plot-all-bp, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased versus unbiased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4", "UB" = "darkgray" )
@@ -861,6 +865,7 @@ geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, 
 ```
 
 
+# Female-biased genes only
 
 # Sex Bias and Tissue Specificity
 Now that I have calculated fem $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type. I'll only be looking at female-biased genes.
@@ -930,10 +935,10 @@ cor.test(gill_bias_tau_fem$tau_fem, sqrt(abs(gill_bias_tau_fem$log2FoldChange)),
 
 ```
 
-## $\tau$ and logFC for all the signficantly expressed genes in each organ
+## Correlating $\tau$ and logFC for all the signficantly expressed genes in each organ
 Only looking at the logFC for the female-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
 
-I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows where the adjusted p-value is NA (outliers and low-counts).
+I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows outliers.
 
 ```{r tau-v-fem-bias-UB, echo=FALSE, fig.cap="Female bias versus tissue specificity (tau) for all genes that are female biased in the gonads, liver, and gills."}
 
@@ -1075,6 +1080,7 @@ write.csv(logFC_long_fem, "data/logFC_long_taubiasFB.csv", row.names = FALSE)
 logFC_long_fem<-read.csv("data/logFC_long_taubiasFB.csv")
 ```
 
+## Categories of DE and $\tau$ in female-biased genes for each organ
 
 ```{r tau-v-biascat-plot-fem, echo=FALSE, fig.width=15, fig.height=8, fig.cap="Tissue specificity (tau) across the different bias levels. Colour denotes female-biased versus male biased and jitters were added to show all of the raw tau values."}
 my_colors <- c("FB" = "#7fc97f", "MB" = "#beaed4")
@@ -1110,8 +1116,7 @@ geom_point(data = logFC_long_fem[logFC_long_fem$bias == "FB",],
 
 ```
 
-### Across all significantly expressed genes
-I want to see how $\tau$ in unbiased genes compares to these categories as well. To do that I recreated the long-style dataset to include all of the sig. expressed genes rather than just the sex-biased genes.
+A gene was determined to be sex-biased if it had a log-fold change $\le -2$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e., the genes that were not given a p-value of NA from DESeq). 
 
 ```{r bias-bin-cats-FBUB, echo=FALSE}
 #Create a long format dataset that has the tissue information, logFC, tau, and geneID 
@@ -1170,7 +1175,7 @@ logFC_long_FBUB$bias_cat <- ifelse(logFC_long_FBUB$bias == "UB",
                                             )
                                      )
                               )
-  
+From these datasets I can pull out the female-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
 
 #Making sure the ordering stays correct
 logFC_long_FBUB$bias_cat <- factor(logFC_long_FBUB$bias_cat,
@@ -1309,7 +1314,7 @@ geom_point(data = logFC_long_all[logFC_long_all$bias == "UB",], aes(x=bias_cat, 
           col="black",pch=21)
 ```
 
-## Let's look at males now 
+# Male-biased genes only 
 
 ```{r tauHist-mal,fig.cap="Distribution of tissue specificity estimates for only the male samples.", echo=FALSE}
 par(mfrow=c(1,1))
@@ -1413,10 +1418,9 @@ plotCounts(ddsMF_SM, gene= names(bot_tau_mal[9]), intgroup="organ")
 
 We can see that for the male genes that have high tau values the plots of the normalised counts are more consistently showing higher expression in just that tissue compared to when we included both male and female genes, but there are still a few plots that show high expression in more than one tissue. The plots of the median and lower tau values no clear patterns are showing up in the plots of the counts. This is what we want to see, increasing confidence that the the calculations of tau are accurate.
 
-# Sex Bias and Tissue Specificity
-Now that I have calculated male $\tau$ I want to relate it back to information about sex bias to see what, if any, relationship exists. I am going to do this separately for the different organs to see if the relationship changes based on organ type. Now, I'll only be looking at male-biased genes.
 
-## $\tau$ and logFC in male-biased genes for each organ
+
+## Correlations between $\tau$ and logFC in male-biased genes for each organ
 A gene was determined to be sex-biased if it had a log-fold change $\ge 2$ AND an adjusted p-value of $< 0.05$. Earlier I read in four datasets that contain information for all of the significantly expressed genes in each organ (i.e., the genes that were not given a p-value of NA from DESeq). 
 
 From these datasets I can pull out the female-biased genes to plot logFC against $\tau$ within the genes that are sex-biased.
@@ -1540,6 +1544,7 @@ outer_legend("right",
 
 ```
 
+# Values with Tau > 0.75
 ```{r tau-0.75, eval=FALSE}
 #import dataset
 tau_75 <- read.csv("data/tau_75.csv")
@@ -1582,7 +1587,7 @@ liver_plot
 gill_plot
 ```
 
-## Statistically comparing correlations
+# Statistically comparing correlations from all groups
 
 ```{r comp-correlations}
 # Function to compare two correlation coefficients
