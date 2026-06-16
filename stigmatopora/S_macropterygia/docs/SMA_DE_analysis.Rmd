@@ -592,33 +592,30 @@ write.csv(as.data.frame(liver_con_res_noNA), "data/liver_res.csv", row.names = T
 
 I will be generating a table that outlines the genes that are the most male or female biased in each organ type. To do this I need to pull all differentially expressed genes in males or females, get the Trinity gene IDs and then BLAST the corresponding sequences. Here I am pulling out the Trinity gene IDs for those genes.
 
-```{r all-liver}
-#Creating a subset of the results where the p-value is less than 0.05
-liver_con_res_p05 <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05, ]
-
+```{r all-liver, eval=FALSE}
 
 #Pulling the all diff expressed genes in Males
-all_MLiver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
-  liver_con_res_p05$log2FoldChange, decreasing = TRUE),], n=4979)))
+all_MLiver_trin_genes <- rownames(liver_mal_biased[order(
+  liver_mal_biased$log2FoldChange, decreasing = TRUE),])
 #Run once to create the file and then commented out
-#write.table(all_MLiver_trin_genes,
- #          'data/SM_maleL_allTRgenes.txt', 
-  #         sep = "", 
-   #        quote=FALSE, 
-    #         row.names = FALSE, 
-     #        col.names = FALSE)
+write.table(all_MLiver_trin_genes,
+           'data/SM_maleL_allTRgenes.txt', 
+           sep = "", 
+           quote=FALSE, 
+           row.names = FALSE, 
+           col.names = FALSE)
 
 #Pulling all diff expressed genes in Females
-all_Fliver_trin_genes <- cbind(rownames(head(liver_con_res_p05[order(
-  liver_con_res_p05$log2FoldChange, decreasing = FALSE),], n=2571)))
+all_Fliver_trin_genes <- rownames(liver_fem_biased[order(
+  liver_fem_biased$log2FoldChange, decreasing = TRUE),])
 
 #Run once to create the file and then commented out
-#write.table(all_Fliver_trin_genes,
- #           'data/SM_femL_allTRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(all_Fliver_trin_genes,
+            'data/SM_femL_allTRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+           col.names = FALSE)
 ```
 
 ### M-F Gill Comparisson
