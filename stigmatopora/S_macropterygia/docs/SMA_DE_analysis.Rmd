@@ -1452,15 +1452,19 @@ write.table(sex_specific_genes$geneID[sex_specific_genes$organ=="Liver" & sex_sp
 This binned was only done on the sex-biased genes, will not have a category for the unbiased genes. The cutoffs for the different groups are as follows:
 
     1. Low - biased = LFC 2 - 3
-    2. Medium - biased = LFC 3 - 4
-    3. High - biased = LFC 4 - 8
-    4. Extreme sex bias = LFC > 8
+    2. Medium - biased = LFC 3 - 5
+    3. High - biased = LFC 5 - 10
+    4. Extreme sex bias = LFC > 10
 
 Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
 
 ```{r bin-sex-bias}
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
+
+logFC_long <- read.csv("data/logFC_long_sexbias.csv")
+dim(logFC_long)
+length(unique(logFC_long$geneID))
 ```
 
 
@@ -1480,47 +1484,43 @@ logFC_long$bias_cat <- ifelse(logFC_long$bias == "UB",
                                      )
                               )
 
-#Making sure the genes we categorized as sex-specific are labeled as sex-specific for their 
-#bias cat. in the dataset
-organs <- c("Gill", "Gill", "Gonad", "Gonad", "Liver", "Liver")
-bias <- c("MB", "FB", "MB", "FB", "MB", "FB")
-
-for(i in 1:length(SM_sex_specific_genes)){
-  tmp <- SM_sex_specific_genes[[i]]
-  tmp <- as.data.frame(tmp)
-  tmp$geneID <- rownames(tmp)
-  
-  for(j in 1:nrow(tmp)){
+# label the sex specific genes as such
+for(i in 1:nrow(sex_specific_genes)){
+  this_ss_gene <- sex_specific_genes[i,]
+  match<-logFC_long[logFC_long$geneID==this_ss_gene$geneID &
+             logFC_long$tissue==this_ss_gene$organ,]
+  # sanity check: does the directionality match? 
+  if(this_ss_gene$bias == match$bias){
+    logFC_long[logFC_long$geneID==this_ss_gene$geneID &
+             logFC_long$tissue==this_ss_gene$organ,]$bias_cat <-biased_bins[6] 
+  } else if(is.na(match$padj)){
+    # if it had been UB because it was NA, then it's ok
+    logFC_long[logFC_long$geneID==this_ss_gene$geneID &
+             logFC_long$tissue==this_ss_gene$organ,]$bias_cat <-biased_bins[6]
     
-    one_gene <- tmp[j, ]
-    
-    if(one_gene[["geneID"]] %in%
-       logFC_long[logFC_long$tissue == organs[[i]] &
-                  logFC_long$bias == bias[[i]],"geneID"]){
-       
-      logFC_long[logFC_long$geneID == one_gene[["geneID"]] &
-                   logFC_long$tissue == organs[[i]] &
-                   logFC_long$bias == bias[[i]],
-                 "bias_cat"] <- "Sex-specific"
-    }else{
-      
-      one_gene_dat <- data.frame(matrix(ncol= ncol(logFC_long),
-                                        nrow=1))
-      colnames(one_gene_dat) <- colnames(logFC_long)
-      
-      one_gene_dat$tissue <- organs[[i]]
-      one_gene_dat$geneID <- one_gene[["geneID"]]
-      one_gene_dat$bias <- bias[[i]]
-      one_gene_dat$bias_cat <- "Sex-specific"
-      rownames(one_gene_dat) <- NULL
-      
-      logFC_long <- rbind(one_gene_dat, logFC_long)
-      
-      rownames(logFC_long) <- NULL
-    }
+  } else{
+    # otherwise we need to look at it ! 
+    # (none of them triggered this catch)
+    browser()
   }
- }
+}
+```
+```{r}
+dim(logFC_long)
+length(unique(logFC_long$geneID))
+table(logFC_long$bias_cat)
+```
 
+The maximum number of observations per gene is `r max(table(logFC_long$geneID))`, which is what we would expect -- one per organ. So that's great!
+
+```{r}
+write.csv(logFC_long, "data/logFC_long_sexspecific_all.csv",
+          row.names = FALSE)
+```
+
+
+
+```{r bin-sex-bias-cat, eval=FALSE}
 #Create  subset of our long dataset that does not include the non-biased genes
 logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
 
@@ -1569,29 +1569,6 @@ dev.off()
 # Patterns across genes
 
 ## Creating an Upset Plot
-```{r upset-plot-mal, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in males."}
-#Male-biased genes
-listInputMB <- list("Testis" = rownames(gonad_mal_biased),
-                  "Male Gill"=rownames(gill_mal_biased), 
-                  "Male Liver"=rownames(liver_mal_biased)
-                  )
-upset(fromList(listInputMB),
-      mainbar.y.label = "Number of Shared Male-Biased Genes",
-      sets.x.label = "Total Number of Male-Biased Genes",
-      point.size = 3)
-```
-
-```{r upset-plot-fem, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs in females."}
-#Female-biased genes
-listInputFB <- list("Ovaries" = rownames(gonad_fem_biased),
-                  "Female Gill"=rownames(gill_fem_biased), 
-                  "Female Liver"=rownames(liver_fem_biased)
-                  )
-upset(fromList(listInputFB),
-      mainbar.y.label = "Number of Shared Female-Biased Genes",
-      sets.x.label = "Total Number of Female-Biased Genes",
-      point.size = 3)
-```
 
 ```{r exportUpsetData, eval=FALSE}
 #Exporting data used to make the Upset plot (run once and them commented out)
@@ -1651,6 +1628,10 @@ upset(fromList(listInputall),
 )
 dev.off()
 ```
+```{r}
+knitr::include_graphics("figs/upset.pdf")
+```
+
 
 In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
 
