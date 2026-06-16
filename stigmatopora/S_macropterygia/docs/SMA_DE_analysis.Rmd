@@ -654,33 +654,30 @@ write.csv(as.data.frame(gill_con_res_noNA), "data/gill_res.csv", row.names = TRU
 
 Here I am getting the trinity gene IDs that correspond to all differentially expressed genes for males and females. 
 
-```{r all-gill}
-#Creating a subset of results where p-value is less than 0.05
-gill_con_res_p05 <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05,]
-
+```{r all-gill, eval=FALSE}
 #Pulling all diff expressed genes in Males
-all_MGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = TRUE),], n=137)))
+all_MGill_trin_genes <- rownames(gill_mal_biased[order(
+  gill_mal_biased$log2FoldChange, decreasing = TRUE),])
 
 #Run once to create the file and then commented out
-#write.table(all_MGill_trin_genes,
- #           'data/SM_maleG_allTRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(all_MGill_trin_genes,
+            'data/SM_maleG_allTRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 
 #Pulling all diff expressed genes in Females 
-all_FGill_trin_genes <- cbind(rownames(head(gill_con_res_p05[order(
-  gill_con_res_p05$log2FoldChange, decreasing = FALSE),], n=16)))
+all_FGill_trin_genes <- rownames(gill_fem_biased[order(
+  gill_fem_biased$log2FoldChange, decreasing = TRUE),])
 
 #Run once to create the file and then commented out
-#write.table(all_FGill_trin_genes,
- #           'data/SM_femG_allTRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(all_FGill_trin_genes,
+            'data/SM_femG_allTRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 ```
 
 ### M-F Gonad Comparisson
@@ -714,40 +711,38 @@ gonad_fem_biased <- gonad_con_res_noNA[which(gonad_con_res_noNA$log2FoldChange <
 #Creating an object that contains all of the other genes, including NA ones
 gonad_non_biased <- gonad_con_res[which(!gonad_con_res$trin_geneid %in% c(gonad_mal_biased$trin_geneid, gonad_fem_biased$trin_geneid)),]
 ```
-```{r save-gonad-sex-biased}
+```{r save-gonad-sex-biased, eval=FALSE}
 write.csv(as.data.frame(gonad_con_res_noNA), "data/gonad_res.csv", row.names = TRUE)
 ```
 
 I then pulled out the trinity gene IDs that corresponded to all differentially expressed genes in males and females so that I could BLAST the sequences.
 
 
-```{r all-gonad}
-#Creating a subset of the results where the p-value is less than 0.05
-gonad_con_res_p05 <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05,]
+```{r all-gonad, eval=FALSE}
 
 #Pulling all diff expressed genes in Males
-all_MGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = TRUE),], n=4781)))
+all_MGonad_trin_genes <- rownames(gonad_mal_biased[order(
+  gonad_mal_biased$log2FoldChange, decreasing = TRUE),])
 
 #Run once to create the file and then commented out
-#write.table(all_MGonad_trin_genes,
- #        'data/SM_maleGon_allTRgenes.txt', 
-  #        sep = "", 
-   #       quote=FALSE, 
-    #      row.names = FALSE, 
-     #     col.names = FALSE)
+write.table(all_MGonad_trin_genes,
+       'data/SM_maleGon_allTRgenes.txt', 
+          sep = "", 
+         quote=FALSE, 
+          row.names = FALSE, 
+         col.names = FALSE)
 
 #Pulling all diff expressed genes in Females
-all_FGonad_trin_genes <- cbind(rownames(head(gonad_con_res_p05[order(
-  gonad_con_res_p05$log2FoldChange, decreasing = FALSE),], n=2466)))
+all_FGonad_trin_genes <- rownames(gonad_fem_biased[order(
+  gonad_fem_biased$log2FoldChange, decreasing = FALSE),])
 
 #Run once to create the file and then commented out
-#write.table(all_FGonad_trin_genes,
- #           'data/SM_femGon_allTRgenes.txt', 
-  #          sep = "", 
-   #         quote=FALSE, 
-    #        row.names = FALSE, 
-     #       col.names = FALSE)
+write.table(all_FGonad_trin_genes,
+            'data/SM_femGon_allTRgenes.txt', 
+            sep = "", 
+            quote=FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE)
 ```
 
 ### MA Plots
