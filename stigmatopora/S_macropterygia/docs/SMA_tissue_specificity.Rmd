@@ -31,6 +31,10 @@ library(spfTools)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(betareg)
+library(emmeans)
+library(multcomp)
+
 ```
 
 ``` {r read-data, message = FALSE, warning = FALSE}
@@ -1692,10 +1696,6 @@ cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
 Statistically test for differences in tau across categories and tissues
 
 ```{r}
-library(betareg)
-library(emmeans)
-library(multcomp)
-
 logFC_long_all$bias_group<-paste0(logFC_long_all$bias,logFC_long_all$bias_cat)
 tau_mod<-betareg(tau~tissue*bias_group,
              data=logFC_long_all)
