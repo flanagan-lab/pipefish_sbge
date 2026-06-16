@@ -1677,35 +1677,118 @@ Once those sequences were fetched they were blasted against the _Stigmatopora ni
 
 We ultimately opted to exclude three samples, so in this section we just create some justification of those decisions.
 
+#### Mapping rates
 
+I copied the grep of log files output over to the data/ folder. 
 
 ```{r}
+mapping_rates<-read.delim("data/map_rates.txt", header = FALSE, sep=" ")
+mapping_rates$V8 <- as.numeric(gsub("%","",mapping_rates$V8))
+mapping_rates$sample<-gsub("^.*_(S\\d+)_.*$","\\1",mapping_rates$V1)
+```
+```{r mappingRatesHist}
+hist(mapping_rates$V8,
+     main="",
+     xlab="Mapping rate (%)",
+     ylab="number of samples")
+text(x=10, y=5,
+     mapping_rates$sample[mapping_rates$V8 < 20]
+)
+text(x=30, y=5,
+     mapping_rates$sample[mapping_rates$V8 > 20 & mapping_rates$V8 <40]
+)
 
-
-
-```{r, eval=FALSE}
+text(x=70, y=5,
+     mapping_rates$sample[mapping_rates$V8 > 60 & mapping_rates$V8 < 80]
+)
 ```
 
 
+```{r, eval=FALSE}
+txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
+
+samples$group <- factor(paste0(samples$sex, samples$organ))
 
 
-### Merging the BLAST filtered Data frames with the sex-biased information
+##Create a copy of the DESeq dataset
+ddsMF_SM <- DESeqDataSetFromTximport(txi.macropterygia,
+                                     colData = samples_to_use,
+                                     design = ~ group)
 
-Not all of the trinity genes had a BLAST hit come back, but I still want to include what those genes are in the dataset. To do this I am merging all of the genes with the filtered BLAST dataset and if there are genes that did not have any hits (i.e. are not in the filtered BLAST database) then they will receive an "NA".
-
-```{r merge-SB-blast}
-all_blast_filtered<-read.csv("data/sex_bias_blast_filtered_annotated.csv")
-# get the sex bias and tau info
-logFC_long_all <- read.csv("data/logFC_long_all.csv")
-
-
-blast_merged <- merge(logFC_long_all, all_blast_filtered, by.x = "geneID", by.y="qseqid", all = TRUE)
+vsd_all <- vst(ddsMF_SM[,!(ddsMF_SM$ID %in% c("S30","S23"))], blind=FALSE)
+saveRDS(vsd_all, "data/vsd_all.RDS")
+```
+```{r}
+vsd_all <- readRDS("data/vsd_all.RDS")
+```
 
 
-#write once then comment out
-write.csv(as.data.frame(blast_merged), 
-          "data/SuppTable_SM_blast_annotated.csv", 
-          row.names = FALSE)
+```{r}
+#Generate the PCA dataframe
+pca <- prcomp(t(assay(vsd_all)))
+pca_plotting_data<-as.data.frame(pca$x)
+
+#Add the metadata to the PCA dataset
+pca_plotting_data$organ <- samples$organ[!samples$ID %in% c("S30","S23")]
+pca_plotting_data$sex <- samples$sex[!samples$ID %in% c("S30","S23")]
+pca_plotting_data$ID <- samples$ID[!samples$ID %in% c("S30","S23")]
+
+#Calculate the percent variation attributed to each axis 
+sumpca<-summary(pca)
+percentVar <- round(sumpca$importance[2,]*100, digits = 2)
+
+```
+
+
+```{r figPCAwithS10, fig.height=6, fig.width=12}
+#Create the blank pdf to store the plot in
+#pdf("figs/Fig_PCA1v2_all.pdf",height = 6,width=6)
+
+#Set the plotting parameters
+par(mar=c(4,5,4,1), oma=c(2,2,2,2),
+    mfrow=c(1,2))
+
+#Create the plot for PC1 v PC2
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC2,
+     col = paste0(sex_cols[pca_plotting_data$sex],"75"),
+     pch = organ_shapes[as.character(pca_plotting_data$organ)],
+     cex = 3,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC2: ",percentVar[2], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+text(x=pca_plotting_data$PC1[pca_plotting_data$ID=="S10"],
+     y=pca_plotting_data$PC2[pca_plotting_data$ID=="S10"],
+     "S10")
+#Create the plot for PC1 v PC3
+plot(pca_plotting_data$PC1,
+     pca_plotting_data$PC3,
+     col = paste0(sex_cols[pca_plotting_data$sex],"75"),
+     pch = organ_shapes[as.character(pca_plotting_data$organ)],
+     cex = 3,
+     cex.lab = 2,
+     cex.axis = 1.75,
+     xlab = paste0("PC1: ",percentVar[1], "% variance"),
+     ylab = paste0("PC3: ",percentVar[3], "% variance"),
+     bty = 'l',
+     xpd = TRUE)
+text(x=pca_plotting_data$PC1[pca_plotting_data$ID=="S10"],
+     y=pca_plotting_data$PC3[pca_plotting_data$ID=="S10"],
+     "S10")
+#Add  legend describing the organs
+outer_legend("top",
+             names(organ_shapes),
+             pch=organ_shapes,
+             bty = 'n',
+             col = 'darkgrey',
+             cex = 1.75,
+             ncol = 3,
+             pt.cex = 3)
+
+#dev.off()
 ```
 
 
