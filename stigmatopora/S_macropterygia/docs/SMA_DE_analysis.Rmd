@@ -109,6 +109,11 @@ samples<-samples[!(samples$ID %in%  c("S10", "S23", "S30")),]
 keep <- rowSums(counts(ddsMF_SM)) >= 10 
 ddsMF_SM <- ddsMF_SM[keep, ]
 
+# keep reads that do not exceed 1 million reads
+keep <- rowSums(counts(ddsMF_SM)) <= 1000000 
+ddsMF_SM <- ddsMF_SM[keep, ]
+
+
 #Run the differential expression analysis
 ddsMF_SM_exp <- DESeq(ddsMF_SM)
 resultsNames(ddsMF_SM_exp)
