@@ -29,7 +29,7 @@ knitr::opts_chunk$set(fig.path = "../figs/",
 ```
 ```{r}
 logFC_tau_all<-read.csv("data/logFC_tau_all.csv")
-logFC_long_all$bias_cat <- factor(logFC_long_all$bias_cat, 
+logFC_tau_all$bias_cat <- factor(logFC_tau_all$bias_cat, 
                                   levels=c("Unbiased",
                                            "Low",
                                            "Med",
