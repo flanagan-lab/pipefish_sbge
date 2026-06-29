@@ -364,15 +364,22 @@ tissue_sex_biased<-logFC_tau_all[which(logFC_tau_all$tau > tau_cutoff &
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 tissue_sex_blast_ann<-merge(tissue_sex_blast_ann, 
                             tissue_sex_biased,
                             by.x="qseqid",
                             by.y="geneID",
                             all.x=TRUE, 
                             all.y=TRUE)
-write.csv(tissue_sex_blast_ann,"data/tissue_sex_blast_ann.csv", row.names = FALSE,quote=FALSE)
+write.table(tissue_sex_blast_ann,"data/tissue_sex_blast_ann.txt", row.names = FALSE,quote=FALSE,sep="\t",col.names = TRUE)
 ```
+
+```{r}
+tissue_sex_blast_ann <- read..delim("data/tissue_sex_blast_ann.txt",
+                                    sep='\t',header=TRUE,
+                                 row.names = NULL)
+```
+
 
 ```{r}
 liver_MB_table<-as.data.frame(table(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias=="MB" &
