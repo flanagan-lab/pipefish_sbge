@@ -1851,7 +1851,8 @@ Let's save the expression data to a file for future investigations.
 ```{r eval=FALSE}
 # following https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
 expression_data<-t(assay(vsd))
-expression_data_subset<-expression_data[,logFC_long$geneID[logFC_long$bias!="UB"]]
+biased_gene_names<-unique(logFC_long$geneID[logFC_long$bias!="UB"])
+expression_data_subset<-expression_data[,biased_gene_names]
 write.csv(expression_data_subset,"data/expression_data_for_WGCNA.csv",row.names = TRUE)
 ```
 
