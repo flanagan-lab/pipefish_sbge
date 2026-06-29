@@ -1796,21 +1796,6 @@ dev.off()
 
 ## Creating an Upset Plot
 
-```{r exportUpsetData, eval=FALSE}
-#Exporting data used to make the Upset plot (run once and them commented out)
-write.table(as.data.frame(gonad_mal_biased), "data/gonad_mal_biased.txt", 
-           row.names = TRUE)
-write.table(as.data.frame(gonad_fem_biased), "data/gonad_fem_biased.txt", 
-           row.names = TRUE)
-write.table(as.data.frame(gill_mal_biased), "data/gill_mal_biased.txt", 
-           row.names = TRUE)
-write.table(as.data.frame(gill_fem_biased), "data/gill_fem_biased.txt", 
-           row.names = TRUE)
-write.table(as.data.frame(liver_mal_biased), "data/liver_mal_biased.txt", 
-           row.names = TRUE)
-write.table(as.data.frame(liver_fem_biased), "data/liver_fem_biased.txt", 
-           row.names = TRUE)
-```
 
 ```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
 
