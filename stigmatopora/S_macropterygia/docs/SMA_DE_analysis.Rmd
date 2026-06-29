@@ -1797,22 +1797,23 @@ dev.off()
 ## Creating an Upset Plot
 
 
-```{r upset-plot-all, echo=FALSE, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes."}
+```{r upset-plot-all, echo=FALSE, fig.height=4, fig.width=10, fig.cap="Upset plots to show the number of shared sex-biased genes across the organs across both sexes.", dev='pdf'}
 
 
 #Checking there is no overlap between the two sexes
-listInputall <- list("Testes" = rownames(gonad_mal_biased),
-                  "Male Gill"=rownames(gill_mal_biased), 
-                  "Male Liver"=rownames(liver_mal_biased),
-                  "Ovaries" = rownames(gonad_fem_biased),
-                  "Female Gill"=rownames(gill_fem_biased), 
-                  "Female Liver"=rownames(liver_fem_biased))
+listInputall <- list(
+  "Male Gonad" = logFC_long$geneID[logFC_long$tissue=="Gonad" & logFC_long$bias=="MB"],
+  "Male Gill"=logFC_long$geneID[logFC_long$tissue=="Gill" & logFC_long$bias=="MB"], 
+  "Male Liver"=logFC_long$geneID[logFC_long$tissue=="Liver" & logFC_long$bias=="MB"],
+  "Female Gonad" = logFC_long$geneID[logFC_long$tissue=="Gonad" & logFC_long$bias=="FB"],
+  "Female Gill"=logFC_long$geneID[logFC_long$tissue=="Gill" & logFC_long$bias=="MB"], 
+  "Female Liver"=logFC_long$geneID[logFC_long$tissue=="Liver" & logFC_long$bias=="MB"])
 
 # Define the desired order of sets
-desired_order <- c("Male Gill", "Female Gill", "Male Liver", "Female Liver", "Testes", "Ovaries")
+desired_order <- c("Male Gill", "Female Gill", "Male Liver", "Female Liver", "Male Gonad", "Female Gonad")
 
 # Create the UpSet object with custom set order
-pdf("figs/upset.pdf",height=4,width=10)
+#pdf("figs/upset.pdf",height=4,width=10)
 upset(fromList(listInputall),
       sets = desired_order,
       mainbar.y.label = "Number of Shared Sex-Biased Genes",
@@ -1829,19 +1830,15 @@ upset(fromList(listInputall),
                           organ_cols["Gill"],
                           organ_cols["Gill"])),
       shade.color = sex_cols["M"],
-      main.bar.color=c(rep("gray23",11),
-                       c(organ_cols["Gonad"],
-                          organ_cols["Gonad"],
-                          organ_cols["Liver"],
-                          organ_cols["Liver"],
+      main.bar.color=c(rep("gray23",6),
+                       c(organ_cols["Liver"],
                           organ_cols["Gill"],
-                          organ_cols["Gill"]))
+                          organ_cols["Gonad"],
+                          organ_cols["Gonad"]))
 )
-dev.off()
+#dev.off()
 ```
-```{r}
-knitr::include_graphics("figs/upset.pdf")
-```
+
 
 
 In both males and females the highest number of shared sex-biased genes is found between the gonads and the liver (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)). There are no genes that are shared across the same organ between males and females (e.g., biased in males and females in the liver) which is good (Fig. \@ref(fig:upset-plot-all)). Two sex-biased genes are female-biased in all organs and three genes are male-biased in all three organs (Fig. \@ref(fig:upset-plot-mal), \@ref(fig:upset-plot-fem)).
