@@ -490,14 +490,14 @@ colnames(hub_blast)<-c("qseqid", "sseqid", "pident", "length", "mismatch", "gapo
 
 
 ```{r}
-all_hub_gene_info<-read.csv("all_hub_gene_info.csv")
+all_hub_gene<-read.csv("data/all_hub_gene.csv")
 matched_genes<-unique(hub_blast$qseqid)
 
 length(matched_genes)
-#[1] 320
-unmatched<-unique(all_hub_gene_info$Gene[!all_hub_gene_info$Gene %in% matched_genes])
+#[1] 282
+unmatched<-unique(all_hub_genes$Gene[!all_hub_genes$Gene %in% matched_genes])
 length(unmatched)
-#139
+#130
 ```
 
 
@@ -515,43 +515,44 @@ write.csv(hub_blast_filtered,"data/hub_genes_blast_filtered.csv",row.names = FAL
 
 ```{r}
 hub_blast_filtered<-read.csv("data/hub_genes_blast_filtered.csv")
-hub_blast_filtered$GO<-apply(hub_blast_filtered, 1, 
-                             get_condensed_annotations, annotations=annotations)
 ```
 
 
 
-```{r}
+```{r, eval=FALSE}
+
+hub_blast_filtered$GO<-apply(hub_blast_filtered, 1, 
+                             get_condensed_annotations, annotations=annotations)
 all_go_anns<-do.call(rbind,apply(hub_blast_filtered, 1, 
                                  get_all_annotations, annotations=annotations))
-
+# get the annotations only
 hub_blast_ann<-merge(hub_blast_filtered,
                             all_go_anns, 
                             by.x="GeneID",
                             by.y="GeneID", 
                             all.x=TRUE, 
                             all.y=FALSE)
-```
-```{r}
+
+# link annotations to the hub gene info
 hub_blast_ann<-merge(hub_blast_ann, 
-                            all_hub_gene_info,
+                            all_hub_genes,
                             by.x="qseqid",
                             by.y="Gene",
                             all.x=TRUE, 
                             all.y=TRUE)
+write.csv(hub_blast_ann, "data/hub_blast_ann.csv", 
+          quote=FALSE,row.names = FALSE)
+```
+```{r}
+hub_blast_ann<-read.csv("data/hub_blast_ann.csv")
 ```
 
-```{r}
-all_go_anns_tab<-table(all_go_anns$TERM)
-hist(all_go_anns_tab)
-
-```
-
 
 ```{r}
+
 liver_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Liver"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Liver"]))
 liver_MB_table<-liver_MB_table[liver_MB_table$Freq>0,]
 liver_MB_table$bias<-"MB"
@@ -559,7 +560,7 @@ liver_MB_table$tissue<-"Liver"
 
 gill_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gill"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gill"]))
 gill_MB_table<-gill_MB_table[gill_MB_table$Freq>0,]
 gill_MB_table$bias<-"MB"
@@ -567,23 +568,24 @@ gill_MB_table$tissue<-"Gill"
 
 gonad_MB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gonad"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="MB" &
+                      hub_blast_ann$module[hub_blast_ann$bias=="MB" &
                                            hub_blast_ann$tissue=="Gonad"]))
 gonad_MB_table<-gonad_MB_table[gonad_MB_table$Freq>0,]
 gonad_MB_table$bias<-"MB"
 gonad_MB_table$tissue<-"Gonad"
 
-liver_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
-                                           hub_blast_ann$tissue=="Liver"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
-                                           hub_blast_ann$tissue=="Liver"]))
-liver_FB_table<-liver_FB_table[liver_FB_table$Freq>0,]
-liver_FB_table$bias<-"FB"
-liver_FB_table$tissue<-"Liver"
+# there were no female biased liver genes
+# liver_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
+#                                            hub_blast_ann$tissue=="Liver"],
+#                       hub_blast_ann$module[hub_blast_ann$bias=="FB" &
+#                                            hub_blast_ann$tissue=="Liver"]))
+# liver_FB_table<-liver_FB_table[liver_FB_table$Freq>0,]
+# liver_FB_table$bias<-"FB"
+# liver_FB_table$tissue<-"Liver"
 
 gill_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gill"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
+                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gill"]))
 # there were no matches
 #gill_FB_table<-gill_FB_table[gill_FB_table$Freq>0,]
@@ -592,7 +594,7 @@ gill_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
 
 gonad_FB_table<-as.data.frame(table(hub_blast_ann$TERM[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gonad"],
-                      hub_blast_ann$module.x[hub_blast_ann$bias=="FB" &
+                      hub_blast_ann$module[hub_blast_ann$bias=="FB" &
                                            hub_blast_ann$tissue=="Gonad"]))
 gonad_FB_table<-gonad_FB_table[gonad_FB_table$Freq>0,]
 gonad_FB_table$bias<-"FB"
@@ -602,8 +604,8 @@ module_go_table<-rbind(
   gonad_MB_table,
   liver_MB_table,
   gill_MB_table,
-  gonad_FB_table,
-  liver_FB_table
+  gonad_FB_table
+ # liver_FB_table
 )
 colnames(module_go_table)<-c("GO_Term","module","Number of matches", "bias","tissue")
 write.csv(module_go_table, "data/module_GO_table.csv",row.names = FALSE, quote=FALSE)
