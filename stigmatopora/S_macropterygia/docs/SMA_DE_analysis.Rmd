@@ -807,6 +807,105 @@ gonad_FB <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_n
 gonad_MB <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 2,]
 ```
 
+
+```{r histLogFC}
+par(mfrow=c(2,3),
+    oma=c(3,3,3,1),
+    mar=c(2,2,3,1))
+hist(gill_MB$log2FoldChange,
+     main="Gill",
+     xlab="",
+     ylab="")
+mtext("Number of genes",2,outer=FALSE, cex=0.75, line=2)
+mtext("Male-biased",2,outer=FALSE, cex=0.75, line=3)
+
+hist(liver_MB$log2FoldChange,
+     main="Liver",
+     xlab="",
+     ylab="")
+
+hist(gonad_MB$log2FoldChange,
+     main="Gonad",
+     xlab="",
+     ylab="")
+
+hist(gill_FB$log2FoldChange,
+     main="",
+     xlab="log2 FC",
+     ylab="")
+mtext("Number of genes",2,outer=FALSE, cex=0.75, line=2)
+mtext("Female-biased",2,outer=FALSE, cex=0.75, line=3)
+
+hist(liver_FB$log2FoldChange,
+     main="",
+     xlab="log2 FC",
+     ylab="")
+
+hist(gonad_FB$log2FoldChange,
+     main="",
+     xlab="log2 FC",
+     ylab="")
+
+```
+
+### Variability in expression
+
+```{r}
+vsd<-readRDS("data/vsd.RDS")
+avsd<-assay(vsd)
+avsd_gill <- avsd[,colnames(avsd) %in% samples$ID[samples$organ=="Gill"]]
+avsd_gonad <- avsd[,colnames(avsd) %in% samples$ID[samples$organ=="Gonad"]]
+avsd_liver <- avsd[,colnames(avsd) %in% samples$ID[samples$organ=="Liver"]]
+```
+```{r ExpressionVariationPerGene, fig.height=9, fig.width=10}
+par(mfrow=c(2,3))
+# means
+hist(log(rowMeans(avsd_gill)), main="Gill",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowMeans(avsd_gill))), lwd=2)
+
+hist(log(rowMeans(avsd_liver)), main="Liver",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowMeans(avsd_liver))), lwd=2)
+mtext("log-transformed mean expression per gene",1, 
+      outer=FALSE, line=2)
+hist(log(rowMeans(avsd_gonad)), main="Gonad",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowMeans(avsd_gonad))), lwd=2)
+
+
+# variances
+hist(log(rowVars(avsd_gill)), main="",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowVars(avsd_gill))), lwd=2)
+hist(log(rowVars(avsd_liver)), main="",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowVars(avsd_liver))), lwd=2)
+mtext("log-transformed variance of expression per gene",1, outer=FALSE,
+      line=2)
+hist(log(rowVars(avsd_gonad)), main="",
+     xlab="",
+     ylab="")
+abline(v=median(log(rowVars(avsd_gonad))), lwd=2)
+```
+
+```{r}
+par(mfrow=c(1,3))
+hist(log(rowMeans(avsd_gill)), main="Gill")
+abline(v=median(log(rowMeans(avsd_gill))), lwd=2)
+hist(log(rowMeans(avsd_liver)), main="Liver")
+abline(v=median(log(rowMeans(avsd_liver))), lwd=2)
+hist(log(rowMeans(avsd_gonad)), main="Gonad")
+abline(v=median(log(rowMeans(avsd_gonad))), lwd=2)
+mtext("log-transformed mean expression per gene",1, outer=TRUE)
+```
+
+
 ## Variation in FC across sex-bias and tissue type
 I want to create a plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types. To do this I first need to create a "long" dataset in the following format:
 
