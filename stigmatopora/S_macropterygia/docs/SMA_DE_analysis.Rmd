@@ -1203,11 +1203,8 @@ for (organ in organs) {
   xmax <- max(tmp$Fmedian, na.rm = TRUE) + 1
   
   plot(tmp$Fmedian, tmp$Mmedian,
-      # ylab = expression('log'[2] * '(Male Expression)'),
-       #xlab = expression('log'[2] * '(Female Expression)'),
        axes=FALSE,
        cex.main=2,
-       #main = organ,
        col = bias_colors[tmp$bias],
        pch = 19,
        cex = ifelse(organ != "Gonad" & tmp$bias %in% c("MB", "FB"),
@@ -1293,11 +1290,8 @@ for (organ in organs) {
   plot(tmp$Fmean, tmp$Mmean,
        xlab="",
        ylab="",
-      # ylab = expression('log'[2] * '(Male Expression)'),
-     #  xlab = expression('log'[2] * '(Female Expression)'),
        axes=FALSE,
        cex.main=2,
-       #main = organ,
        col = bias_colors[tmp$bias],
        pch = 19,
        cex = ifelse(organ != "Gonad" & tmp$bias %in% c("MB", "FB"),
@@ -1558,7 +1552,7 @@ par(mfrow=c(4,4))
 
 for(gene in random_ub_ss){
   organ<-ssinfo$tissue[ssinfo$geneID.x==gene]
-  plotCounts(ddsMF_SM[,ddsMF_SM$organ == organ], 
+  plotCounts(ddsMF_SM_exp[,ddsMF_SM_exp$organ == organ], 
              gene=gene, intgroup="sex", 
              col= 'salmon', pch = 19)
   
@@ -1625,7 +1619,7 @@ for(gene in gill_fem_biased_geneIDS){
 
 ### Pulling out the gene IDs for all of the sex-specific genes
 ```{r, eval=FALSE}
-#Run once to create the file and then commented out
+#Run once to create the file 
 write.table(sex_specific_genes$geneID[sex_specific_genes$organ=="Gill" & sex_specific_genes$bias=="MB"],
           'data/SM_malG_specific_TRgenes.txt',
          sep = "",
