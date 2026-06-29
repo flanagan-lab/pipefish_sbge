@@ -191,7 +191,7 @@ sig_modules<-gsub("ME","",
 ```
 
 
-```{r, eval=FALSE, fig.width=650, fig.height=550}
+```{r allHeatmap, eval=FALSE, fig.width=650, fig.height=550}
 par(mar= c(6, 8.5, 3, 3))
 #display the correlation values with a heatmap plot
 
