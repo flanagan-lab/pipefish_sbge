@@ -18,12 +18,12 @@ always_allow_html: true
 
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
-knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
-```
-```{r setdir}
-knitr::opts_knit$set(root.dir='../',
-                     fig_path="../figs/")
+knitr::opts_knit$set(root.dir='../')
+knitr::opts_chunk$set(fig.path = "../figs/",
+                      dev="png",
+                      dpi=300,
+                      tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
 ```
 
 
@@ -54,10 +54,7 @@ library(yarrr)
 ``` {r read-data}
 #The abundance matrix generated via salmon and tximport to be used for the DE analysis
 txi.macropterygia <- readRDS("data/txi.salmon_SM.RDS")
-```
 
-
-``` {r read-data}
 #The samples file generated for tximport
 samples <- read.table("data/SM_samples.txt", header = TRUE)
 
@@ -84,7 +81,7 @@ To analyze your data with DESeq2 you must first generate the DESeqDataSet. In or
 
 In this multi-factor analysis the model was run as counts ~ group, where group included both the sex and the organ type (i.e. MLiver, FLiver, etc.). The sample "S10" appeared to a bit of an outlier in the above analysis, particularly clear in the sample-dist heatmap and the PCA, so it will be removed from the analysis going forward.
 
-```{r multi-factor-analysis, message=FALSE, warning=FALSE}
+```{r multi-factor-analysis-initial, message=FALSE, warning=FALSE}
 #Create an additional column the has the two conditions combined(sex and organ type)
 samples$group <- factor(paste0(samples$sex, samples$organ))
 
@@ -745,7 +742,7 @@ write.table(all_FGonad_trin_genes,
             col.names = FALSE)
 ```
 
-### MA Plots
+### Plots of expression
 ```{r MA-plot-MF, echo=FALSE, fig.height= 15, fig.width=8, fig.cap="MA-plots generated for each organ type that compares logFC to the mean expression. Female-biased and male-biased genes are represented by colour (female: green; male: purple) and are determined with a fold change cutoff of 2 and a p-value cutoff of 0.05"}
 liver_MA <- ggmaplot(liver_con_res,
          fdr = 0.05, fc = 2,
@@ -817,7 +814,7 @@ I want to create a plot the highlights the variation we see in fold-change both 
 
 That dataset is created here, with the Trinity gene IDs included as well:
 
-```{r logFC-long-dataset, eval=FALSE}
+```{r logFCLongDataset, eval=FALSE}
 logFC_long<- data.frame(
   tissue=c(rep("Gill",nrow(gill_fem_biased)),
            rep("Gill", nrow(gill_mal_biased)),
@@ -868,11 +865,11 @@ logFC_long<- data.frame(
            rownames(liver_mal_biased),
            rownames(liver_non_biased)
            )
-  
 )
-
 #Exporting this data, run once and then just read in the file
-write.csv(logFC_long, "data/logFC_long_sexbias.csv", row.names = FALSE)
+write.csv(logFC_long, 
+          "data/logFC_long_sexbias.csv", 
+          row.names = FALSE)
 ```
 ```{r}
 logFC_long <- read.csv("data/logFC_long_sexbias.csv")
@@ -938,13 +935,13 @@ plot(fc_var_aov)
 ```
 
 
-```{r FC-var-anovaResids, warning=FALSE, eval=FALSE}
+```{r FC-var-anovaResids, warning=FALSE}
 par(mfrow=c(1,1))
 hist(resid(fc_var_aov))
 ```
 
 
-```{r FC-var-anova, warning=FALSE, eval=FALSE}
+```{r FC-var-anova2, warning=FALSE, fig.keep='last'}
 anova(fc_var_aov)
 plot(TukeyHSD(fc_var_aov))
 
@@ -952,7 +949,7 @@ multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
 
 ```
 
-```{r}
+```{r logFCinteractionPlot}
 par(mfrow=c(1,1))
 interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
 
@@ -1175,7 +1172,7 @@ summary(gene_counts)
 gene_medians<-apply(all_counts,1,median)
 ```
 
-```{r}
+```{r medianCountsHist, fig.keep='last'}
 par(mfrow=c(1,3))
 for(organ in organs){
   filtered_counts<-counts(ddsMF_SM_exp_filtered, normalized = TRUE) 
@@ -1346,7 +1343,7 @@ table(ssinfo$bias.x, ssinfo$bias.y)
 
 About half of the sex-specific genes in males were originally classified as "unbiased". Let's look at a random subset of these to see if we can make any sense of what's going on. 
 
-```{r}
+```{r plotCountsSexSpecific, fig.height=10, fig.width=10}
 random_ub_ss<-sample(ssinfo$geneID.x[ssinfo$bias.x=="UB"], 
                      size = 16,
                      replace=FALSE)
@@ -1458,7 +1455,7 @@ This binned was only done on the sex-biased genes, will not have a category for 
 
 Counts of the sex-specific genes will be added on separately as they were not classified based on fold-change but rather a presence in one sex and an absence in the other sex.
 
-```{r bin-sex-bias}
+```{r}
 #Make a vector that contains all of the groupings
 biased_bins <- c("Unbiased", "Low", "Med", "High", "Extreme", "Sex-specific")
 
@@ -1520,7 +1517,6 @@ write.csv(logFC_long, "data/logFC_long_sexspecific_all.csv",
 
 
 
-```{r bin-sex-bias-cat, eval=FALSE}
 #Create  subset of our long dataset that does not include the non-biased genes
 logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
 
@@ -1638,6 +1634,8 @@ In both males and females the highest number of shared sex-biased genes is found
 # Saving data for future analysis
 Let's save the expression data to a file for future investigations.
 
+### For WGCNA
+
 ```{r eval=FALSE}
 # following https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
 expression_data<-t(assay(vsd))
@@ -1645,7 +1643,7 @@ expression_data_subset<-expression_data[,logFC_long$geneID[logFC_long$bias!="UB"
 write.csv(expression_data_subset,"data/expression_data_for_WGCNA.csv",row.names = TRUE)
 ```
 
-# Gene Ontology Analysis
+### Gene Ontology Analysis
 
 We wanted to figure out two things:   
 
@@ -1654,7 +1652,7 @@ We wanted to figure out two things:
 
 To accomplish this I first had to pull out the sequences that corresponded to the Trinity gene IDS for sex-biased genes.
 
-```{r}
+```{r, eval=FALSE}
 write.table(unique(logFC_long_noNB$geneID),
             "data/sex_biased_trinity_genes.txt",
             quote=FALSE,
@@ -1673,7 +1671,7 @@ Once those sequences were fetched they were blasted against the _Stigmatopora ni
 
 
 
-## Justification of outliers
+# Justification of outliers
 
 We ultimately opted to exclude three samples, so in this section we just create some justification of those decisions.
 
@@ -1686,7 +1684,7 @@ mapping_rates<-read.delim("data/map_rates.txt", header = FALSE, sep=" ")
 mapping_rates$V8 <- as.numeric(gsub("%","",mapping_rates$V8))
 mapping_rates$sample<-gsub("^.*_(S\\d+)_.*$","\\1",mapping_rates$V1)
 ```
-```{r mappingRatesHist}
+```{r mappingRatesHist, fig.keep='last'}
 hist(mapping_rates$V8,
      main="",
      xlab="Mapping rate (%)",
