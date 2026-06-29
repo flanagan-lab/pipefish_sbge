@@ -120,6 +120,13 @@ saveRDS(ddsMF_SM_exp, "data/ddsMF_SM_exp.RDS")
 ```
 ```{r}
 ddsMF_SM_exp <- readRDS("data/ddsMF_SM_exp.RDS")
+samples<-samples[!(samples$ID %in%  c("S10", "S23", "S30")),]
+```
+
+Summarise the dataset
+
+```{r}
+table(samples$organ, samples$sex)
 ```
 
 
@@ -790,6 +797,15 @@ plot_grid(liver_MA, gill_MA, gonad_MA,
 ```
 
 From the MA plots we can see the highest number of biased genes are found in the gonads (Fig. \@ref(fig:MA-plot-MF)) and then the liver and lastly the gills. In both the liver and the gonads there are more female-biased genes than male-biased genes.
+
+```{r createUsefulObjects}
+gill_MB <-gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange > 2,]
+gill_FB <- gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange < -2,]
+liver_FB <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange < -2,]
+liver_MB <- liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange > 2,]
+gonad_FB <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange < -2,]
+gonad_MB <- gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 2,]
+```
 
 ## Variation in FC across sex-bias and tissue type
 I want to create a plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types. To do this I first need to create a "long" dataset in the following format:
