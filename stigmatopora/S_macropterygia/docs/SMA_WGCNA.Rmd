@@ -464,6 +464,12 @@ tau_col_dat <- unique(tau_col_dat)
 
 ```{r}
 tau_mod<-lm(tau_col_dat$tau~tau_col_dat$module)
+summary(tau_mod)
+anova(tau_mod)
+```
+
+
+```{r}
 par(mfrow=c(2,2))
 plot(tau_mod)
 ```
@@ -476,7 +482,7 @@ tau_mod_lab<-multcompView::multcompLetters4(aov(tau_mod), tau_tukey)
 png("figs/tau_modules_vioplot.png",height = 4.5,width=10,units="in",res=300)
 
 plot_cols<-levels(tau_col_dat$module)
-par(mar=c(4,4,1,1))
+par(mar=c(4,4,1,1), oma=c(2,1,1,1))
 plot(x=0:length(plot_cols),
      y=seq(0,1,length.out=length(plot_cols)+1),
       xaxt='n',
@@ -535,7 +541,7 @@ names(gene_trait_pvalue) <- colnames(expression_data_subset)
 all_hub_gene_info<-data.frame() 
 all_hub_genes<-data.frame()
 
-for(sex_module in c("black","blue","red","turquoise")){
+for(sex_module in sig_modules){
 
   # Get genes in this module
   module_genes <- colnames(expression_data_subset)[ModuleColors == gsub("ME","",sex_module)]
@@ -602,10 +608,9 @@ write.table(all_hub_genes$Gene,"data/hub_gene_IDs.txt",
           col.names=FALSE,
           quote=FALSE)
 ```
-black      blue       red turquoise 
-       32       221        39       166 
 
-```{r}
+      blue       red turquoise 
+      220        31       161
 all_hub_gene_info<-merge(all_hub_gene_info, 
                          logFC_long_all,
                          by.x="Gene",
