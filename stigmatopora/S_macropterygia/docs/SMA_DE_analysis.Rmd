@@ -1130,14 +1130,14 @@ tapply(abs(logFC_long$logFC), list(logFC_long$bias, logFC_long$tissue), sd)
 We'll run an ANOVA on rank-transformed data (because logFC caused non-normality of residuals)
 
 
-```{r FC-var-anova, warning=FALSE, eval=FALSE}
-logFC_long$tissue <- as.factor(logFC_long$tissue)
-logFC_long$bias <- as.factor(logFC_long$bias)
+```{r FC-var-anova, warning=FALSE}
+logFC_bias<-logFC_long[logFC_long$bias!="UB",]
+logFC_bias$tissue <- as.factor(logFC_bias$tissue)
+logFC_bias$bias <- as.factor(logFC_bias$bias)
 
 
-fc_var_aov <- aov(rank(abs(logFC_long$logFC)) ~ logFC_long$bias*logFC_long$tissue)
+fc_var_aov <- lm(rank(abs(logFC_bias$logFC)) ~ logFC_bias$bias*logFC_bias$tissue)
 
-leveneTest(fc_var_aov) # not equal variances
 
 par(mfrow = c(2,2))
 plot(fc_var_aov)
@@ -1152,20 +1152,17 @@ hist(resid(fc_var_aov))
 
 ```{r FC-var-anova2, warning=FALSE, fig.keep='last'}
 anova(fc_var_aov)
-plot(TukeyHSD(fc_var_aov))
 
-multcompLetters4(fc_var_aov, TukeyHSD(fc_var_aov))
+plot(TukeyHSD(aov(fc_var_aov)))
+
+multcompLetters4(fc_var_aov, TukeyHSD(aov(fc_var_aov)))
 
 ```
 
 ```{r logFCinteractionPlot}
 par(mfrow=c(1,1))
-interaction.plot(logFC_long$tissue, logFC_long$bias, logFC_long$logFC)
+interaction.plot(logFC_bias$tissue, logFC_bias$bias, logFC_bias$logFC)
 
-```
-
-```{r}
-f <- orm(abs(logFC_long$logFC) ~ logFC_long$bias*logFC_long$tissue)
 ```
 
 
