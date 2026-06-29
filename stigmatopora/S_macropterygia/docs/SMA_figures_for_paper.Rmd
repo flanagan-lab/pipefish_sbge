@@ -35,7 +35,15 @@ library(ridgeline)
 
 ```{r loadData}
 vsd<-readRDS("data/vsd.RDS")
-logFC_long <- read.csv("data/logFC_long_sexbias.csv")
+logFC_long <- read.csv("data/logFC_tau_module_all.csv",
+                       stringsAsFactors = TRUE)
+logFC_long$bias_cat<-factor(logFC_long$bias_cat, 
+                                  levels=c("Unbiased",
+                                           "Low",
+                                           "Med",
+                                           "High",
+                                           "Extreme",
+                                           "Sex-specific"))
 ```
 ```{r setParams}
 #Setting the shapes I want to show up for the different organs
@@ -211,16 +219,11 @@ fig2
 
 
 ```{r}
-logFC_long<-read.csv("data/logFC_long_sexspecific_all.csv")
-logFC_long_all<- read.csv("data/logFC_long_taubias_SS.csv", 
-                          stringsAsFactors = TRUE)
-logFC_long_all$bias_cat<-factor(logFC_long_all$bias_cat,
-                                levels=c("Unbiased","Low","Med","High","Extreme","Sex-specific"))
 
 # create plotting categories
-logFC_long_all$group<-paste0(logFC_long_all$bias_cat,
-                             logFC_long_all$bias)
-logFC_long_all$group<-factor(logFC_long_all$group,
+logFC_long$group<-paste0(logFC_long$bias_cat,
+                             logFC_long$bias)
+logFC_long$group<-factor(logFC_long$group,
                              levels=c(
                                "UnbiasedUB",
                                "LowFB",
@@ -243,8 +246,8 @@ par(mar=c(3,5.5,1,1))
 
 for(organ in c("Gill","Liver","Gonad")){
   cairo_pdf(paste0("figs/",organ,"_logFC_tau.pdf"),height=5,width=7)
-  logFC_long_all$abs_logFC<-abs(logFC_long_all$logFC)
-  plot(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$abs_logFC,
+  logFC_long$abs_logFC<-abs(logFC_long$logFC)
+  plot(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC,
        bty='l',
        col=scales::alpha(sex_cols["M"],0.5),
        pch=17,
@@ -254,15 +257,15 @@ for(organ in c("Gill","Liver","Gonad")){
        cex.axis=1.5,
        cex.lab=1.5
        )
-  points(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$abs_logFC,
+  points(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC,
        bty='l',
        col=scales::alpha(sex_cols["F"],0.5),
        pch=16,
        cex=1.5)
-  #abline(lm(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="MB",]$abs_logFC),
+  #abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="MB",]$abs_logFC),
          #lwd=2.5,
          #col=sex_cols["M"])
-  #abline(lm(logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$tau~logFC_long_all[logFC_long_all$tissue==organ & logFC_long_all$bias=="FB",]$abs_logFC),
+  #abline(lm(logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$tau~logFC_long[logFC_long$tissue==organ & logFC_long$bias=="FB",]$abs_logFC),
          #lwd=2.5,
          #col=sex_cols["F"])
   dev.off()
@@ -277,11 +280,19 @@ for(organ in c("Gill","Liver","Gonad")){
 ### by bias category
 
 ```{r}
-for(organ in c("Gill","Liver","Gonad")){
+plotting_dat<-logFC_long[!is.na(logFC_long$tau),]
+```
+
+
+
+```{r}
+for(organ in c("Liver","Gonad")){
   cairo_pdf(paste0("figs/Tau_",organ,".pdf"),height=5,width=7)
   par(mar=c(3,5.5,1,1))
-  r<-ridgeline(x=logFC_long_all$tau[logFC_long_all$tissue==organ],
-            y=logFC_long_all$group[logFC_long_all$tissue==organ],
+  this_dat<-plotting_dat[plotting_dat$tissue==organ,]
+  this_dat<-this_dat[!is.na(this_dat$group),]
+  r<-ridgeline(x=this_dat$tau,
+            y=this_dat$group,
             palette = scales::alpha(c(bias_colors["UB"],
                                       rep(sex_cols["F"],5),
                                       rep(sex_cols["M"],5)),0.75),
