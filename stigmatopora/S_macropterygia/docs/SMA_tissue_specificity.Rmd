@@ -19,8 +19,10 @@ editor_options:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir='../',
-                     fig_path="figs/")
+knitr::opts_knit$set(root.dir='../')
+knitr::opts_chunk$set(fig.path = "../figs/",
+                      dev="png",
+                      dpi=300)
 ```
 
 ``` {r library, message = FALSE, warning = FALSE}
