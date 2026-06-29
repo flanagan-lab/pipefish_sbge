@@ -611,13 +611,36 @@ write.table(all_hub_genes$Gene,"data/hub_gene_IDs.txt",
 
       blue       red turquoise 
       220        31       161
+
+```{r, eval=FALSE}
+## all_hub_gene_info contains data on all genes 
 all_hub_gene_info<-merge(all_hub_gene_info, 
                          logFC_long_all,
                          by.x="Gene",
                          by.y="geneID",
                          all.x=TRUE
                          )
+# remove duplicated column
+all_hub_gene_info <- all_hub_gene_info[,colnames(all_hub_gene_info) != "module.y"]
+colnames(all_hub_gene_info)<-gsub("\\.x","",colnames(all_hub_gene_info))
 write.csv(all_hub_gene_info,"data/all_hub_gene_info.csv",row.names = FALSE)
+```
+```{r, eval=FALSE}
+## all_hub_genes contains data ONLY for hub genes in their modules
+colnames(all_hub_genes)[5]<-"hub"
+all_hub_genes<-merge(all_hub_genes, 
+                         logFC_long_mod,
+                         by.x="Gene",
+                         by.y="geneID",
+                         all.x=TRUE
+                         )
+write.csv(all_hub_genes,"data/all_hub_genes.csv",row.names = FALSE)
+
+```
+
+```{r}
+all_hub_gene_info <- read.csv("data/all_hub_gene_info.csv")
+all_hub_genes<-read.csv("data/all_hub_genes.csv")
 ```
 
 
@@ -626,24 +649,32 @@ write.csv(all_hub_gene_info,"data/all_hub_gene_info.csv",row.names = FALSE)
 Once the hub genes were identified and saved to a file, they were blasted against the _Stigmatopora nigra_ genome, implemented on the RCH. This process is documented in the file `SMA_blast.Rmd`.
 
 
-### Further investigation of key hub genes
+### Understanding hub genes
 
 First, let's narrow down the types of genes we might want to annotate: 
 
 - hub genes that are sex-biased (or even just sex-specific?)
 - the most highly connected hub genes
 
-
-```{r}
+#### metrics related to identifying hubs and logFC
+```{r ConnectivitySignificanceDist}
 par(mfrow=c(1,2), mar=c(4,4,2,2), oma=c(2,2,2,2))
 hist(all_hub_gene_info$Connectivity,
      main="",
      xlab="Connectivity",
      ylab="number of hubs")
+
+hist(all_hub_genes$Connectivity,
+     col=scales::alpha("cornflowerblue",0.5),
+     add=TRUE)
+
 hist(all_hub_gene_info$GeneSignificance,
      main="",
      xlab="Gene significance",
      ylab="") 
+hist(all_hub_genes$GeneSignificance,
+     col=scales::alpha("cornflowerblue",0.5),
+     add=TRUE)
 text(x=-0.5, y=-600,"male",xpd=TRUE)
 text(x=0.5, y=-600,"female",xpd=TRUE)
 # note: some genes are double-counted if they appeared in multiple tissues
@@ -655,7 +686,6 @@ is there a way to better understand module-sexbias relationships?
 let's go module by module, maybe? and focus on highly significant genes in wgcna
 
 ```{r}
-mods<-c("black","blue","red","turquoise")
 organ_cols<-c("Gill" = "#20B2AA",
               "Gonad" = "#EEB422", 
               "Liver" = "#EE8262")
@@ -663,12 +693,13 @@ organ_shapes <- c(Gill = 16, Gonad = 15,Liver = 17)
 ```
 
 
-```{r }
-par(mfrow=c(2,2), mar=c(2,2,2,2))
-for(module in mods){
-  this_mod<-all_hub_gene_info[all_hub_gene_info$module.x==module,]
+```{r ModuleHubGeneSignificance}
+par(mfrow=c(1,3), mar=c(2,2,2,2))
+for(module in sig_modules){
+  this_mod<-all_hub_genes[all_hub_genes$module==module,]
   
-  plot(this_mod$GeneSignificance, this_mod$logFC,
+  plot(this_mod$GeneSignificance, 
+       this_mod$logFC,
        col=scales::alpha(organ_cols[this_mod$tissue],0.5),
        bty='l',
        pch=organ_shapes[this_mod$tissue],
@@ -687,4 +718,98 @@ outer_legend("top",
              cex=1.5)
 
 ```
+
+```{r ModuleHubConnectivity}
+par(mfrow=c(1,3), mar=c(2,2,2,2))
+for(module in sig_modules){
+  this_mod<-all_hub_genes[all_hub_genes$module==module,]
+  
+  plot(this_mod$Connectivity, 
+       this_mod$logFC,
+       col=scales::alpha(organ_cols[this_mod$tissue],0.5),
+       bty='l',
+       pch=organ_shapes[this_mod$tissue],
+       main=module,
+       xlab="",
+       ylab="")
+}
+mtext("Connectivity",1,outer=TRUE)
+mtext("logFC",2,outer=TRUE)
+outer_legend("top",
+             names(organ_cols),
+             col=organ_cols,
+             pch=organ_shapes,
+             bty='n',
+             ncol=3, 
+             cex=1.5)
+
+```
+```{r ModuleHubModuleMembership}
+par(mfrow=c(1,3), mar=c(2,2,2,2))
+for(module in sig_modules){
+  this_mod<-all_hub_genes[all_hub_genes$module==module,]
+  
+  plot(this_mod$ModuleMembership, 
+       this_mod$logFC,
+       col=scales::alpha(organ_cols[this_mod$tissue],0.5),
+       bty='l',
+       pch=organ_shapes[this_mod$tissue],
+       main=module,
+       xlab="",
+       ylab="")
+}
+mtext("Module Membership",1,outer=TRUE)
+mtext("logFC",2,outer=TRUE)
+outer_legend("top",
+             names(organ_cols),
+             col=organ_cols,
+             pch=organ_shapes,
+             bty='n',
+             ncol=3, 
+             cex=1.5)
+
+```
+
+#### Exploring specific expression patterns
+
+
+```{r}
+table(paste0(all_hub_genes$bias, all_hub_genes$tissue),
+      all_hub_genes$hub)
+```
+
+```{r}
+odd_blue<-all_hub_genes$Gene[which(all_hub_genes$hub=="blue" & 
+                all_hub_genes$tissue=="Gonad" &
+                all_hub_genes$bias!="MB")]
+all_hub_genes[all_hub_genes$Gene==odd_blue,]
+```
+```{r}
+blue_bias_counts<-tapply(all_hub_genes$bias[all_hub_genes$hub=="blue"],
+                         all_hub_genes$Gene[all_hub_genes$hub=="blue"],
+                    function(x){
+                      return(paste(x,collapse="_"))
+                    })
+oddities<-blue_bias_counts[!blue_bias_counts%in% c("UB_MB_UB","UB_UB_MB","MB_UB_UB")]
+all_hub_genes[all_hub_genes$Gene %in% names(oddities),]
+```
+
+```{r}
+hub_blast_ann<-read.csv("data/hub_blast_ann.csv")
+unique(hub_blast_ann[hub_blast_ann$qseqid %in% names(oddities),
+                     c("product","GO","Symbol","Gene_Name","TERM","ONTOLOGY","DEFINITION")])
+```
+```{r}
+red_hubs<-hub_blast_ann[hub_blast_ann$hub=="red",]
+matches<-tapply(red_hubs$product,red_hubs$qseqid,unique)
+ length(matches[!is.na(matches)])
+```
+
+```{r}
+turquoise<-hub_blast_ann[hub_blast_ann$hub=="turquoise",]
+matches<-tapply(turquoise$product,turquoise$qseqid,unique)
+ length(matches[!is.na(matches)])
+```
+```
+
 
