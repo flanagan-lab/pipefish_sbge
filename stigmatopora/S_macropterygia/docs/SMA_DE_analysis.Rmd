@@ -1568,12 +1568,28 @@ for(gene in random_ub_ss){
 
 Based on these, it looks like these cases are ones where the gene is expressed in a single female (but not the others) and highly expressed in half of the males.
 
-Given this, I think I will remove these "UB" genes -- if the model couldn't tell them apart, then probably I don't want to try to treat them as sex specific. Our sample sizes are quite low, so I'll err on the side of stringency.
+Let's also check the ones that were "UB" but had no p-value
 
 ```{r}
-ss_remove<-ssinfo[ssinfo$bias.x=="UB",]
-sex_specific_genes<-sex_specific_genes[!sex_specific_genes$merger %in% ss_remove$merger,]
-ssinfo<-ssinfo[ssinfo$bias.x!="UB",]
+random_ub_ss<-ssinfo$geneID.x[ssinfo$bias.x=="UB" & is.na(ssinfo$padj)]
+
+par(mfrow=c(3,3))
+
+for(gene in random_ub_ss){
+  organ<-ssinfo$tissue[ssinfo$geneID.x==gene]
+  plotCounts(ddsMF_SM_exp[,ddsMF_SM_exp$organ == organ], 
+             gene=gene, intgroup="sex", 
+             col= 'salmon', pch = 19)
+  
+}
+```
+
+
+Given this, I think I will remove these "UB" genes that have a non-NA p-value -- if the model couldn't tell them apart, then probably I don't want to try to treat them as sex specific. Our sample sizes are quite low, so I'll err on the side of stringency.
+
+```{r}
+ss_remove<-ssinfo$merger[which(ssinfo$bias.x=="UB" & !is.na(ssinfo$padj))]
+sex_specific_genes<-sex_specific_genes[!sex_specific_genes$merger %in% ss_remove,]
 ```
 
 
