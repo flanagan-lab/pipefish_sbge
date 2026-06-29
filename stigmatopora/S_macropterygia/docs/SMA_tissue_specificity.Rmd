@@ -702,7 +702,7 @@ From these datasets I can pull out the female-biased genes to plot logFC against
 par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gonad"])),
-     logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+     logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gonad"],
      pch=19,
      col = "#EEB42275",
@@ -710,13 +710,13 @@ plot(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
      ylab=expression(tau["TPM"]))
 points(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Liver"])),
-     logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+     logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Liver"],
      pch=19,
      col="#EE826275")
 points(sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gill"])),
-     logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+     logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gill"],
      pch=19,
      col = "#20B2AA75")
@@ -741,15 +741,15 @@ outer_legend("right",
 There appears to be a relationship between $\tau$ and female bias for the gonads and the liver, but potentially not for the gills. This may be due to a low number of female-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor-fem, echo=FALSE, message=FALSE, warning=FALSE}
-cor.test(logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+cor.test(logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gonad"], sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gonad"])), method = "spearman") #sig, positive
 
-cor.test(logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+cor.test(logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Liver"], sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Liver"])), method = "spearman") #sig, positive
 
-cor.test(logFC_tau_all$tau_fem[logFC_tau_all$bias=="FB" &
+cor.test(logFC_tau_all$tau[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gill"], sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$bias=="FB" &
                                      logFC_tau_all$tissue=="Gill"])), method = "spearman") #not sig, negative
 
@@ -784,17 +784,17 @@ logFC_tau_mal<-logFC_tau_all[which(logFC_tau_all$bias=="MB"),]
 #Plot the relationship between FC (bias) and tau for each organ
 par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
 plot(sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gonad"])),
-     logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Gonad"],
+     logFC_tau_mal$tau[logFC_tau_mal$tissue=="Gonad"],
      pch=19,
      col = "#EEB42275",
      xlab="Male bias (|log2 fold change|)",
      ylab=expression(tau["TPM"]))
 points(sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Liver"])),
-     logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Liver"],
+     logFC_tau_mal$tau[logFC_tau_mal$tissue=="Liver"],
      pch=19,
      col="#EE826275")
 points(sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gill"])),
-     logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Gill"],
+     logFC_tau_mal$tau[logFC_tau_mal$tissue=="Gill"],
      pch=19,
      col = "#20B2AA75")
 
@@ -816,11 +816,11 @@ outer_legend("right",
 There appears to be a relationship between $\tau$ and male bias for the gonads, liver, and the gills. This may be due to a low number of male-biased genes. We can look further into this relationship with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
 
 ```{r tau-v-bias-cor-mal, echo=FALSE, message=FALSE, warning=FALSE}
-cor.test(logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Gonad"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gonad"])), method = "spearman") #sig, positive
+cor.test(logFC_tau_mal$tau[logFC_tau_mal$tissue=="Gonad"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gonad"])), method = "spearman") #sig, positive
 
-cor.test(logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Liver"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Liver"])), method = "spearman") #sig, positive
+cor.test(logFC_tau_mal$tau[logFC_tau_mal$tissue=="Liver"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Liver"])), method = "spearman") #sig, positive
 
-cor.test(logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Gill"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gill"])), method = "spearman") #not sig, negative
+cor.test(logFC_tau_mal$tau[logFC_tau_mal$tissue=="Gill"], sqrt(abs(logFC_tau_mal$logFC[logFC_tau_mal$tissue=="Gill"])), method = "spearman") #not sig, negative
 
 ```
 
@@ -851,11 +851,14 @@ compare_correlations <- function(r1, r2, n1, n2) {
     p_value_two_tail = p_two_tail
   ))
 }
+```
 
+
+```{r comp-correlationsgonad}
 ##GONADS
 # First calculate correlations for each group
 female_corr_gonad <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Gonad" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Gonad" &
                           logFC_tau_all$bias=="FB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gonad" &
                           logFC_tau_all$bias=="FB"])),
@@ -863,7 +866,7 @@ female_corr_gonad <- cor.test(
 )$estimate[["rho"]]
 
 male_corr_gonad <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Gonad" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Gonad" &
                           logFC_tau_all$bias=="MB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gonad" &
                           logFC_tau_all$bias=="MB"])),
@@ -880,16 +883,19 @@ n_male_gonad <- nrow(logFC_tau_all[logFC_tau_all$tissue=="Gonad" &
 result <- compare_correlations(female_corr_gonad, male_corr_gonad, n_female_gonad, n_male_gonad)
 
 # Print results
-cat("Comparison of Correlation Coefficients:\n")
+cat("Comparison of Correlation Coefficients in Gonad:\n")
 cat(sprintf("Female correlation: %.3f\n", female_corr_gonad))
 cat(sprintf("Male correlation:   %.3f\n", male_corr_gonad))
 cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
 cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
+```
 
+
+```{r comp-correlationsliver}
 ##LIVER
 # First calculate correlations for each group
 female_corr_liver <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Liver" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Liver" &
                           logFC_tau_all$bias=="FB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Liver" &
                           logFC_tau_all$bias=="FB"])),
@@ -897,7 +903,7 @@ female_corr_liver <- cor.test(
 )$estimate[["rho"]]
 
 male_corr_liver <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Liver" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Liver" &
                           logFC_tau_all$bias=="MB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Liver" &
                           logFC_tau_all$bias=="MB"])),
@@ -914,16 +920,19 @@ n_male_liver <- nrow(logFC_tau_all[logFC_tau_all$tissue=="Liver" &
 result <- compare_correlations(female_corr_liver, male_corr_liver, n_female_liver, n_male_liver)
 
 # Print results
-cat("Comparison of Correlation Coefficients:\n")
+cat("Comparison of Correlation Coefficients in Liver:\n")
 cat(sprintf("Female correlation: %.3f\n", female_corr_liver))
 cat(sprintf("Male correlation:   %.3f\n", male_corr_liver))
 cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
 cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
+```
 
+
+```{r comp-correlationsgills}
 ##GILLS
 # First calculate correlations for each group
 female_corr_gill <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Gill" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Gill" &
                           logFC_tau_all$bias=="FB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gill" &
                           logFC_tau_all$bias=="FB"])),
@@ -931,7 +940,7 @@ female_corr_gill <- cor.test(
 )$estimate[["rho"]]
 
 male_corr_gill <- cor.test(
-  logFC_tau_all$tau_fem[logFC_tau_all$tissue=="Gill" &
+  logFC_tau_all$tau[logFC_tau_all$tissue=="Gill" &
                           logFC_tau_all$bias=="MB"],
   sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gill" &
                           logFC_tau_all$bias=="MB"])),
@@ -948,7 +957,7 @@ n_male_gill <- nrow(logFC_tau_all[logFC_tau_all$tissue=="Gill" &
 result <- compare_correlations(female_corr_gill, male_corr_gill, n_female_gill, n_male_gill)
 
 # Print results
-cat("Comparison of Correlation Coefficients:\n")
+cat("Comparison of Correlation Coefficients in Gills:\n")
 cat(sprintf("Female correlation: %.3f\n", female_corr_gill))
 cat(sprintf("Male correlation:   %.3f\n", male_corr_gill))
 cat(sprintf("Z-statistic:       %.3f\n", result$z_statistic))
@@ -956,9 +965,10 @@ cat(sprintf("Two-tailed p-value: %.3f\n", result$p_value_two_tail))
 
 ```
 
-Statistically test for differences in tau across categories and tissues
 
-```{r}
+## Test for differences in tau across categories and tissues
+
+```{r, eval=TRUE}
 logFC_tau_all$bias_group<-paste0(logFC_tau_all$bias,logFC_tau_all$bias_cat)
 
 # remove any NAs
@@ -972,6 +982,10 @@ logFC_tau_noNA$bias_group<-factor(logFC_tau_noNA$bias_cat,
                                            "High",
                                            "Extreme",
                                            "Sex-specific"))
+```
+
+
+```{r, eval=FALSE}
 tau_mod<-betareg(tau~tissue*bias_group,
              data=logFC_tau_noNA)
 saveRDS(tau_mod, "data/tau_mod_bias.RDS") # Save it because it's slow!
