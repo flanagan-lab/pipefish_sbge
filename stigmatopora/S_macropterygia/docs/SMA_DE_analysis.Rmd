@@ -1877,12 +1877,6 @@ write.table(unique(logFC_long_noNB$geneID),
 Once those sequences were fetched they were blasted against the _Stigmatopora nigra_ genome, implemented on the RCH. This process is documented in the file `SMA_blast.Rmd`.
 
 
-### Merging the BLAST filtered Data frames with the sex-biased information
-
-
-
-
-
 
 # Justification of outliers
 
@@ -1931,6 +1925,12 @@ saveRDS(vsd_all, "data/vsd_all.RDS")
 ```
 ```{r}
 vsd_all <- readRDS("data/vsd_all.RDS")
+#get the samples again because they had been sampled out
+samples <- read.table("data/SM_samples.txt", header = TRUE)
+
+#Make sure the conditions are in the samples file as a factor
+samples$sex <- as.factor(samples$sex)
+samples$organ <- as.factor(samples$organ)
 ```
 
 
@@ -1951,9 +1951,7 @@ percentVar <- round(sumpca$importance[2,]*100, digits = 2)
 ```
 
 
-```{r figPCAwithS10, fig.height=6, fig.width=12}
-#Create the blank pdf to store the plot in
-#pdf("figs/Fig_PCA1v2_all.pdf",height = 6,width=6)
+```{r PCAwithS10, fig.height=6, fig.width=12, fig.keep='last'}
 
 #Set the plotting parameters
 par(mar=c(4,5,4,1), oma=c(2,2,2,2),
@@ -1999,7 +1997,5 @@ outer_legend("top",
              ncol = 3,
              pt.cex = 3)
 
-#dev.off()
 ```
-
 
