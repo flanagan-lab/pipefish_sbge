@@ -316,6 +316,48 @@ for(organ in c("Liver","Gonad")){
 ```
 
 ```{r}
+cairo_pdf(paste0("figs/Tau_","Gill",".pdf"),height=5,width=7)
+par(mar=c(3,5.5,1,1))
+  this_dat<-plotting_dat[plotting_dat$tissue=="Gill",]
+  this_dat<-this_dat[!is.na(this_dat$group),]
+  this_dat$group<-factor(this_dat$group,
+                             levels=c(
+                               "UnbiasedUB",
+                               "LowFB",
+                               "MedFB",
+                               "HighFB",
+                               "ExtremeFB",
+                             #  "Sex-specificFB",
+                               "LowMB",
+                               "MedMB",
+                               "HighMB",
+                               "ExtremeMB",
+                               "Sex-specificMB"
+                             ))
+  r<-ridgeline(x=this_dat$tau,
+            y=this_dat$group,
+            palette = scales::alpha(c(bias_colors["UB"],
+                                      rep(sex_cols["F"],4),
+                                      rep(sex_cols["M"],5)),0.75),
+            border = scales::alpha(c(bias_colors["UB"],
+                                      rep(sex_cols["F"],4),
+                                      rep(sex_cols["M"],5)),0.75),
+            labels=c("Unbiased",
+                     rep(c("Low",
+                     "Med",
+                     "High",
+                     "Extreme"),2),
+                     "Sex-specific"),
+            bty='l',
+            mode=TRUE,
+            )
+  mtext(side=3,organ,font=2,cex=1.5)
+  mtext(side=1,expression(tau["TPM"]),line=2,cex=1.5)
+  dev.off()
+```
+
+
+```{r}
 corrsGill<-image_ggplot(image_read_pdf('figs/Gill_logFC_tau.pdf'),
                         interpolate = TRUE)
 corrsGonad<-image_ggplot(image_read_pdf('figs/Gonad_logFC_tau.pdf'),
