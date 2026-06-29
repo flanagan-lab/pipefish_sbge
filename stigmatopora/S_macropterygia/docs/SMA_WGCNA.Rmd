@@ -184,10 +184,14 @@ dim(textMatrix)<- dim(moduleTraitCor)
 # get module counts in correct order
 moduleCounts<-table(ModuleColors)
 moduleCounts<-moduleCounts[gsub("ME","",dimnames(moduleTraitCor)[[1]])]
+
+# get list of modules significantly associated with sex
+sig_modules<-gsub("ME","",
+                  rownames(moduleTraitPvalue[signif(moduleTraitPvalue[,"female"], 1)<=0.05,]))
 ```
 
 
-```{r}
+```{r, eval=FALSE, fig.width=650, fig.height=550}
 par(mar= c(6, 8.5, 3, 3))
 #display the correlation values with a heatmap plot
 
@@ -205,8 +209,8 @@ labeledHeatmap(Matrix= moduleTraitCor,
 
 ```
 
-```{r moduleSexHeatmap, fig.width=350, fig.height=550}
-pdf("figs/moduleSexHeatmap.pdf",height = 5.5, width=3.5)
+```{r moduleSexHeatmap, fig.width=350, fig.height=550, eval=FALSE}
+#pdf("figs/moduleSexHeatmap.pdf",height = 5.5, width=3.5)
 par(mar= c(3, 5, 1, 5))
 #display the correlation values with a heatmap plot
 
@@ -225,11 +229,11 @@ text(x=c(1.4,1.4),
      y=c(0.965, 0.05),
      labels = c("female","male"),
      xpd=TRUE)
-dev.off()
+#dev.off()
 ```
 
-```{r moduleOrganHeatmap, fig.width=500, fig.height=550}
-pdf("figs/moduleOrganHeatmap.pdf", height=5.5, width=5.5)
+```{r moduleOrganHeatmap, fig.width=500, fig.height=550, eval=FALSE}
+#pdf("figs/moduleOrganHeatmap.pdf", height=5.5, width=5.5)
 par(mar= c(3,5,1,3))
 #display the correlation values with a heatmap plot
 
@@ -244,7 +248,7 @@ labeledHeatmap(Matrix= moduleTraitCor[,-1],
 			cex.text= 1, 
 			zlim= c(-1,1), 
 			main="")
-dev.off()
+#dev.off()
 ```
 
 ## Compare to other values
@@ -289,7 +293,7 @@ gonad<- logFC_long_all[logFC_long_all$tissue=="Gonad" &
 We can make a supplemental figure showing how the genes fall into the various categories per module per tissue.
 
 ```{r moduleBiasBarplot, fig.width=1000, fig.height=550}
-pdf("figs/moduleBiasBarplot.pdf", height=5.5, width=10.5)
+#pdf("figs/moduleBiasBarplot.pdf", height=5.5, width=10.5)
 colors<-rep(levels(as.factor(logFC_long_all$module)), each=3)
 
 par(mfrow=c(1,3), oma=c(1.2,3.4,3,0.5), mar=c(2.5,2,1,0.5))
@@ -341,7 +345,7 @@ outer_legend(
   bty="n",
   cex=1.75
 )
-dev.off()
+#dev.off()
 ```
 
 
@@ -443,8 +447,8 @@ dev.off()
 
 Because tau is a single value per gene, there is no point in looking at it across tissues (unless we wanted to also incorporate logFC, which I do not at this stage). So this is a one-way ANOVA type of analysis.
 
-```{r, eval=FALSE}
-tau_col_dat<-logFC_long_all[which(logFC_long_all$module != "grey"),]
+```{r}
+tau_col_dat<-logFC_long_mod[which(logFC_long_mod$module != "grey"),]
 tau_col_dat <- tau_col_dat[!is.na(tau_col_dat$module),]
 tau_col_dat$module <- factor(tau_col_dat$module)
 
