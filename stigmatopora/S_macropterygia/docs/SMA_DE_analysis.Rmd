@@ -1739,9 +1739,14 @@ max(table(logFC_long$geneID)) # check that this is 3!
 write.csv(logFC_long, "data/logFC_long_sexspecific_all.csv",
           row.names = FALSE)
 ```
+```{r}
+logFC_long<-read.csv("data/logFC_long_sexspecific_all.csv",
+                     stringsAsFactors = TRUE)
+```
 
 
 
+```{r, eval=FALSE}
 #Create  subset of our long dataset that does not include the non-biased genes
 logFC_long_noNB <- logFC_long[logFC_long$bias_cat != "Unbiased",]
 
