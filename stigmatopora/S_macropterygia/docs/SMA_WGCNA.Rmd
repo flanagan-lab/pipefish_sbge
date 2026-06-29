@@ -378,7 +378,7 @@ module_medians[unlist(lapply(sig_modules,
                       grep,
                       x=names(module_medians)))]
 
-lapply(names(table(ModuleColors))[!names(table(ModuleColors)) %in% c("black","blue","red","turquoise")],
+lapply(names(table(ModuleColors))[!names(table(ModuleColors)) %in% sig_modules],
        function(col){
          max(module_medians[grep(col, names(module_medians))])
        })
@@ -390,8 +390,8 @@ pdf("figs/WGCNA_logFC.pdf",height = 4,width = 10)
 plot_cols<-unlist(lapply(levels(as.factor(ModuleColors)),rep,times=3))
 
 par(mar=c(4,4,1,1))
-plot(x=0:34,
-     y=seq(-30,50,length.out=35),
+plot(x=0:37,
+     y=seq(-30,50,length.out=38),
       xaxt='n',
         xlab="",
         ylab="logFC",
@@ -401,7 +401,7 @@ plot(x=0:34,
 abline(h=0,lty=1,lwd=1)
 abline(h=2,lty=2,lwd=2,col="grey")
 abline(h=-2,lty=2,lwd=2,col="grey")
-vioplot(logFC_long_all$logFC~logFC_long_all$tissue + logFC_long_all$module,
+vioplot(logFC_long_mod$logFC~logFC_long_mod$tissue + logFC_long_mod$module,
         col=plot_cols,
         add=TRUE,
         bty='n',
@@ -412,24 +412,27 @@ vioplot(logFC_long_all$logFC~logFC_long_all$tissue + logFC_long_all$module,
         lineCol=plot_cols,
         colMed="white",
         plotCentre=TRUE)
-points(x=13:15,
-       y=logFC_long_all$logFC[which(logFC_long_all$module=="grey")],
+grey_vals<-logFC_long_mod[which(logFC_long_mod$module=="grey"),]
+grey_vals<-grey_vals$logFC[order(grey_vals$tissue)]
+points(x=16:18,
+       y=grey_vals,
        col="black",
        bg="grey",
        pch=23,
        cex=1.25)
-axis(1,at=1:33,labels=rep(c("Gill","Gonad","Liver"),11),las=2)
+axis(1,at=1:36,labels=rep(c("Gill","Gonad","Liver"),12),las=2)
 axis(2,
      at=c(-30,30),
      c("female-biased","male-biased"),
-     tick = 0,pos = -2.5)  
+     tick = 0,
+     pos = -2.5)  
      
     
 
 # get the correlation coefficients
 cor_vals<-signif(moduleTraitCor, 2)[,1]
 names(cor_vals)<-gsub("ME","",names(cor_vals))
-cor_vals<-cor_vals[levels(logFC_long_all$module)]
+cor_vals<-cor_vals[levels(logFC_long_mod$module)]
 
 sig_sex_cor<-which(moduleTraitPvalue[,1]<=0.05)
 sig_x<-which(plot_cols %in% gsub("ME","",names(sig_sex_cor)))
