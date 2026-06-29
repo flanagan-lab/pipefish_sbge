@@ -78,7 +78,7 @@ I've subsetted the dataset to only include the genes that showed some form of bi
 ```{r}
 
 # make sure we have trait data only for the individuals in the analysis
-trait_data<-trait_data[rownames(trait_data) %in% rownames(expression_data),]
+trait_data<-trait_data[rownames(trait_data) %in% rownames(expression_data_subset),]
 ```
 
 
@@ -270,11 +270,12 @@ for(col in unique(ModuleColors)){
 logFC_long_all$module<-as.factor(logFC_long_all$module)
 
 
-write.csv(logFC_long_all,"data/logFC_long_all_module_updated.csv",row.names = FALSE)
+write.csv(logFC_long_all,"data/logFC_tau_module_all.csv",row.names = FALSE)
 ```
 
 ```{r}
-logFC_long_all<-read.csv("data/logFC_long_all_module_updated.csv")
+logFC_long_all<-read.csv("data/logFC_tau_module_all.csv",
+                         stringsAsFactors = TRUE)
 # sanity checks: missing ones are UB
 summary(logFC_long_all$bias[is.na(logFC_long_all$module)])
 ```
