@@ -263,6 +263,24 @@ write.csv(blast_filtered,
 ```
 
 
+### Merging the BLAST filtered Data frames with the sex-biased information
+
+Not all of the trinity genes had a BLAST hit come back, but I still want to include what those genes are in the dataset. To do this I am merging all of the genes with the filtered BLAST dataset and if there are genes that did not have any hits (i.e. are not in the filtered BLAST database) then they will receive an "NA".
+
+```{r merge-SB-blast, eval=FALSE}
+all_blast_filtered<-read.csv("data/sex_bias_blast_filtered_annotated.csv")
+# get the sex bias and tau info
+logFC_tau_all <- read.csv("data/logFC_tau_all.csv")
+
+
+blast_merged <- merge(logFC_tau_all, all_blast_filtered, by.x = "geneID", by.y="qseqid", all = TRUE)
+
+
+#write once then comment out
+write.csv(as.data.frame(blast_merged), 
+          "data/SuppTable_SM_blast_annotated.csv", 
+          row.names = FALSE)
+```
 
 
 ## Sex-biased AND tissue specific
