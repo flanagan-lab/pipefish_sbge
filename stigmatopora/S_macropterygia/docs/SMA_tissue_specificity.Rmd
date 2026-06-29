@@ -437,62 +437,9 @@ logFC_tau_all <- read.csv("data/logFC_tau_all.csv")
 ```
 
 
-For the moment, we're focusing on the not-unbiased genes
+### Correlating $\tau$ and logFC per organ
 
-```{r}
-logFC_tau_sig<-logFC_tau_all[logFC_tau_all$bias!="UB",]
-```
-
-
-```{r tau-v-bias-corr, echo=FALSE, fig.cap="Sex bias (in terms of the square root of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are sex biased in the gonads, liver, and gills."}
-#Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
-plot(sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gonad"])),
-     logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gonad"],
-     pch=19,
-     col = "#EEB42275",
-     xlab="Sex bias (|log2 fold change|)",
-     ylab=expression(tau["TPM"]))
-points(sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Liver"])),
-     logFC_tau_sig$tau[logFC_tau_sig$tissue=="Liver"],
-     pch=19,
-     col="#EE826275")
-points(sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gill"])),
-     logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gill"],
-     pch=19,
-     col = "#20B2AA75")
-
-
-#Add a legend
-outer_legend("right",
-             c("Gonad", "Liver", "Gill"),
-             col = c("#EEB422", "#EE8262", "#20B2AA"),
-             pch = 19,
-             lwd = 3,
-             bty = 'n',
-             cex = 1.5,
-             lty = 1:3,
-             ncol = 1)
-
-
-```
-
-The absolute value of the log2 fold change was square root transformed. There appears to be something going on between $\tau$ and sex bias (Fig. \@ref(fig:tau-v-bias)). Not sure why this is, but let's look further into it with a Spearman's rank correlation test. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
-
-```{r tau-v-bias-cor, echo=FALSE, message=FALSE, warning=FALSE}
-cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gonad"], sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gonad"])), method = "spearman") #sig, positive
-cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Liver"], sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Liver"])), method = "spearman") #sig, positive
-cor.test(logFC_tau_sig$tau[logFC_tau_sig$tissue=="Gill"], sqrt(abs(logFC_tau_sig$logFC[logFC_tau_sig$tissue=="Gill"])), method = "spearman") # not sig, negative 
-
-```
-
-
-
-### All significantly expressed genes $\tau$ and logFC per organ
-
-Only looking at the logFC for the sex-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
-
-I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed outliers.
+We will use the square-root transformed absolute value of logFC here.
 
 
 ```{r plot-tau-v-FC, echo=FALSE, fig.cap="Sex bias (in terms of the absolute value of the log2FoldChange) versus tissue specificity (tau) for all genes that are significantly expressed in the gonads, liver, and gills."}
@@ -524,7 +471,8 @@ outer_legend("right",
   ncol = 1)
 ```
 
-The absolute value of the log2 fold change was square root transformed. We can see somewhat similar patterns as when we only plotted the sex biased genes (Fig. \@ref(fig:tau-v-bias)). When we add in all of the points, however, it seems that the best fit line for the liver now points downward (Fig. \@ref(fig:tau-v-FC)). Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
+The absolute value of the log2 fold change was square root transformed. 
+
 
 ```{r tau-v-FC-cor, echo=FALSE, warning=FALSE}
 cor.test(logFC_tau_all$tau[logFC_tau_all$tissue=="Gonad"], sqrt(abs(logFC_tau_all$logFC[logFC_tau_all$tissue=="Gonad"])), method = "spearman") #sig, positive
@@ -713,55 +661,6 @@ geom_point(data = logFC_tau_all[logFC_tau_all$bias == "UB",], aes(x=bias_cat, y=
 
 # Female-biased genes only
 
-## Correlating $\tau$ and logFC for all the signficantly expressed genes in each organ
-Only looking at the logFC for the female-biased genes may be affecting the relationship that I am seeing between sex bias and $\tau$, especially in the organs where the samples size is very small if I am only including sex-biased genes (like the liver and gills). 
-
-I used the same steps as above to see how the relationship changes when I add in ALL of the genes that are significantly expressed for each organ. In this datasets I have removed all rows outliers.
-
-```{r tau-v-fem-bias-UB, echo=FALSE, fig.cap="Female bias versus tissue specificity (tau) for all genes that are female biased in the gonads, liver, and gills."}
-
-no_males<-logFC_tau_all[logFC_tau_all$bias!="MB",]
-#Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
-plot(sqrt(abs(no_males$logFC[no_males$tissue=="Gonad"])),
-     no_males$tau[no_males$tissue=="Gonad"],
-     pch=19,
-     col = "#EEB42275",
-     xlab="Female bias (|log2 fold change|)",
-     ylab=expression(tau_fem["TPM"]))
-points(sqrt(abs(no_males$logFC[no_males$tissue=="Liver"])),
-     no_males$tau[no_males$tissue=="Liver"],
-     pch=19,
-     col="#EE826275")
-points(sqrt(abs(no_males$logFC[no_males$tissue=="Gill"])),
-     no_males$tau[no_males$tissue=="Gill"],
-     pch=19,
-     col = "#20B2AA75")
-
-
-#Add a legend
-outer_legend("right",
-             c("Gonad", "Liver", "Gill"),
-             col = c("#EEB422", "#EE8262", "#20B2AA"),
-             pch = 19,
-             lwd = 3,
-             bty = 'n',
-             cex = 1.5,
-             lty = 1:3,
-             ncol = 1)
-
-
-```
-
-We can see wildly different patterns now: when we add in all of the points it seems that the best fit line for the gonads and gills both point downward. Let's see how the Spearman's rank correlation test have changed. This was done between $\tau$ and the $|log2FoldChange|$ for each organ separately.
-
-```{r tau-v-FC-cor-sig, echo=FALSE, warning=FALSE}
-cor.test(no_males$tau[no_males$tissue=="Gonad"], abs(no_males$logFC[no_males$tissue=="Gonad"]), method = "spearman") #sig, positive
-cor.test(no_males$tau[no_males$tissue=="Liver"], abs(no_males$logFC[no_males$tissue=="Liver"]), method = "spearman") #sig, positive
-cor.test(no_males$tau[no_males$tissue=="Gill"], abs(no_males$logFC[no_males$tissue=="Gill"]), method = "spearman") #sig, positive 
-
-```
-
 
 ## Categories of DE and $\tau$ in female-biased genes for each organ
 
@@ -926,88 +825,6 @@ cor.test(logFC_tau_mal$tau_mal[logFC_tau_mal$tissue=="Gill"], sqrt(abs(logFC_tau
 ```
 
 We can see a significant positive correlation in the gonads and liver, but no significant correlation in the gills.
-
-
-```{r tau-v-mal-bias-UB, echo=FALSE, fig.cap="Male bias versus tissue specificity (tau) for all genes that are female biased in the gonads, liver, and gills."}
-
-no_females <- logFC_tau_all[logFC_tau_all != "FB",]
-
-#Plot the relationship between FC (bias) and tau for each organ
-par(mar=c(8.1, 4.1, 4.1, 5.1), xpd=FALSE)
-plot(sqrt(abs(no_females$logFC[no_females$tissue=="Gonad"])),
-     no_females$tau[no_females$tissue=="Gonad"],
-     pch=19,
-     col = "#EEB42275",
-     xlab="Male bias (|log2 fold change|)",
-     ylab=expression(tau_mal["TPM"]))
-points(sqrt(abs(no_females$logFC[no_females$tissue=="Liver"])),
-     no_females$tau[no_females$tissue=="Liver"],
-     pch=19,
-     col="#EE826275")
-points(sqrt(abs(no_females$logFC[no_females$tissue=="Gill"])),
-     no_females$tau[no_females$tissue=="Gill"],
-     pch=19,
-     col = "#20B2AA75")
-
-
-
-#Add a legend
-outer_legend("right",
-             c("Gonad", "Liver", "Gill"),
-             col = c("#EEB422", "#EE8262", "#20B2AA"),
-             pch = 19,
-             lwd = 3,
-             bty = 'n',
-             cex = 1.5,
-             lty = 1:3,
-             ncol = 1)
-
-
-```
-
-# Values with Tau > 0.75
-
-```{r tau-0.75, eval=FALSE}
-#import dataset
-tau_75 <- read.csv("data/tau_75.csv")
-
-# Reshape the data from wide to long format
-tau_75_long <- tau_75 %>%
-  pivot_longer(
-    cols = c(all_samples, female_samples, male_samples),
-    names_to = "sample_type",
-    values_to = "count"
-  )
-
-# Create three separate plots
-gonad_plot <- ggplot(filter(tau_75_long, tissue == "gonad"),
-                     aes(x = sample_type, y = count)) +
-  geom_col(width = 0.7) +
-  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
-  theme_minimal() +
-  labs(title = "Genes with tau > 0.75 in Gonad Tissue") +
-  ylim(0, 430)
-
-liver_plot <- ggplot(filter(tau_75_long, tissue == "liver"),
-                     aes(x = sample_type, y = count)) +
-  geom_col(width = 0.7) +
-  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
-  theme_minimal() +
-  labs(title = "Genes with tau > 0.75 in Liver Tissue") +
-  ylim(0, 430)
-
-gill_plot <- ggplot(filter(tau_75_long, tissue == "gill"),
-                   aes(x = sample_type, y = count)) +
-  geom_col(width = 0.7) +
-  scale_fill_manual(values = c("#A9A9A9", "#7fc97f", "#beaed4")) +
-  theme_minimal() +
-  labs(title = "Genes with tau > 0.75 in Gill Tissue") +
-  ylim(0, 430)
-
-gonad_plot
-liver_plot
-gill_plot
-```
 
 # Statistically comparing correlations from all groups
 
