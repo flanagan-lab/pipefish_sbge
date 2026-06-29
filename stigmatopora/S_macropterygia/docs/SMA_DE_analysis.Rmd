@@ -906,6 +906,100 @@ mtext("log-transformed mean expression per gene",1, outer=TRUE)
 ```
 
 
+## Robustness check
+
+
+```{r}
+alternative_filtering <- data.frame(
+  organ = c(rep("gill",2),rep("liver",2),rep("gonad",2)),
+  bias = rep(c("FB","MB"),3)
+)
+```
+```{r}
+alternative_filtering$sig_only<-c(
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange < 0,]),
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange > 0,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange < 0,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange > 0,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange < 0,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 0,])
+)
+```
+```{r}
+alternative_filtering$logFC1_sig<-c(
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange < -1,]),
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange > 1,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange < -1,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange > 1,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange < -1,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 1,])
+)
+```
+```{r}
+alternative_filtering$logFC1.5_sig<-c(
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange < -1.5,]),
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange > 1.5,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange < -1.5,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange > 1.5,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange < -1.5,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 1.5,])
+)
+
+```
+```{r}
+alternative_filtering$logFC1_only<-c(
+  nrow(gill_con_res[gill_con_res$log2FoldChange < -1,]),
+  nrow(gill_con_res[gill_con_res$log2FoldChange > 1,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange < -1,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange > 1,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange < -1,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange > 1,])
+)
+```
+```{r}
+alternative_filtering$logFC1.5_only<-c(
+  nrow(gill_con_res[gill_con_res$log2FoldChange < -1.5,]),
+  nrow(gill_con_res[gill_con_res$log2FoldChange > 1.5,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange < -1.5,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange > 1.5,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange < -1.5,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange > 1.5,])
+)
+
+```
+```{r}
+alternative_filtering$logFC2_only<-c(
+  nrow(gill_con_res[gill_con_res$log2FoldChange < -2,]),
+  nrow(gill_con_res[gill_con_res$log2FoldChange > 2,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange < -2,]),
+  nrow(liver_con_res[liver_con_res$log2FoldChange > 2,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange < -2,]),
+  nrow(gonad_con_res[gonad_con_res$log2FoldChange > 2,])
+)
+```
+```{r}
+alternative_filtering$logFC2_sig<-c(
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange < -2,]),
+  nrow(gill_con_res_noNA[gill_con_res_noNA$padj <= 0.05 & gill_con_res_noNA$log2FoldChange > 2,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange < -2,]),
+  nrow(liver_con_res_noNA[liver_con_res_noNA$padj <= 0.05 & liver_con_res_noNA$log2FoldChange > 2,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange < -2,]),
+  nrow(gonad_con_res_noNA[gonad_con_res_noNA$padj <= 0.05 & gonad_con_res_noNA$log2FoldChange > 2,])
+)
+
+```
+```{r}
+alternative_filtering <- t(alternative_filtering[,c(1,2,6,7,8,3,4,5,9)])
+```
+
+
+```{r}
+kable(alternative_filtering,"latex",booktab=TRUE)
+```
+
+
+
+
 ## Variation in FC across sex-bias and tissue type
 I want to create a plot the highlights the variation we see in fold-change both across the different biases groups (male-biased, female-biased, and non-biased) within one tissue type and across all of the tissue types. To do this I first need to create a "long" dataset in the following format:
 
