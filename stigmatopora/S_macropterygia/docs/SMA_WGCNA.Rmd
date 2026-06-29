@@ -351,28 +351,30 @@ outer_legend(
 
 
 ```{r}
-mod_lm<-lm(rank(logFC_long_all$logFC)~as.factor(logFC_long_all$tissue) *as.factor(logFC_long_all$module))
+# remove genes not in module analyses
+logFC_long_mod<-logFC_long_all[logFC_long_all$geneID %in% colnames(expression_data_subset),]
+
+mod_lm<-lm(rank(logFC_long_mod$logFC)~as.factor(logFC_long_mod$tissue) *as.factor(logFC_long_mod$module))
 anova(mod_lm)
 mod_labs<-multcompLetters4(aov(mod_lm), 
                            TukeyHSD(aov(mod_lm)))
 mod_labs
 ```
-```{r}
+```{r moduleTukeyPlot}
 par(mfrow=c(3,1))
 plot(TukeyHSD(aov(mod_lm)))
 ```
 ```{r}
 tukey_tab<-TukeyHSD(aov(mod_lm))
-tukey_tab[[3]][grep("black",rownames(tukey_tab[[3]])),]
 ```
 
 
 ```{r}
-module_medians<-tapply(logFC_long_all$logFC,
-       paste(logFC_long_all$tissue, logFC_long_all$module),
+module_medians<-tapply(logFC_long_mod$logFC,
+       paste(logFC_long_mod$tissue, logFC_long_mod$module),
        median,
        na.rm=TRUE)
-module_medians[unlist(lapply(c("black","blue","red","turquoise"),
+module_medians[unlist(lapply(sig_modules,
                       grep,
                       x=names(module_medians)))]
 
