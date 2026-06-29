@@ -432,6 +432,52 @@ tissue_sex_go_table<-rbind(
 colnames(tissue_sex_go_table)<-c("GO_Term","Number of matches", "bias","tissue")
 write.csv(tissue_sex_go_table, "data/tissue_sex_GO_table.csv",row.names = FALSE, quote=FALSE)
 ```
+```{r}
+
+terms_by_genes<-tapply(tissue_sex_blast_ann$qseqid,
+                       tissue_sex_blast_ann$TERM,
+                       function(x){ return(length(unique(x)))})
+terms_to_include <- names(terms_by_genes[terms_by_genes>5])
+
+tissue_sex_go_subset<-tissue_sex_go_table[which(tissue_sex_go_table$GO_Term %in% terms_to_include),]
+tissue_sex_go_subset <- tissue_sex_go_subset[which(tissue_sex_go_subset$`Number of matches`>=5),]
+
+write.table(tissue_sex_go_subset,
+          "data/tissue_sex_GO_subset.txt",
+          sep='\t',
+          row.names=FALSE,
+          quote=FALSE,
+          col.names = TRUE)
+```
+
+
+```{r}
+tissue_sex_blast_ann[which.max(tissue_sex_blast_ann$tau),]
+tissue_sex_blast_ann[which.max(tissue_sex_blast_ann$logFC),]
+
+
+unique(tissue_sex_blast_ann$TERM[tissue_sex_blast_ann$bias_cat=="Sex-specific"])
+
+
+tissue_sex_blast_ann[grep("estro",tissue_sex_blast_ann$TERM),]
+```
+
+```{r}
+tau_order<-order(tissue_sex_blast_ann$tau,decreasing = TRUE)
+top_tau_genes<-unique(tissue_sex_blast_ann$qseqid[tau_order])[1:20]
+
+top_tau<-tissue_sex_blast_ann[tissue_sex_blast_ann$qseqid%in% top_tau_genes,]
+remove_cols<-c("Qualifier","With_From","GO_ID","Evidence_Code","Aspect","DEFINITION","tau_fem","tau_mal")
+top_tau<-top_tau[,!colnames(top_tau)%in% remove_cols]
+top_tau<-unique(top_tau)
+write.table(top_tau,"data/top_tau_annotated.txt",
+            sep='\t',
+            col.names=TRUE,
+            row.names=FALSE,
+            quote=FALSE)
+```
+
+
 
 ## Hub genes
 
