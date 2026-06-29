@@ -19,12 +19,13 @@ always_allow_html: true
 This document contains some code that was adapted from other scripts, including code originally authored by Coley Tosto and Emily Beasley.
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir='../',fig_path="../imgs/")
 knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 ```{r setdir}
-knitr::opts_knit$set(root.dir='../',
-                     fig_path="../figs/")
+knitr::opts_knit$set(root.dir='../')
+knitr::opts_chunk$set(fig.path = "../figs/",
+                      dev="png",
+                      dpi=300)
 ```
 ```{r}
 logFC_tau_all<-read.csv("data/logFC_tau_all.csv")
