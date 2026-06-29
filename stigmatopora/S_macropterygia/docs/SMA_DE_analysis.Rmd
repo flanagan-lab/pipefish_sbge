@@ -1718,15 +1718,24 @@ for(i in 1:nrow(sex_specific_genes)){
   }
 }
 ```
-```{r}
+```{r, eval=FALSE}
+# fix the bias category for any that are sex-specific with p = nA
+logFC_long$bias[logFC_long$bias=="UB"& logFC_long$bias_cat=="Sex-specific"]<- ifelse(
+  logFC_long$logFC[logFC_long$bias=="UB"& logFC_long$bias_cat=="Sex-specific"] < 0, "MB","FB"
+)
+```
+
+```{r, eval=FALSE}
 dim(logFC_long)
 length(unique(logFC_long$geneID))
 table(logFC_long$bias_cat)
+table(logFC_long$bias, logFC_long$bias_cat)
+
+max(table(logFC_long$geneID)) # check that this is 3!
 ```
 
-The maximum number of observations per gene is `r max(table(logFC_long$geneID))`, which is what we would expect -- one per organ. So that's great!
 
-```{r}
+```{r, eval=FALSE}
 write.csv(logFC_long, "data/logFC_long_sexspecific_all.csv",
           row.names = FALSE)
 ```
